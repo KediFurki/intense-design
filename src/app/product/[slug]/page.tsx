@@ -3,10 +3,10 @@ import { products } from "@/server/db/schema";
 import { eq } from "drizzle-orm";
 import { notFound } from "next/navigation";
 import Image from "next/image";
-import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { Check, ShoppingCart } from "lucide-react";
-// Dynamic import'u sildik, normal import yapıyoruz:
+import { Check } from "lucide-react";
+// YENİ BUTONU ÇAĞIRIYORUZ
+import AddToCartButton from "@/components/shop/add-to-cart-button";
 import ModelViewer from "@/components/shop/model-viewer";
 
 interface ProductPageProps {
@@ -27,12 +27,10 @@ export default async function ProductPage({ params }: ProductPageProps) {
     <div className="container mx-auto px-4 py-10">
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-12">
         
-        {/* SOL: GÖRSEL & 3D ALANI */}
+        {/* SOL: GÖRSEL & 3D ALANI (Aynı kaldı) */}
         <div className="space-y-4">
           <div className="aspect-square bg-slate-100 rounded-2xl overflow-hidden relative border shadow-sm group">
-            
             {product.modelUrl ? (
-              // Artık normal bir bileşen gibi kullanıyoruz, SSR ayarı içinde gizli.
               <ModelViewer 
                 src={product.modelUrl} 
                 poster={product.images?.[0] || ""} 
@@ -46,7 +44,6 @@ export default async function ProductPage({ params }: ProductPageProps) {
               )
             )}
           </div>
-          
           <p className="text-center text-sm text-slate-500">
              {product.modelUrl 
                 ? "👆 Touch to rotate. Use AR button on mobile." 
@@ -54,7 +51,7 @@ export default async function ProductPage({ params }: ProductPageProps) {
           </p>
         </div>
 
-        {/* SAĞ TARAF (AYNEN KALIYOR) */}
+        {/* SAĞ TARAF */}
         <div className="space-y-8">
              <div>
              <Badge variant="secondary" className="mb-4 text-blue-600 bg-blue-50">In Stock</Badge>
@@ -64,25 +61,25 @@ export default async function ProductPage({ params }: ProductPageProps) {
           <div className="prose prose-slate text-slate-600 leading-relaxed">{product.description}</div>
           
            <div className="grid grid-cols-3 gap-4 border-t border-b py-6">
-             <div>
-                <p className="text-sm font-semibold text-slate-900">Width</p>
-                <p className="text-slate-500">{product.width || "-"} mm</p>
-             </div>
-             <div>
-                <p className="text-sm font-semibold text-slate-900">Height</p>
-                <p className="text-slate-500">{product.height || "-"} mm</p>
-             </div>
-             <div>
-                <p className="text-sm font-semibold text-slate-900">Depth</p>
-                <p className="text-slate-500">{product.depth || "-"} mm</p>
-             </div>
+             {/* Özellikler tablosu aynı */}
+             <div><p className="text-sm font-semibold">Width</p><p className="text-slate-500">{product.width || "-"} mm</p></div>
+             <div><p className="text-sm font-semibold">Height</p><p className="text-slate-500">{product.height || "-"} mm</p></div>
+             <div><p className="text-sm font-semibold">Depth</p><p className="text-slate-500">{product.depth || "-"} mm</p></div>
           </div>
 
           <div className="flex items-center gap-4 pt-4">
-            <Button size="lg" className="w-full text-lg h-14 bg-slate-900 hover:bg-slate-800">
-               <ShoppingCart className="mr-2" />
-               Add to Cart
-            </Button>
+            {/* YENİ CLIENT BUTTON BURADA */}
+            <AddToCartButton 
+              data={{
+                id: product.id,
+                name: product.name,
+                slug: product.slug,
+                price: product.price,
+                image: product.images?.[0] || "",
+                categoryName: product.category?.name
+              }}
+              className="w-full h-14 text-lg"
+            />
           </div>
           
            <div className="flex items-center gap-2 text-sm text-green-600">

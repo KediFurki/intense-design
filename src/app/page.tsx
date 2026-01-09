@@ -6,10 +6,9 @@ import { desc, eq } from "drizzle-orm";
 import { ProductCard } from "@/components/shop/product-card";
 import Link from "next/link";
 import { LogOut, User } from "lucide-react";
+import Header from "@/components/layout/header"; // Global Header eklendi
 
 export default async function Home() {
-  const session = await auth();
-
   // Ürünleri çek (En yeniler en üstte)
   const latestProducts = await db
     .select({
@@ -27,41 +26,11 @@ export default async function Home() {
   return (
     <div className="min-h-screen bg-slate-50">
       
-      {/* 1. HEADER (Basit Üst Menü) */}
-      <header className="sticky top-0 z-50 w-full border-b bg-white/80 backdrop-blur supports-[backdrop-filter]:bg-white/60">
-        <div className="container mx-auto px-4 h-16 flex items-center justify-between">
-          <Link href="/" className="text-2xl font-bold tracking-tight text-slate-900">
-            Instant<span className="text-blue-600">Design</span>
-          </Link>
+      {/* NOT: Global Header artık layout.tsx içinde olduğu için 
+          buradan <header> kısmını SİLDİK. Böylece çift header olmuyor.
+      */}
 
-          <div className="flex items-center gap-4">
-            {session?.user ? (
-              <div className="flex items-center gap-4">
-                {session.user.role === "admin" && (
-                   <Link href="/admin">
-                     <Button variant="outline" size="sm">Admin Panel</Button>
-                   </Link>
-                )}
-                <div className="flex items-center gap-2 text-sm font-medium">
-                   <User size={16} />
-                   {session.user.name}
-                </div>
-                <form action={async () => { "use server"; await signOut(); }}>
-                  <Button variant="ghost" size="icon" title="Sign Out">
-                    <LogOut size={18} />
-                  </Button>
-                </form>
-              </div>
-            ) : (
-              <Link href="/login">
-                <Button>Sign In</Button>
-              </Link>
-            )}
-          </div>
-        </div>
-      </header>
-
-      {/* 2. HERO SECTION (Karşılama Alanı) */}
+      {/* HERO SECTION (Karşılama Alanı) */}
       <section className="bg-slate-900 text-white py-20">
         <div className="container mx-auto px-4 text-center space-y-4">
           <h1 className="text-4xl md:text-6xl font-bold">
@@ -74,7 +43,7 @@ export default async function Home() {
         </div>
       </section>
 
-      {/* 3. PRODUCT GRID (Ürün Listesi) */}
+      {/* PRODUCT GRID (Ürün Listesi) */}
       <main className="container mx-auto px-4 py-12">
         <h2 className="text-2xl font-bold mb-8 text-slate-900">New Arrivals</h2>
         

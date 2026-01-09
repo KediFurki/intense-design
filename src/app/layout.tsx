@@ -1,7 +1,8 @@
 import type { Metadata } from "next";
 import { Inter } from "next/font/google";
 import "./globals.css";
-import { Toaster } from "@/components/ui/sonner"; // Bildirim kutumuz
+import { Toaster } from "@/components/ui/sonner";
+import Header from "@/components/layout/header"; // <-- Yeni Header
 
 const inter = Inter({ subsets: ["latin"] });
 
@@ -18,8 +19,13 @@ export default function RootLayout({
   return (
     <html lang="en">
       <body className={inter.className}>
-        {children}
-        {/* Bildirimlerin çıkacağı yer */}
+        {/* Header'ı en tepeye koyduk */}
+        <Header /> 
+        
+        <main>
+          {children}
+        </main>
+        
         <Toaster /> 
       </body>
     </html>

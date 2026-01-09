@@ -7,11 +7,12 @@ import {
   primaryKey,
   integer,
 } from "drizzle-orm/pg-core";
-import { relations } from "drizzle-orm"; // <-- BUNU EKLEDİK
+import { relations } from "drizzle-orm";
 import type { AdapterAccount } from "next-auth/adapters";
 
 // 1. ENUMS
 export const roleEnum = pgEnum("role", ["admin", "customer"]);
+export const orderStatusEnum = pgEnum("order_status", ["pending", "processing", "shipped", "delivered", "cancelled"]);
 
 // 2. USERS TABLE
 export const users = pgTable("user", {
@@ -84,42 +85,85 @@ export const categories = pgTable("category", {
 // 7. PRODUCTS
 export const products = pgTable("product", {
   id: uuid("id").defaultRandom().primaryKey(),
-  
-  // SQL Foreign Key (Veritabanı düzeyinde ilişki)
   categoryId: uuid("categoryId").references(() => categories.id),
-  
   name: text("name").notNull(),
   slug: text("slug").notNull().unique(),
   description: text("description").notNull(),
   price: integer("price").notNull(),
   stock: integer("stock").default(0),
-  
-  // Teknik Özellikler
   width: integer("width"),
   height: integer("height"),
   depth: integer("depth"),
   material: text("material"),
-  
-  // Medya Dosyaları
   images: text("images").array(), 
-  modelUrl: text("modelUrl"), // 3D Model dosyası
-  
+  modelUrl: text("modelUrl"),
   createdAt: timestamp("created_at").defaultNow(),
   updatedAt: timestamp("updated_at").defaultNow(),
 });
 
-// --- İLİŞKİLER (RELATIONS) ---
-// Burası Drizzle'ın sorgularda tabloları birleştirmesini sağlar.
+// 8. ORDERS (Siparişler)
+export const orders = pgTable("order", {
+  id: uuid("id").defaultRandom().primaryKey(),
+  userId: uuid("userId").references(() => users.id), // Üye olmayanlar için null olabilir
+  
+  // Müşteri Bilgileri (Guest Checkout için)
+  customerName: text("customer_name").notNull(),
+  customerEmail: text("customer_email").notNull(),
+  
+  // Adres Bilgileri
+  address: text("address").notNull(),
+  city: text("city").notNull(),
+  zipCode: text("zip_code").notNull(),
+  
+  // Sipariş Detayları
+  totalAmount: integer("total_amount").notNull(), // Kuruş cinsinden
+  status: orderStatusEnum("status").default("pending"),
+  
+  createdAt: timestamp("created_at").defaultNow(),
+});
 
-// Bir Ürünün Bir Kategorisi olur.
-export const productsRelations = relations(products, ({ one }) => ({
+// 9. ORDER ITEMS (Sipariş İçeriği)
+export const orderItems = pgTable("order_item", {
+  id: uuid("id").defaultRandom().primaryKey(),
+  orderId: uuid("orderId").notNull().references(() => orders.id, { onDelete: "cascade" }),
+  productId: uuid("productId").references(() => products.id), // Ürün silinse bile sipariş kaydı kalsın diye strict yapmadık ama normalde tutulmalı
+  
+  // O anki fiyatı kaydediyoruz (Ürün fiyatı değişirse sipariş etkilenmesin)
+  price: integer("price").notNull(),
+  quantity: integer("quantity").notNull(),
+  
+  // Ürün adı vs. snapshot olarak da tutulabilir ama şimdilik ID yeterli
+});
+
+// --- İLİŞKİLER (RELATIONS) ---
+
+export const productsRelations = relations(products, ({ one, many }) => ({
   category: one(categories, {
     fields: [products.categoryId],
     references: [categories.id],
   }),
+  orderItems: many(orderItems),
 }));
 
-// Bir Kategorinin Çok Ürünü olur.
 export const categoriesRelations = relations(categories, ({ many }) => ({
   products: many(products),
+}));
+
+export const ordersRelations = relations(orders, ({ one, many }) => ({
+  user: one(users, {
+    fields: [orders.userId],
+    references: [users.id],
+  }),
+  items: many(orderItems),
+}));
+
+export const orderItemsRelations = relations(orderItems, ({ one }) => ({
+  order: one(orders, {
+    fields: [orderItems.orderId],
+    references: [orders.id],
+  }),
+  product: one(products, {
+    fields: [orderItems.productId],
+    references: [products.id],
+  }),
 }));
