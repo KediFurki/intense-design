@@ -6,16 +6,16 @@ import { desc, eq } from "drizzle-orm";
 import { ProductCard } from "@/components/shop/product-card";
 import Link from "next/link";
 import { LogOut, User } from "lucide-react";
-import Header from "@/components/layout/header"; // Global Header eklendi
+// Global Header artık layout'ta, buraya import etmiyoruz.
 
 export default async function Home() {
-  // Ürünleri çek (En yeniler en üstte)
   const latestProducts = await db
     .select({
       id: products.id,
       name: products.name,
       slug: products.slug,
       price: products.price,
+      stock: products.stock, // <-- Stok verisi çekiliyor
       image: products.images,
       categoryName: categories.name,
     })
@@ -26,11 +26,7 @@ export default async function Home() {
   return (
     <div className="min-h-screen bg-slate-50">
       
-      {/* NOT: Global Header artık layout.tsx içinde olduğu için 
-          buradan <header> kısmını SİLDİK. Böylece çift header olmuyor.
-      */}
-
-      {/* HERO SECTION (Karşılama Alanı) */}
+      {/* Hero Section */}
       <section className="bg-slate-900 text-white py-20">
         <div className="container mx-auto px-4 text-center space-y-4">
           <h1 className="text-4xl md:text-6xl font-bold">
@@ -43,7 +39,7 @@ export default async function Home() {
         </div>
       </section>
 
-      {/* PRODUCT GRID (Ürün Listesi) */}
+      {/* Product Grid */}
       <main className="container mx-auto px-4 py-12">
         <h2 className="text-2xl font-bold mb-8 text-slate-900">New Arrivals</h2>
         
@@ -56,6 +52,7 @@ export default async function Home() {
                 name={product.name}
                 slug={product.slug}
                 price={product.price}
+                stock={product.stock} // <-- Karta gönderiliyor
                 categoryName={product.categoryName}
                 imageUrl={product.image ? product.image[0] : null}
               />

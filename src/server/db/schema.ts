@@ -90,7 +90,7 @@ export const products = pgTable("product", {
   slug: text("slug").notNull().unique(),
   description: text("description").notNull(),
   price: integer("price").notNull(),
-  stock: integer("stock").default(0),
+  stock: integer("stock").default(0).notNull(), // null olmasın diye notNull ekledik
   width: integer("width"),
   height: integer("height"),
   depth: integer("depth"),
@@ -101,42 +101,37 @@ export const products = pgTable("product", {
   updatedAt: timestamp("updated_at").defaultNow(),
 });
 
-// 8. ORDERS (Siparişler)
+// 8. ORDERS (GÜNCELLENDİ)
 export const orders = pgTable("order", {
   id: uuid("id").defaultRandom().primaryKey(),
-  userId: uuid("userId").references(() => users.id), // Üye olmayanlar için null olabilir
+  userId: uuid("userId").references(() => users.id),
   
-  // Müşteri Bilgileri (Guest Checkout için)
   customerName: text("customer_name").notNull(),
   customerEmail: text("customer_email").notNull(),
+  customerPhone: text("customer_phone").notNull(), // Yeni
   
-  // Adres Bilgileri
-  address: text("address").notNull(),
+  country: text("country").notNull(), // Yeni
+  state: text("state").notNull(),     // Yeni
   city: text("city").notNull(),
+  address: text("address").notNull(),
   zipCode: text("zip_code").notNull(),
   
-  // Sipariş Detayları
-  totalAmount: integer("total_amount").notNull(), // Kuruş cinsinden
+  totalAmount: integer("total_amount").notNull(),
   status: orderStatusEnum("status").default("pending"),
   
   createdAt: timestamp("created_at").defaultNow(),
 });
 
-// 9. ORDER ITEMS (Sipariş İçeriği)
+// 9. ORDER ITEMS
 export const orderItems = pgTable("order_item", {
   id: uuid("id").defaultRandom().primaryKey(),
   orderId: uuid("orderId").notNull().references(() => orders.id, { onDelete: "cascade" }),
-  productId: uuid("productId").references(() => products.id), // Ürün silinse bile sipariş kaydı kalsın diye strict yapmadık ama normalde tutulmalı
-  
-  // O anki fiyatı kaydediyoruz (Ürün fiyatı değişirse sipariş etkilenmesin)
+  productId: uuid("productId").references(() => products.id),
   price: integer("price").notNull(),
   quantity: integer("quantity").notNull(),
-  
-  // Ürün adı vs. snapshot olarak da tutulabilir ama şimdilik ID yeterli
 });
 
-// --- İLİŞKİLER (RELATIONS) ---
-
+// --- İLİŞKİLER ---
 export const productsRelations = relations(products, ({ one, many }) => ({
   category: one(categories, {
     fields: [products.categoryId],

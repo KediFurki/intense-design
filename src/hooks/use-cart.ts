@@ -9,14 +9,14 @@ export interface CartItem {
   image?: string;
   slug: string;
   categoryName?: string;
-  quantity: number; // Miktar eklendi
+  quantity: number;
 }
 
 interface CartStore {
   items: CartItem[];
   addItem: (data: CartItem) => void;
   removeItem: (id: string) => void;
-  decreaseItem: (id: string) => void; // Azaltma fonksiyonu
+  decreaseItem: (id: string) => void;
   removeAll: () => void;
 }
 
@@ -40,7 +40,7 @@ export const useCart = create(
           });
           toast.success("Item quantity updated 🛒");
         } else {
-          // Yoksa yeni ekle (Miktar 1 olarak)
+          // Yoksa yeni ekle
           set({ items: [...get().items, { ...data, quantity: 1 }] });
           toast.success("Item added to cart 🛒");
         }
@@ -59,7 +59,6 @@ export const useCart = create(
             ),
           });
         } else {
-          // 1 tane kaldıysa ve azaltılıyorsa sil
           set({ items: [...currentItems.filter((item) => item.id !== id)] });
         }
       },

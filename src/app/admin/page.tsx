@@ -1,22 +1,16 @@
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { DollarSign, Package, ShoppingBag, Users } from "lucide-react";
 import { db } from "@/server/db";
-import { orders, products, users } from "@/server/db/schema";
+import { orders, products } from "@/server/db/schema";
 import { count, sum, eq } from "drizzle-orm";
 
 export default async function AdminDashboardPage() {
   
-  // 1. Toplam Ciro
   const [revenueResult] = await db.select({ value: sum(orders.totalAmount) }).from(orders);
   const totalRevenue = revenueResult.value ? Number(revenueResult.value) : 0;
 
-  // 2. Toplam Ürün Sayısı
   const [productsResult] = await db.select({ count: count() }).from(products);
-  
-  // 3. Toplam Sipariş Sayısı
   const [ordersResult] = await db.select({ count: count() }).from(orders);
-
-  // 4. Bekleyen Siparişler
   const [pendingOrdersResult] = await db.select({ count: count() }).from(orders).where(eq(orders.status, "pending"));
 
   return (
@@ -25,7 +19,6 @@ export default async function AdminDashboardPage() {
         <h1 className="text-3xl font-bold tracking-tight text-slate-900">Dashboard</h1>
       </div>
 
-      {/* KPI CARDS - GERÇEK VERİLER */}
       <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
         <StatsCard 
             title="Total Revenue" 

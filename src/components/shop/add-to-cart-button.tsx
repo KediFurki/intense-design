@@ -1,7 +1,7 @@
 "use client";
 
 import { Button } from "@/components/ui/button";
-import { ShoppingCart } from "lucide-react";
+import { ShoppingCart, Ban } from "lucide-react";
 import { useCart } from "@/hooks/use-cart";
 import { MouseEventHandler } from "react";
 import { cn } from "@/lib/utils";
@@ -15,6 +15,7 @@ interface AddToCartButtonProps {
     image?: string;
     categoryName?: string;
   };
+  stock: number;
   className?: string;
   size?: "default" | "sm" | "lg" | "icon";
   showIcon?: boolean;
@@ -23,16 +24,20 @@ interface AddToCartButtonProps {
 
 export default function AddToCartButton({ 
   data, 
+  stock,
   className, 
   size = "default", 
   showIcon = true,
   text = "Add to Cart" 
 }: AddToCartButtonProps) {
   const cart = useCart();
+  const isOutOfStock = stock <= 0;
 
   const onAddToCart: MouseEventHandler<HTMLButtonElement> = (event) => {
     event.stopPropagation();
     event.preventDefault();
+
+    if (isOutOfStock) return;
 
     cart.addItem({
       id: data.id,
@@ -49,13 +54,17 @@ export default function AddToCartButton({
     <Button 
       onClick={onAddToCart}
       size={size}
+      disabled={isOutOfStock}
       className={cn(
-        "rounded-full font-bold transition-all duration-200 active:scale-95 cursor-pointer shadow-sm hover:shadow-md",
+        "rounded-full font-bold transition-all duration-200 shadow-sm",
+        isOutOfStock 
+          ? "bg-slate-200 text-slate-500 cursor-not-allowed hover:bg-slate-200" 
+          : "active:scale-95 cursor-pointer hover:shadow-md",
         className
       )}
     >
-      {showIcon && <ShoppingCart className="mr-2 h-4 w-4" />}
-      {text}
+      {showIcon && (isOutOfStock ? <Ban className="mr-2 h-4 w-4" /> : <ShoppingCart className="mr-2 h-4 w-4" />)}
+      {isOutOfStock ? "Sold Out" : text}
     </Button>
   );
 }

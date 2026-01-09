@@ -5,7 +5,6 @@ import { notFound } from "next/navigation";
 import Image from "next/image";
 import { Badge } from "@/components/ui/badge";
 import { Check } from "lucide-react";
-// YENİ BUTONU ÇAĞIRIYORUZ
 import AddToCartButton from "@/components/shop/add-to-cart-button";
 import ModelViewer from "@/components/shop/model-viewer";
 
@@ -27,7 +26,7 @@ export default async function ProductPage({ params }: ProductPageProps) {
     <div className="container mx-auto px-4 py-10">
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-12">
         
-        {/* SOL: GÖRSEL & 3D ALANI (Aynı kaldı) */}
+        {/* SOL: GÖRSEL & 3D */}
         <div className="space-y-4">
           <div className="aspect-square bg-slate-100 rounded-2xl overflow-hidden relative border shadow-sm group">
             {product.modelUrl ? (
@@ -51,25 +50,26 @@ export default async function ProductPage({ params }: ProductPageProps) {
           </p>
         </div>
 
-        {/* SAĞ TARAF */}
+        {/* SAĞ: BİLGİLER */}
         <div className="space-y-8">
              <div>
-             <Badge variant="secondary" className="mb-4 text-blue-600 bg-blue-50">In Stock</Badge>
+             <Badge variant={product.stock > 0 ? "secondary" : "destructive"} className="mb-4">
+                {product.stock > 0 ? "In Stock" : "Out of Stock"}
+             </Badge>
              <h1 className="text-4xl font-bold text-slate-900 mb-2">{product.name}</h1>
              <p className="text-2xl font-light text-slate-600">€{(product.price / 100).toFixed(2)}</p>
           </div>
           <div className="prose prose-slate text-slate-600 leading-relaxed">{product.description}</div>
           
            <div className="grid grid-cols-3 gap-4 border-t border-b py-6">
-             {/* Özellikler tablosu aynı */}
              <div><p className="text-sm font-semibold">Width</p><p className="text-slate-500">{product.width || "-"} mm</p></div>
              <div><p className="text-sm font-semibold">Height</p><p className="text-slate-500">{product.height || "-"} mm</p></div>
              <div><p className="text-sm font-semibold">Depth</p><p className="text-slate-500">{product.depth || "-"} mm</p></div>
           </div>
 
           <div className="flex items-center gap-4 pt-4">
-            {/* YENİ CLIENT BUTTON BURADA */}
             <AddToCartButton 
+              stock={product.stock}
               data={{
                 id: product.id,
                 name: product.name,

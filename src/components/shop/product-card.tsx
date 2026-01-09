@@ -4,7 +4,6 @@ import { Card, CardContent, CardFooter } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge"; 
 import Image from "next/image";
 import Link from "next/link";
-// YENİ BUTONU KULLAN
 import AddToCartButton from "./add-to-cart-button";
 
 interface ProductCardProps {
@@ -12,11 +11,12 @@ interface ProductCardProps {
   name: string;
   slug: string;
   price: number;
+  stock: number; // Stok eklendi
   categoryName: string | null;
   imageUrl: string | null;
 }
 
-export function ProductCard({ id, name, slug, price, categoryName, imageUrl }: ProductCardProps) {
+export function ProductCard({ id, name, slug, price, stock, categoryName, imageUrl }: ProductCardProps) {
   return (
     <Card className="overflow-hidden group h-full flex flex-col border-none shadow-md hover:shadow-xl transition-all duration-300">
       
@@ -34,6 +34,13 @@ export function ProductCard({ id, name, slug, price, categoryName, imageUrl }: P
           </div>
         )}
         
+        {/* Stok Az Kaldı Etiketi */}
+        {stock > 0 && stock < 5 && (
+             <div className="absolute top-2 right-2 z-10">
+                <Badge variant="destructive" className="shadow-sm">Only {stock} left!</Badge>
+             </div>
+        )}
+
         {categoryName && (
           <div className="absolute top-2 left-2 z-10">
             <Badge variant="secondary" className="bg-white/90 backdrop-blur text-slate-900 shadow-sm">
@@ -58,10 +65,10 @@ export function ProductCard({ id, name, slug, price, categoryName, imageUrl }: P
         <div className="text-xl font-bold text-slate-900">
           €{(price / 100).toFixed(2)}
         </div>
-        {/* YENİ BUTON BİLEŞENİ */}
         <AddToCartButton 
           size="sm"
           text="Add"
+          stock={stock} 
           data={{ id, name, slug, price, categoryName: categoryName || "", image: imageUrl || "" }}
         />
       </CardFooter>

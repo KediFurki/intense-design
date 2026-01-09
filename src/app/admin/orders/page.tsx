@@ -43,31 +43,40 @@ export default async function AdminOrdersPage() {
             ordersList.map((order) => (
                 <Card key={order.id} className="overflow-hidden border border-slate-200 shadow-sm">
                     <CardHeader className="bg-slate-50/50 border-b py-4">
-                        <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
+                        <div className="flex flex-col md:flex-row md:items-start justify-between gap-6">
                             
-                            {/* Müşteri Bilgisi */}
-                            <div className="space-y-1">
+                            <div className="space-y-1.5">
                                 <div className="flex items-center gap-2">
-                                    <Badge variant="outline" className="text-xs">#{order.id.slice(0, 8)}</Badge>
+                                    <Badge variant="outline" className="text-xs">Order #{order.id.slice(0, 8)}</Badge>
                                     <span className="text-sm text-slate-500">{order.createdAt?.toLocaleDateString()}</span>
                                 </div>
-                                <div className="flex items-center gap-2 font-semibold text-slate-900">
-                                    <User size={16} className="text-blue-600" />
-                                    {order.customerName}
+                                
+                                <div>
+                                    <div className="flex items-center gap-2 font-semibold text-slate-900 text-lg">
+                                        <User size={18} className="text-blue-600" />
+                                        {order.customerName}
+                                    </div>
+                                    <div className="text-sm text-slate-600 ml-6 space-y-0.5">
+                                        <p>{order.customerEmail}</p>
+                                        <p>{order.customerPhone}</p>
+                                    </div>
                                 </div>
-                                <div className="flex items-start gap-2 text-sm text-slate-500">
-                                    <MapPin size={16} className="shrink-0 mt-0.5" />
-                                    <span>{order.address}, {order.zipCode} {order.city}</span>
+
+                                <div className="flex items-start gap-2 text-sm text-slate-500 mt-2 p-2 bg-white rounded border border-slate-200">
+                                    <MapPin size={16} className="shrink-0 mt-0.5 text-slate-400" />
+                                    <span>
+                                        {order.address}<br/>
+                                        {order.zipCode} {order.city} / {order.state}<br/>
+                                        <span className="font-semibold text-slate-700">{order.country}</span>
+                                    </span>
                                 </div>
                             </div>
 
-                            {/* Yönetim ve Tutar */}
                             <div className="flex flex-col items-end gap-3">
                                 <div className="text-right">
                                     <p className="text-xs text-muted-foreground">Total Amount</p>
                                     <p className="font-bold text-xl text-slate-900">€{(order.totalAmount / 100).toFixed(2)}</p>
                                 </div>
-                                {/* Client Component - Aksiyonlar */}
                                 <OrderActions 
                                     orderId={order.id} 
                                     currentStatus={order.status || "pending"} 
@@ -76,7 +85,6 @@ export default async function AdminOrdersPage() {
                         </div>
                     </CardHeader>
 
-                    {/* Ürün Listesi Tablosu */}
                     <CardContent className="p-0">
                         <Table>
                             <TableHeader>
