@@ -9,32 +9,23 @@ const intlMiddleware = createMiddleware(routing);
 
 export default auth((req) => {
   const { nextUrl } = req;
-  
   const isLoggedIn = !!req.auth;
-  const isAuthRoute = nextUrl.pathname.includes("/login") || nextUrl.pathname.includes("/register");
-  const isAdminRoute = nextUrl.pathname.includes("/admin");
+
   const isApiAuthRoute = nextUrl.pathname.startsWith("/api/auth");
+  const isPublicRoute = nextUrl.pathname === "/" || nextUrl.pathname.startsWith("/login");
+  const isAdminRoute = nextUrl.pathname.includes("/admin");
 
-  // API rotalarına karışma
-  if (isApiAuthRoute) {
-    return;
-  }
+  if (isApiAuthRoute) return;
 
-  // Admin koruması (Login değilse login'e at)
   if (isAdminRoute && !isLoggedIn) {
     return Response.redirect(new URL("/login", nextUrl));
   }
 
-  // Eğer kullanıcı giriş yapmışsa ve login sayfasına gitmeye çalışıyorsa ana sayfaya at
-  if (isAuthRoute && isLoggedIn) {
-    return Response.redirect(new URL("/", nextUrl));
-  }
-
-  // Diğer tüm rotalar için i18n middleware'ini çalıştır
+  // i18n middleware'ini her zaman çalıştır
   return intlMiddleware(req);
 });
 
 export const config = {
-  // Hem dil dosyalarını hem de NextAuth gereksinimlerini kapsayan matcher
-  matcher: ['/((?!api|_next|.*\\..*).*)', '/', '/(bg|en|tr|de)/:path*']
+  // Statik dosyaları ve API'leri hariç tut
+  matcher: ['/((?!api|_next|.*\\..*).*)', '/', '/(tr|en|bg|de)/:path*']
 };
