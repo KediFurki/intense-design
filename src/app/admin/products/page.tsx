@@ -13,6 +13,7 @@ import Image from "next/image";
 import { db } from "@/server/db";
 import { products, categories } from "@/server/db/schema";
 import { desc, eq } from "drizzle-orm";
+import { deleteProduct } from "@/server/actions/products"; // <-- EKLENDİ
 
 export default async function AdminProductsPage() {
   // Join sorgusu: Ürünleri ve Kategori isimlerini çek
@@ -39,7 +40,7 @@ export default async function AdminProductsPage() {
           </p>
         </div>
         <Link href="/admin/products/new">
-          <Button>
+          <Button className="cursor-pointer"> {/* <-- cursor-pointer eklendi */}
             <Plus className="mr-2 h-4 w-4" /> Add Product
           </Button>
         </Link>
@@ -68,20 +69,20 @@ export default async function AdminProductsPage() {
               productsList.map((product) => (
                 <TableRow key={product.id}>
                   <TableCell>
-  {product.image && product.image[0] ? (
-    <Image
-      src={product.image[0]}
-      alt={product.name}
-      width={40} // Genişlik (px)
-      height={40} // Yükseklik (px)
-      className="rounded-md object-cover"
-    />
-  ) : (
-    <div className="w-10 h-10 rounded-md bg-slate-100 flex items-center justify-center">
-      <Box className="h-5 w-5 text-slate-400" />
-    </div>
-  )}
-</TableCell>
+                    {product.image && product.image[0] ? (
+                      <Image
+                        src={product.image[0]}
+                        alt={product.name}
+                        width={40}
+                        height={40}
+                        className="rounded-md object-cover"
+                      />
+                    ) : (
+                      <div className="w-10 h-10 rounded-md bg-slate-100 flex items-center justify-center">
+                        <Box className="h-5 w-5 text-slate-400" />
+                      </div>
+                    )}
+                  </TableCell>
                   <TableCell className="font-medium">{product.name}</TableCell>
                   <TableCell>
                     <span className="inline-flex items-center rounded-full border px-2.5 py-0.5 text-xs font-semibold transition-colors focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2 border-transparent bg-secondary text-secondary-foreground hover:bg-secondary/80">
@@ -92,14 +93,21 @@ export default async function AdminProductsPage() {
                   <TableCell>{product.stock}</TableCell>
                   <TableCell className="text-right">
                     <div className="flex justify-end gap-2">
-                    <Link href={`/admin/products/${product.id}`}>
-                      <Button variant="ghost" size="icon">
-                        <Pencil className="h-4 w-4" />
-                      </Button>
+                      <Link href={`/admin/products/${product.id}`}>
+                        <Button variant="ghost" size="icon" className="cursor-pointer hover:bg-slate-100">
+                          <Pencil className="h-4 w-4" />
+                        </Button>
                       </Link>
-                      <Button variant="ghost" size="icon" className="text-red-500 hover:text-red-600">
-                        <Trash2 className="h-4 w-4" />
-                      </Button>
+                      
+                      {/* SİLME İŞLEMİ FORM İÇİNDE */}
+                      <form action={async () => {
+                        "use server";
+                        await deleteProduct(product.id);
+                      }}>
+                        <Button variant="ghost" size="icon" className="text-red-500 hover:text-red-600 cursor-pointer hover:bg-red-50" type="submit">
+                          <Trash2 className="h-4 w-4" />
+                        </Button>
+                      </form>
                     </div>
                   </TableCell>
                 </TableRow>

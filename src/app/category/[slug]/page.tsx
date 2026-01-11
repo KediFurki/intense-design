@@ -1,12 +1,12 @@
 import { db } from "@/server/db";
 import { products, categories, favorites } from "@/server/db/schema";
-import { eq, and, gte, lte, desc, asc, type SQL } from "drizzle-orm"; // type SQL eklendi
+import { eq, and, gte, lte, gt, desc, asc, type SQL } from "drizzle-orm"; // gt (greater than) eklendi
 import { notFound } from "next/navigation";
 import { ProductCard } from "@/components/shop/product-card";
 import { auth } from "@/auth";
 import Link from "next/link";
 import { Button } from "@/components/ui/button";
-import { Separator } from "@/components/ui/separator";
+import { FilterSidebar } from "@/components/shop/filter-sidebar";
 import {
   Select, SelectContent, SelectItem, SelectTrigger, SelectValue,
 } from "@/components/ui/select";
@@ -36,19 +36,19 @@ export default async function CategoryPage({ params, searchParams }: CategoryPag
     categoryName = category.name;
   }
 
-  // 2. Filtreleri Hazırla
+  // 2. Filtreler
   const sort = search.sort || "newest";
   const minPrice = search.min ? Number(search.min) * 100 : 0;
   const maxPrice = search.max ? Number(search.max) * 100 : 1000000;
+  const onlyInStock = search.instock === "true"; // Stok kontrolü
 
-  // 3. Sorguyu Oluştur (DÜZELTME BURADA)
+  // 3. Sorgu
   const whereConditions = [
     gte(products.price, minPrice),
     lte(products.price, maxPrice),
     categoryId ? eq(products.categoryId, categoryId) : undefined,
+    onlyInStock ? gt(products.stock, 0) : undefined, // <-- YENİ: Stok > 0
   ].filter((item): item is SQL => item !== undefined); 
-  // .filter(Boolean) yerine yukarıdaki type predicate'i kullandık. 
-  // Bu sayede TS bunun artık içinde undefined olmayan bir SQL dizisi olduğunu biliyor.
 
   let orderBy;
   if (sort === "price_asc") orderBy = asc(products.price);
@@ -56,14 +56,14 @@ export default async function CategoryPage({ params, searchParams }: CategoryPag
   else orderBy = desc(products.createdAt);
 
   const productsList = await db.query.products.findMany({
-    where: and(...whereConditions), // Artık 'as any' kullanmaya gerek yok
+    where: and(...whereConditions),
     orderBy: orderBy,
     with: {
         category: true,
     }
   });
 
-  // 4. Kullanıcının Favorilerini Çek
+  // 4. Favoriler
   let userFavorites: string[] = [];
   if (session?.user) {
     const favs = await db.select({ pid: favorites.productId }).from(favorites).where(eq(favorites.userId, session.user.id));
@@ -72,7 +72,7 @@ export default async function CategoryPage({ params, searchParams }: CategoryPag
 
   return (
     <div className="container mx-auto px-4 py-10">
-      {/* BAŞLIK & BREADCRUMB */}
+      {/* ... (Header ve Diğer kısımlar AYNI KALIYOR) ... */}
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-8">
         <div>
             <div className="flex items-center gap-2 text-sm text-muted-foreground mb-1">
@@ -82,11 +82,8 @@ export default async function CategoryPage({ params, searchParams }: CategoryPag
             <p className="text-slate-500">{productsList.length} products found</p>
         </div>
 
-        {/* SIRALAMA */}
         <div className="flex items-center gap-2">
             <span className="text-sm text-slate-600">Sort by:</span>
-            
-            {/* Basit Sıralama Linkleri (Client Component yapmadan) */}
             <div className="flex gap-2 text-sm font-medium">
                 <Link href="?sort=newest" className={`px-3 py-1 rounded-md transition-colors ${sort === 'newest' ? 'bg-slate-900 text-white' : 'bg-slate-100 text-slate-600 hover:bg-slate-200'}`}>Newest</Link>
                 <Link href="?sort=price_asc" className={`px-3 py-1 rounded-md transition-colors ${sort === 'price_asc' ? 'bg-slate-900 text-white' : 'bg-slate-100 text-slate-600 hover:bg-slate-200'}`}>Price ↑</Link>
@@ -96,30 +93,9 @@ export default async function CategoryPage({ params, searchParams }: CategoryPag
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-4 gap-10">
-        
-        {/* SOL: FİLTRELER (SIDEBAR) */}
-        <div className="hidden lg:block space-y-8">
-            <div>
-                <h3 className="font-semibold mb-4">Price Range</h3>
-                <div className="space-y-2">
-                    <Link href="?min=0&max=10000" className={`block text-sm ${!search.max ? "font-bold text-blue-600" : "text-slate-600 hover:text-blue-600"}`}>All Prices</Link>
-                    <Link href="?min=0&max=200" className="block text-sm text-slate-600 hover:text-blue-600">Under €200</Link>
-                    <Link href="?min=200&max=500" className="block text-sm text-slate-600 hover:text-blue-600">€200 - €500</Link>
-                    <Link href="?min=500&max=1000" className="block text-sm text-slate-600 hover:text-blue-600">€500 - €1000</Link>
-                    <Link href="?min=1000" className="block text-sm text-slate-600 hover:text-blue-600">€1000+</Link>
-                </div>
-            </div>
-            <Separator />
-            <div>
-                <h3 className="font-semibold mb-4">Availability</h3>
-                <div className="flex items-center gap-2">
-                    <input type="checkbox" id="instock" className="rounded border-slate-300" />
-                    <label htmlFor="instock" className="text-sm text-slate-600">In Stock Only</label>
-                </div>
-            </div>
+        <div className="hidden lg:block">
+            <FilterSidebar />
         </div>
-
-        {/* SAĞ: ÜRÜN LİSTESİ */}
         <div className="lg:col-span-3">
             {productsList.length > 0 ? (
                 <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
@@ -134,17 +110,17 @@ export default async function CategoryPage({ params, searchParams }: CategoryPag
                             categoryName={product.category?.name || ""}
                             imageUrl={product.images?.[0] || null}
                             isFavorited={userFavorites.includes(product.id)}
+                            description={product.description}
                         />
                     ))}
                 </div>
             ) : (
                 <div className="py-20 text-center border-2 border-dashed rounded-xl bg-slate-50">
-                    <p className="text-slate-500 text-lg">No products found in this category.</p>
-                    <Link href="/"><Button variant="link">Return to Home</Button></Link>
+                    <p className="text-slate-500 text-lg">No products found matching your filters.</p>
+                    <Link href="/category/all"><Button variant="link">Clear Filters</Button></Link>
                 </div>
             )}
         </div>
-
       </div>
     </div>
   );

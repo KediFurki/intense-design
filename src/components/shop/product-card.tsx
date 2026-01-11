@@ -5,20 +5,21 @@ import { Badge } from "@/components/ui/badge";
 import Image from "next/image";
 import Link from "next/link";
 import AddToCartButton from "./add-to-cart-button";
-import { FavoriteButton } from "./favorite-button"; // <-- EKLENDİ
+import { FavoriteButton } from "./favorite-button";
 
 interface ProductCardProps {
   id: string;
   name: string;
   slug: string;
+  description: string | null; // <-- EKLENDİ
   price: number;
   stock: number;
   categoryName: string | null;
   imageUrl: string | null;
-  isFavorited?: boolean; // <-- EKLENDİ (Opsiyonel yaptık ki mevcut çağrılar patlamasın)
+  isFavorited?: boolean;
 }
 
-export function ProductCard({ id, name, slug, price, stock, categoryName, imageUrl, isFavorited = false }: ProductCardProps) {
+export function ProductCard({ id, name, slug, description, price, stock, categoryName, imageUrl, isFavorited = false }: ProductCardProps) {
   return (
     <Card className="overflow-hidden group h-full flex flex-col border-none shadow-md hover:shadow-xl transition-all duration-300 relative">
       
@@ -34,7 +35,6 @@ export function ProductCard({ id, name, slug, price, stock, categoryName, imageU
           <div className="flex items-center justify-center h-full text-slate-400">No Image</div>
         )}
         
-        {/* Favori Butonu - Sağ Üst */}
         <div className="absolute top-2 right-2 z-20">
            <FavoriteButton productId={id} initialIsFavorited={isFavorited} />
         </div>
@@ -56,7 +56,10 @@ export function ProductCard({ id, name, slug, price, stock, categoryName, imageU
         <Link href={`/product/${slug}`} className="hover:text-blue-600 transition-colors">
             <h3 className="font-semibold text-lg text-slate-900 leading-tight mb-1">{name}</h3>
         </Link>
-        <p className="text-sm text-slate-500 line-clamp-2">Luxury furniture for your home.</p>
+        {/* DİNAMİK AÇIKLAMA (Maksimum 2 satır gösterir) */}
+        <p className="text-sm text-slate-500 line-clamp-2 min-h-[2.5rem]">
+            {description || "No description available."}
+        </p>
       </CardContent>
 
       <CardFooter className="p-4 pt-0 flex items-center justify-between">

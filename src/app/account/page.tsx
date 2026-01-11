@@ -1,7 +1,7 @@
 import { auth } from "@/auth";
 import { redirect } from "next/navigation";
 import { db } from "@/server/db";
-import { orders, users } from "@/server/db/schema"; // addresses kaldırıldı
+import { orders, users, favorites } from "@/server/db/schema";
 import { eq, desc } from "drizzle-orm";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -9,7 +9,9 @@ import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Button } from "@/components/ui/button";
-import { Package, MapPin, User } from "lucide-react"; // Settings kaldırıldı
+import { Package, MapPin, User, Heart } from "lucide-react";
+import { AddressDialog } from "@/components/account/address-dialog"; // <-- EKLENDİ
+import { ProductCard } from "@/components/shop/product-card";
 
 export default async function AccountPage() {
   const session = await auth();
@@ -20,6 +22,7 @@ export default async function AccountPage() {
     where: eq(users.id, session.user.id),
     with: {
         addresses: true,
+        favorites: { with: { product: true } }, // <-- Favoriler eklendi
         orders: {
             orderBy: [desc(orders.createdAt)],
             with: { items: { with: { product: true } } }
@@ -50,6 +53,7 @@ export default async function AccountPage() {
       <Tabs defaultValue="orders" className="space-y-6">
         <TabsList>
           <TabsTrigger value="orders" className="gap-2"><Package size={16}/> Orders</TabsTrigger>
+          <TabsTrigger value="favorites" className="gap-2"><Heart size={16}/> Favorites</TabsTrigger>
           <TabsTrigger value="addresses" className="gap-2"><MapPin size={16}/> Addresses</TabsTrigger>
           <TabsTrigger value="profile" className="gap-2"><User size={16}/> Profile</TabsTrigger>
         </TabsList>
@@ -57,7 +61,6 @@ export default async function AccountPage() {
         {/* SİPARİŞLER SEKMEİ */}
         <TabsContent value="orders" className="space-y-4">
             {userProfile.orders.length === 0 ? (
-                // DÜZELTME: "haven't" -> "haven&apos;t"
                 <Card><CardContent className="py-10 text-center text-muted-foreground">You haven&apos;t placed any orders yet.</CardContent></Card>
             ) : (
                 userProfile.orders.map((order) => (
@@ -87,6 +90,27 @@ export default async function AccountPage() {
             )}
         </TabsContent>
 
+        {/* FAVORİLER (YENİ SEKME) */}
+        <TabsContent value="favorites">
+             {userProfile.favorites.length === 0 ? (
+                 <div className="text-center py-10 text-muted-foreground border-2 border-dashed rounded-xl">
+                    No favorites yet. Start exploring!
+                 </div>
+             ) : (
+                 <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-6">
+                    {userProfile.favorites.map((fav) => (
+                        <ProductCard 
+                            key={fav.productId}
+                            {...fav.product}
+                            categoryName="" 
+                            imageUrl={fav.product.images?.[0] || null}
+                            isFavorited={true}
+                        />
+                    ))}
+                 </div>
+             )}
+        </TabsContent>
+
         {/* ADRESLER SEKMEİ */}
         <TabsContent value="addresses">
             <Card>
@@ -95,20 +119,17 @@ export default async function AccountPage() {
                     <CardDescription>Manage your shipping and billing addresses.</CardDescription>
                 </CardHeader>
                 <CardContent>
-                    {userProfile.addresses.length === 0 ? (
-                        <p className="text-muted-foreground text-sm">No addresses saved.</p>
-                    ) : (
-                        <div className="grid gap-4 md:grid-cols-2">
-                            {userProfile.addresses.map((addr) => (
-                                <div key={addr.id} className="border p-4 rounded-lg relative">
-                                    <h4 className="font-semibold">{addr.title}</h4>
-                                    <p className="text-sm text-slate-600 mt-1">{addr.address}</p>
-                                    <p className="text-sm text-slate-600">{addr.zipCode} {addr.city} / {addr.country}</p>
-                                </div>
-                            ))}
-                        </div>
-                    )}
-                    <Button className="mt-4" variant="outline">Add New Address</Button>
+                    <div className="grid gap-4 md:grid-cols-2 mb-4">
+                        {userProfile.addresses.map((addr) => (
+                            <div key={addr.id} className="border p-4 rounded-lg relative bg-slate-50">
+                                <h4 className="font-semibold">{addr.title}</h4>
+                                <p className="text-sm text-slate-600 mt-1">{addr.address}</p>
+                                <p className="text-sm text-slate-600">{addr.zipCode} {addr.city}, {addr.country}</p>
+                            </div>
+                        ))}
+                    </div>
+                    {/* ADRES EKLEME BUTONU (DİALOG) */}
+                    <AddressDialog /> 
                 </CardContent>
             </Card>
         </TabsContent>
@@ -126,7 +147,6 @@ export default async function AccountPage() {
                         <Label>Email</Label>
                         <Input defaultValue={userProfile.email} disabled />
                     </div>
-                    {/* Buraya form action ile güncelleme özelliği eklenebilir */}
                     <Button>Save Changes</Button>
                 </CardContent>
             </Card>

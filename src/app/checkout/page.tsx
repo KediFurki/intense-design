@@ -13,6 +13,7 @@ import { useState, useEffect } from "react";
 import { toast } from "sonner";
 import { useRouter } from "next/navigation";
 import { createOrder } from "@/server/actions/order";
+import { AddressSelector } from "@/components/checkout/address-selector";
 
 export default function CheckoutPage() {
   const cart = useCart();
@@ -22,8 +23,8 @@ export default function CheckoutPage() {
   const [invoiceType, setInvoiceType] = useState<"individual" | "corporate">("individual");
 
   useEffect(() => {
-    // eslint-disable-next-line react-hooks/exhaustive-deps
     setIsMounted(true);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   if (!isMounted) return null;
@@ -44,6 +45,9 @@ export default function CheckoutPage() {
     setIsLoading(true);
     const formData = new FormData(e.currentTarget);
     
+    // AddressSelector 'name' attribute'ları sayesinde veriyi otomatik forma ekler.
+    // Ekstra işlem yapmaya gerek yok, formData.get ile alabiliriz.
+    
     const orderData = {
       firstName: formData.get("firstName") as string,
       lastName: formData.get("lastName") as string,
@@ -56,10 +60,8 @@ export default function CheckoutPage() {
       zipCode: formData.get("zipCode") as string,
       
       invoiceType: invoiceType,
-      // Eğer corporate ise formdan al, değilse undefined yolla
       taxId: invoiceType === 'corporate' ? formData.get("taxId") as string : undefined,
       companyName: invoiceType === 'corporate' ? formData.get("companyName") as string : undefined,
-      // taxOffice opsiyonel olabilir
       taxOffice: invoiceType === 'corporate' ? formData.get("taxOffice") as string : undefined,
       
       items: cart.items.map(item => ({ id: item.id, price: item.price, quantity: item.quantity }))
@@ -100,60 +102,43 @@ export default function CheckoutPage() {
                                 <div className="space-y-2"><Label>Phone Number</Label><Input name="phone" type="tel" placeholder="+359..." required /></div>
                             </div>
                             
-                            {/* Avrupa Odaklı Adres */}
-                            <div className="space-y-2"><Label>Country</Label><Input name="country" defaultValue="Bulgaria" required /></div>
-                            <div className="space-y-2"><Label>Address</Label><Input name="address" placeholder="Street, Building, Apt..." required /></div>
-                            
-                            <div className="grid grid-cols-3 gap-4">
-                                <div className="space-y-2"><Label>City</Label><Input name="city" placeholder="Sofia" required /></div>
-                                <div className="space-y-2"><Label>State / Region</Label><Input name="state" placeholder="" /></div>
-                                <div className="space-y-2"><Label>Postal Code</Label><Input name="zipCode" placeholder="1000" required /></div>
+                            {/* AKILLI ADRES SEÇİCİ */}
+                            <div className="p-4 bg-slate-50 rounded-lg border border-slate-200">
+                                <AddressSelector />
                             </div>
+
+                            {/* Manuel Adres Detayı */}
+                            <div className="space-y-2"><Label>Address Line</Label><Input name="address" placeholder="Street, Building, Apt..." required /></div>
+                            <div className="space-y-2"><Label>Postal Code</Label><Input name="zipCode" placeholder="1000" required /></div>
 
                             <Separator />
 
-                            {/* 2. Fatura Bilgileri (Invoice Type) */}
+                            {/* 2. Fatura Bilgileri */}
                             <div className="space-y-4">
                                 <h3 className="font-semibold flex items-center gap-2"><FileText className="h-4 w-4 text-blue-600" /> Billing Details</h3>
-                                
                                 <div className="flex gap-4">
                                     <div 
                                       className={`flex-1 border rounded-lg p-4 cursor-pointer transition-all flex items-center gap-3 ${invoiceType === 'individual' ? 'border-blue-600 bg-blue-50/50 ring-1 ring-blue-600' : 'border-slate-200 hover:border-slate-300'}`} 
                                       onClick={() => setInvoiceType('individual')}
                                     >
                                         <div className={`p-2 rounded-full ${invoiceType === 'individual' ? 'bg-blue-100 text-blue-600' : 'bg-slate-100 text-slate-500'}`}><User size={18}/></div>
-                                        <div>
-                                            <div className="font-medium text-sm">Personal</div>
-                                            <div className="text-xs text-slate-500">Standard receipt</div>
-                                        </div>
+                                        <div><div className="font-medium text-sm">Personal</div><div className="text-xs text-slate-500">Standard receipt</div></div>
                                     </div>
                                     <div 
                                       className={`flex-1 border rounded-lg p-4 cursor-pointer transition-all flex items-center gap-3 ${invoiceType === 'corporate' ? 'border-blue-600 bg-blue-50/50 ring-1 ring-blue-600' : 'border-slate-200 hover:border-slate-300'}`} 
                                       onClick={() => setInvoiceType('corporate')}
                                     >
                                         <div className={`p-2 rounded-full ${invoiceType === 'corporate' ? 'bg-blue-100 text-blue-600' : 'bg-slate-100 text-slate-500'}`}><Building2 size={18}/></div>
-                                        <div>
-                                            <div className="font-medium text-sm">Business</div>
-                                            <div className="text-xs text-slate-500">VAT Invoice</div>
-                                        </div>
+                                        <div><div className="font-medium text-sm">Business</div><div className="text-xs text-slate-500">VAT Invoice</div></div>
                                     </div>
                                 </div>
 
                                 {invoiceType === "corporate" && (
                                     <div className="space-y-4 animate-in fade-in slide-in-from-top-2 pt-2">
-                                        <div className="space-y-2">
-                                            <Label>Company Name</Label>
-                                            <Input name="companyName" placeholder="Tech Solutions Ltd." required />
-                                        </div>
+                                        <div className="space-y-2"><Label>Company Name</Label><Input name="companyName" placeholder="Tech Solutions Ltd." required /></div>
                                         <div className="grid grid-cols-2 gap-4">
-                                            <div className="space-y-2">
-                                                <Label>VAT Number (Tax ID)</Label>
-                                                <Input name="taxId" placeholder="BG123456789" required />
-                                            </div>
-                                            <div className="space-y-2">
-                                                <Label>Tax Office (Optional)</Label>
-                                                <Input name="taxOffice" placeholder="Optional" />
-                                            </div>
+                                            <div className="space-y-2"><Label>VAT Number</Label><Input name="taxId" placeholder="BG123456789" required /></div>
+                                            <div className="space-y-2"><Label>Tax Office</Label><Input name="taxOffice" placeholder="Optional" /></div>
                                         </div>
                                     </div>
                                 )}
@@ -168,14 +153,10 @@ export default function CheckoutPage() {
                     <CardContent>
                         <div className="p-4 border rounded-lg bg-slate-50 flex items-center justify-between cursor-pointer border-blue-200 ring-1 ring-blue-200">
                             <div className="flex items-center gap-3">
-                                <div className="w-4 h-4 rounded-full bg-blue-600 flex items-center justify-center">
-                                    <div className="w-1.5 h-1.5 bg-white rounded-full" />
-                                </div>
+                                <div className="w-4 h-4 rounded-full bg-blue-600 flex items-center justify-center"><div className="w-1.5 h-1.5 bg-white rounded-full" /></div>
                                 <span className="font-medium text-slate-900">Credit Card (Stripe Mock)</span>
                             </div>
-                            <div className="flex gap-2">
-                                <CreditCard className="text-slate-400" size={20}/>
-                            </div>
+                            <CreditCard className="text-slate-400" size={20}/>
                         </div>
                     </CardContent>
                 </Card>
@@ -202,21 +183,19 @@ export default function CheckoutPage() {
                         </div>
                         <Separator />
                         <div className="space-y-2 text-sm">
-                            <div className="flex justify-between"><span className="text-slate-500">Subtotal (Excl. VAT)</span><span>€{(totalPrice / 100).toFixed(2)}</span></div>
+                            <div className="flex justify-between"><span className="text-slate-500">Subtotal</span><span>€{(totalPrice / 100).toFixed(2)}</span></div>
                             <div className="flex justify-between"><span className="text-slate-500">VAT (20%)</span><span>€{((totalPrice * 0.20) / 100).toFixed(2)}</span></div>
                             <div className="flex justify-between"><span className="text-slate-500">Shipping</span><span className="text-green-600 font-medium">Free</span></div>
                         </div>
                         <Separator />
                         <div className="flex justify-between items-center font-bold text-lg">
-                            <span>Total (Incl. VAT)</span>
-                            {/* Burada basitlik olsun diye sepetteki fiyatı KDV dahil varsayıyoruz. 
-                                Eğer üzerine ekleyeceksen: (totalPrice * 1.20) yapabilirsin. */}
+                            <span>Total</span>
                             <span>€{(totalPrice / 100).toFixed(2)}</span> 
                         </div>
-                        <Button type="submit" form="checkout-form" className="w-full h-12 text-lg active:scale-95 transition-transform" disabled={isLoading}>
+                        <Button type="submit" form="checkout-form" className="w-full h-12 text-lg" disabled={isLoading}>
                             {isLoading ? "Processing..." : `Pay €${(totalPrice / 100).toFixed(2)}`}
                         </Button>
-                        <div className="flex items-center justify-center gap-2 text-xs text-slate-400"><ShieldCheck size={14} /> 256-bit SSL Secure Payment</div>
+                        <div className="flex items-center justify-center gap-2 text-xs text-slate-400"><ShieldCheck size={14} /> Secure Payment</div>
                     </CardContent>
                 </Card>
             </div>
