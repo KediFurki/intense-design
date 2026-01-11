@@ -1,0 +1,24 @@
+{
+    "Navigation": {
+      "home": "Ana Sayfa",
+      "categories": "Kategoriler",
+      "about": "Hakkımızda",
+      "contact": "İletişim",
+      "admin": "Yönetici Paneli",
+      "profile": "Profil",
+      "logout": "Çıkış Yap",
+      "login": "Giriş Yap"
+    },
+    "Home": {
+      "heroTitle": "Yaşam Alanınızı Yeniden Tasarlayın",
+      "heroSubtitle": "Modern yaşam için tasarlanmış premium mobilyalar.",
+      "shopNow": "Alışverişe Başla",
+      "ourStory": "Hikayemiz",
+      "newArrivals": "Yeni Gelenler",
+      "viewAll": "Tümünü Gör"
+    },
+    "Product": {
+      "addToCart": "Sepete Ekle",
+      "outOfStock": "Stokta Yok"
+    }
+  }

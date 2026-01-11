@@ -1,0 +1,29 @@
+{
+    "Navigation": {
+      "home": "Home",
+      "categories": "Categories",
+      "about": "About",
+      "contact": "Contact",
+      "admin": "Admin Panel",
+      "profile": "Profile",
+      "logout": "Sign Out",
+      "login": "Sign In"
+    },
+    "Home": {
+      "heroTitle": "Redefine Your Space",
+      "heroSubtitle": "Premium furniture designed for modern living.",
+      "shopNow": "Shop Now",
+      "ourStory": "Our Story",
+      "newArrivals": "New Arrivals",
+      "viewAll": "View All"
+    },
+    "Product": {
+      "addToCart": "Add to Cart",
+      "outOfStock": "Out of Stock",
+      "description": "Description",
+      "dimensions": "Dimensions",
+      "width": "Width",
+      "height": "Height",
+      "depth": "Depth"
+    }
+  }

@@ -1,14 +1,17 @@
 import { auth } from "@/auth";
 import { db } from "@/server/db";
-import { products, categories, favorites } from "@/server/db/schema"; // favorites eklendi
+import { products, categories, favorites } from "@/server/db/schema";
 import { desc, eq } from "drizzle-orm";
 import { ProductCard } from "@/components/shop/product-card";
-import Link from "next/link";
+import { Link } from "@/i18n/routing"; // <-- Link artık i18n routing'den geliyor
 import { Button } from "@/components/ui/button";
 import { ArrowRight } from "lucide-react";
+import { getTranslations } from 'next-intl/server'; // Server component çevirisi için
 
 export default async function Home() {
   const session = await auth();
+  const t = await getTranslations('Home'); // 'Home' anahtarındaki çevirileri al
+  const tNav = await getTranslations('Navigation'); // Butonlar için
 
   // 1. Ürünleri Çek
   const latestProducts = await db
@@ -29,7 +32,7 @@ export default async function Home() {
 
   const allCategories = await db.select().from(categories);
 
-  // 2. Kullanıcının Favorilerini Çek (Eğer giriş yapmışsa)
+  // 2. Favorileri Çek
   let userFavorites: string[] = [];
   if (session?.user) {
     const favs = await db.select({ pid: favorites.productId }).from(favorites).where(eq(favorites.userId, session.user.id));
@@ -43,18 +46,18 @@ export default async function Home() {
       <section className="relative bg-slate-900 text-white overflow-hidden">
         <div className="absolute inset-0 opacity-20 bg-[url('https://images.unsplash.com/photo-1618221195710-dd6b41faaea6?q=80&w=2000')] bg-cover bg-center" />
         <div className="container mx-auto px-4 py-32 relative z-10 text-center">
-          <h1 className="text-5xl md:text-7xl font-bold tracking-tight mb-6">Redefine Your Space</h1>
-          <p className="text-xl text-slate-300 max-w-2xl mx-auto mb-8">Premium furniture designed for modern living.</p>
+          <h1 className="text-5xl md:text-7xl font-bold tracking-tight mb-6">{t('heroTitle')}</h1>
+          <p className="text-xl text-slate-300 max-w-2xl mx-auto mb-8">{t('heroSubtitle')}</p>
           <div className="flex justify-center gap-4">
-            <Link href="/category/all"><Button size="lg" className="text-lg px-8 py-6 rounded-full cursor-pointer">Shop Now</Button></Link>
-            <Link href="/about"><Button size="lg" variant="outline" className="text-lg px-8 py-6 rounded-full bg-transparent text-white border-white hover:bg-white hover:text-slate-900 cursor-pointer">Our Story</Button></Link>
+            <Link href="/category/all"><Button size="lg" className="text-lg px-8 py-6 rounded-full cursor-pointer">{t('shopNow')}</Button></Link>
+            <Link href="/about"><Button size="lg" variant="outline" className="text-lg px-8 py-6 rounded-full bg-transparent text-white border-white hover:bg-white hover:text-slate-900 cursor-pointer">{t('ourStory')}</Button></Link>
           </div>
         </div>
       </section>
 
       {/* KATEGORİLER */}
       <section className="container mx-auto px-4 py-16">
-        <h2 className="text-2xl font-bold mb-8 text-slate-900">Shop by Category</h2>
+        <h2 className="text-2xl font-bold mb-8 text-slate-900">{tNav('categories')}</h2>
         <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
             {allCategories.map((cat) => (
                 <Link key={cat.id} href={`/category/${cat.slug}`} className="group relative aspect-[4/3] overflow-hidden rounded-xl bg-slate-200 block cursor-pointer">
@@ -71,8 +74,8 @@ export default async function Home() {
       {/* YENİ GELENLER */}
       <main className="container mx-auto px-4 pb-20">
         <div className="flex items-center justify-between mb-8">
-            <h2 className="text-2xl font-bold text-slate-900">New Arrivals</h2>
-            <Link href="/category/new" className="text-blue-600 hover:text-blue-700 flex items-center gap-1 font-medium">View All <ArrowRight size={16} /></Link>
+            <h2 className="text-2xl font-bold text-slate-900">{t('newArrivals')}</h2>
+            <Link href="/category/new" className="text-blue-600 hover:text-blue-700 flex items-center gap-1 font-medium">{t('viewAll')} <ArrowRight size={16} /></Link>
         </div>
         
         {latestProducts.length > 0 ? (
@@ -87,7 +90,7 @@ export default async function Home() {
                 stock={product.stock}
                 categoryName={product.categoryName}
                 imageUrl={product.image ? product.image[0] : null}
-                isFavorited={userFavorites.includes(product.id)} // <-- ARTIK GÖNDERİLİYOR
+                isFavorited={userFavorites.includes(product.id)}
                 description={product.description}
               />
             ))}
