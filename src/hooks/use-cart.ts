@@ -10,6 +10,7 @@ export interface CartItem {
   slug: string;
   categoryName?: string;
   quantity: number;
+  maxStock: number; // <-- YENİ
 }
 
 interface CartStore {
@@ -30,7 +31,12 @@ export const useCart = create(
         const existingItem = currentItems.find((item) => item.id === data.id);
 
         if (existingItem) {
-          // Varsa miktarını artır
+          // STOK KONTROLÜ
+          if (existingItem.quantity >= data.maxStock) {
+            toast.error(`Only ${data.maxStock} items left in stock!`);
+            return;
+          }
+
           set({
             items: currentItems.map((item) =>
               item.id === data.id 
@@ -38,11 +44,14 @@ export const useCart = create(
                 : item
             ),
           });
-          toast.success("Item quantity updated 🛒");
+          toast.success("Quantity updated");
         } else {
-          // Yoksa yeni ekle
+          if (data.maxStock < 1) {
+             toast.error("Out of stock!");
+             return;
+          }
           set({ items: [...get().items, { ...data, quantity: 1 }] });
-          toast.success("Item added to cart 🛒");
+          toast.success("Added to cart 🛒");
         }
       },
 
@@ -65,7 +74,7 @@ export const useCart = create(
 
       removeItem: (id: string) => {
         set({ items: [...get().items.filter((item) => item.id !== id)] });
-        toast.success("Item removed.");
+        toast.success("Item removed");
       },
 
       removeAll: () => set({ items: [] }),

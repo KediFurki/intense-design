@@ -46,7 +46,8 @@ export default function AddToCartButton({
       price: data.price,
       image: data.image || "",
       categoryName: data.categoryName || "",
-      quantity: 1
+      quantity: 1,
+      maxStock: stock 
     });
   };
 

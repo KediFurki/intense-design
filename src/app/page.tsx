@@ -1,12 +1,10 @@
-import { auth, signOut } from "@/auth";
-import { Button } from "@/components/ui/button";
 import { db } from "@/server/db";
 import { products, categories } from "@/server/db/schema";
 import { desc, eq } from "drizzle-orm";
 import { ProductCard } from "@/components/shop/product-card";
 import Link from "next/link";
-import { LogOut, User } from "lucide-react";
-// Global Header artık layout'ta, buraya import etmiyoruz.
+import { Button } from "@/components/ui/button";
+import { ArrowRight } from "lucide-react";
 
 export default async function Home() {
   const latestProducts = await db
@@ -15,33 +13,67 @@ export default async function Home() {
       name: products.name,
       slug: products.slug,
       price: products.price,
-      stock: products.stock, // <-- Stok verisi çekiliyor
+      stock: products.stock,
       image: products.images,
       categoryName: categories.name,
     })
     .from(products)
     .leftJoin(categories, eq(products.categoryId, categories.id))
-    .orderBy(desc(products.createdAt));
+    .orderBy(desc(products.createdAt))
+    .limit(8); // Sadece son 8 ürünü göster
+
+  const allCategories = await db.select().from(categories);
 
   return (
     <div className="min-h-screen bg-slate-50">
       
-      {/* Hero Section */}
-      <section className="bg-slate-900 text-white py-20">
-        <div className="container mx-auto px-4 text-center space-y-4">
-          <h1 className="text-4xl md:text-6xl font-bold">
-            Elevate Your Living Space
+      {/* HERO SECTION */}
+      <section className="relative bg-slate-900 text-white overflow-hidden">
+        {/* Arka plan görseli (Örnek) */}
+        <div className="absolute inset-0 opacity-20 bg-[url('https://images.unsplash.com/photo-1618221195710-dd6b41faaea6?q=80&w=2000')] bg-cover bg-center" />
+        
+        <div className="container mx-auto px-4 py-32 relative z-10 text-center">
+          <h1 className="text-5xl md:text-7xl font-bold tracking-tight mb-6 animate-in slide-in-from-bottom-4 duration-700">
+            Redefine Your Space
           </h1>
-          <p className="text-slate-300 text-lg max-w-2xl mx-auto">
-            Discover our handcrafted collection of premium furniture. 
-            Designed for comfort, built for life.
+          <p className="text-xl text-slate-300 max-w-2xl mx-auto mb-8 animate-in slide-in-from-bottom-5 duration-1000 delay-200">
+            Premium furniture designed for modern living. Quality craftsmanship meets timeless aesthetics.
           </p>
+          <div className="flex justify-center gap-4 animate-in zoom-in duration-500 delay-300">
+            <Link href="/category/all">
+                <Button size="lg" className="text-lg px-8 py-6 rounded-full">Shop Now</Button>
+            </Link>
+            <Link href="/about">
+                <Button size="lg" variant="outline" className="text-lg px-8 py-6 rounded-full bg-transparent text-white border-white hover:bg-white hover:text-slate-900">Our Story</Button>
+            </Link>
+          </div>
         </div>
       </section>
 
-      {/* Product Grid */}
-      <main className="container mx-auto px-4 py-12">
-        <h2 className="text-2xl font-bold mb-8 text-slate-900">New Arrivals</h2>
+      {/* KATEGORİLER */}
+      <section className="container mx-auto px-4 py-16">
+        <h2 className="text-2xl font-bold mb-8 text-slate-900">Shop by Category</h2>
+        <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+            {allCategories.map((cat) => (
+                <Link key={cat.id} href={`/category/${cat.slug}`} className="group relative aspect-[4/3] overflow-hidden rounded-xl bg-slate-200">
+                    {/* Kategori görseli varsa buraya eklenir */}
+                    <div className="absolute inset-0 bg-black/40 group-hover:bg-black/50 transition-colors" />
+                    <div className="absolute inset-0 flex items-center justify-center">
+                        <span className="text-white font-bold text-xl tracking-wide group-hover:scale-110 transition-transform">{cat.name}</span>
+                    </div>
+                </Link>
+            ))}
+        </div>
+      </section>
+
+      {/* YENİ GELENLER */}
+      <main className="container mx-auto px-4 pb-20">
+        <div className="flex items-center justify-between mb-8">
+            <h2 className="text-2xl font-bold text-slate-900">New Arrivals</h2>
+            <Link href="/category/new" className="text-blue-600 hover:text-blue-700 flex items-center gap-1 font-medium">
+                View All <ArrowRight size={16} />
+            </Link>
+        </div>
         
         {latestProducts.length > 0 ? (
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
@@ -52,15 +84,15 @@ export default async function Home() {
                 name={product.name}
                 slug={product.slug}
                 price={product.price}
-                stock={product.stock} // <-- Karta gönderiliyor
+                stock={product.stock}
                 categoryName={product.categoryName}
                 imageUrl={product.image ? product.image[0] : null}
               />
             ))}
           </div>
         ) : (
-          <div className="text-center py-20 text-slate-500">
-            No products found. Please add some from the Admin Panel.
+          <div className="text-center py-20 text-slate-500 bg-slate-100 rounded-xl">
+            No products found. Add items from Admin Panel.
           </div>
         )}
       </main>

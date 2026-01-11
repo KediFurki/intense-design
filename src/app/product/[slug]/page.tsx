@@ -25,32 +25,17 @@ export default async function ProductPage({ params }: ProductPageProps) {
   return (
     <div className="container mx-auto px-4 py-10">
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-12">
-        
-        {/* SOL: GÖRSEL & 3D */}
         <div className="space-y-4">
           <div className="aspect-square bg-slate-100 rounded-2xl overflow-hidden relative border shadow-sm group">
             {product.modelUrl ? (
-              <ModelViewer 
-                src={product.modelUrl} 
-                poster={product.images?.[0] || ""} 
-                alt={`3D model of ${product.name}`} 
-              />
+              <ModelViewer src={product.modelUrl} poster={product.images?.[0] || ""} alt={`3D model of ${product.name}`} />
             ) : (
-              product.images?.[0] ? (
-                <Image src={product.images[0]} alt={product.name} fill className="object-cover" />
-              ) : (
-                <div className="flex items-center justify-center h-full text-slate-400">No Image</div>
-              )
+              product.images?.[0] ? <Image src={product.images[0]} alt={product.name} fill className="object-cover" /> : <div className="flex items-center justify-center h-full text-slate-400">No Image</div>
             )}
           </div>
-          <p className="text-center text-sm text-slate-500">
-             {product.modelUrl 
-                ? "👆 Touch to rotate. Use AR button on mobile." 
-                : "No 3D Model available."}
-          </p>
+          <p className="text-center text-sm text-slate-500">{product.modelUrl ? "👆 Touch to rotate. Use AR button on mobile." : "No 3D Model available."}</p>
         </div>
 
-        {/* SAĞ: BİLGİLER */}
         <div className="space-y-8">
              <div>
              <Badge variant={product.stock > 0 ? "secondary" : "destructive"} className="mb-4">
@@ -87,7 +72,6 @@ export default async function ProductPage({ params }: ProductPageProps) {
              <span>Free shipping on orders over €500</span>
           </div>
         </div>
-
       </div>
     </div>
   );

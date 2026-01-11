@@ -6,17 +6,28 @@ import { z } from "zod";
 import { eq } from "drizzle-orm";
 import { revalidatePath } from "next/cache";
 
-// Form Doğrulama Şeması
+// Form Doğrulama Şeması - AVRUPA STANDARTLARI
 const orderSchema = z.object({
-  firstName: z.string().min(1),
-  lastName: z.string().min(1),
+  firstName: z.string().min(1, "First Name is required"),
+  lastName: z.string().min(1, "Last Name is required"),
   email: z.string().email(),
-  phone: z.string().min(10),
+  phone: z.string().min(6, "Phone number is too short"), // Avrupa numaraları değişken olabilir
+  address: z.string().min(5, "Address is required"),
   country: z.string().min(2),
-  state: z.string().min(2),
-  address: z.string().min(5),
+  state: z.string().optional(), // Her ülkede state olmayabilir
   city: z.string().min(2),
   zipCode: z.string().min(2),
+  
+  // Fatura Alanları
+  invoiceType: z.enum(["individual", "corporate"]),
+  
+  // Bireyselde ID yok. Kurumsalda Company ve VAT ID zorunlu.
+  // Zod'un `refine` veya conditional validation özelliklerini kullanabiliriz
+  // ama basitlik için optional bırakıp aşağıda mantıkla veya client-side required ile çözüyoruz.
+  taxId: z.string().optional(),      // VAT Number
+  companyName: z.string().optional(), 
+  taxOffice: z.string().optional(),  // Avrupa'da genelde VAT yeterlidir, Office opsiyonel
+
   items: z.array(z.object({
     id: z.string(),
     price: z.number(),
@@ -26,17 +37,26 @@ const orderSchema = z.object({
 
 type OrderInput = z.infer<typeof orderSchema>;
 
-// 1. SİPARİŞ OLUŞTUR & STOK DÜŞ
+// 1. SİPARİŞ OLUŞTURMA
 export async function createOrder(data: OrderInput) {
   const validation = orderSchema.safeParse(data);
 
   if (!validation.success) {
-    return { success: false, error: "Invalid data" };
+    return { success: false, error: "Invalid data. Please check fields." };
   }
 
-  const { firstName, lastName, email, phone, country, state, address, city, zipCode, items } = validation.data;
+  const { 
+    firstName, lastName, email, phone, 
+    country, state, address, city, zipCode, 
+    invoiceType, taxId, companyName, taxOffice,
+    items 
+  } = validation.data;
   
-  // Toplam tutarı sunucuda hesaplamak daha güvenlidir ama şimdilik client verisiyle ilerliyoruz
+  // KURUMSAL KONTROLÜ (Backend Side Validation)
+  if (invoiceType === 'corporate' && (!companyName || !taxId)) {
+      return { success: false, error: "Company Name and VAT Number are required for corporate orders." };
+  }
+
   const totalAmount = items.reduce((acc, item) => acc + (item.price * item.quantity), 0);
 
   try {
@@ -48,12 +68,14 @@ export async function createOrder(data: OrderInput) {
           where: eq(products.id, item.id),
         });
 
-        if (!product) throw new Error(`Product not found`);
+        if (!product) {
+          throw new Error(`Product not found`);
+        }
 
         const currentStock = product.stock ?? 0;
 
         if (currentStock < item.quantity) {
-          throw new Error(`Insufficient stock for ${product.name}. Only ${currentStock} left.`);
+          throw new Error(`Insufficient stock for ${product.name}`);
         }
 
         // Stoğu düş
@@ -67,16 +89,19 @@ export async function createOrder(data: OrderInput) {
         customerName: `${firstName} ${lastName}`,
         customerEmail: email,
         customerPhone: phone,
-        country,
-        state,
-        address,
-        city,
+        country, 
+        state: state || "", 
+        address, 
+        city, 
         zipCode,
         totalAmount,
         status: "pending",
+        invoiceType,
+        taxId: taxId || null,       // VAT Number buraya kaydedilecek
+        companyName: companyName || null,
+        taxOffice: taxOffice || null,
       }).returning({ id: orders.id });
 
-      // KALEMLERİ EKLE
       if (newOrder) {
         await tx.insert(orderItems).values(
           items.map((item) => ({
@@ -100,7 +125,7 @@ export async function createOrder(data: OrderInput) {
   }
 }
 
-// 2. SİPARİŞ SİLME (Admin)
+// ... (deleteOrder ve updateOrderStatus AYNI KALIYOR)
 export async function deleteOrder(orderId: string) {
   try {
     await db.delete(orders).where(eq(orders.id, orderId));
@@ -111,7 +136,6 @@ export async function deleteOrder(orderId: string) {
   }
 }
 
-// 3. DURUM GÜNCELLEME (Admin)
 export async function updateOrderStatus(orderId: string, status: "pending" | "processing" | "shipped" | "delivered" | "cancelled") {
   try {
     await db.update(orders)

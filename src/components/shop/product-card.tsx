@@ -5,20 +5,22 @@ import { Badge } from "@/components/ui/badge";
 import Image from "next/image";
 import Link from "next/link";
 import AddToCartButton from "./add-to-cart-button";
+import { FavoriteButton } from "./favorite-button"; // <-- EKLENDİ
 
 interface ProductCardProps {
   id: string;
   name: string;
   slug: string;
   price: number;
-  stock: number; // Stok eklendi
+  stock: number;
   categoryName: string | null;
   imageUrl: string | null;
+  isFavorited?: boolean; // <-- EKLENDİ (Opsiyonel yaptık ki mevcut çağrılar patlamasın)
 }
 
-export function ProductCard({ id, name, slug, price, stock, categoryName, imageUrl }: ProductCardProps) {
+export function ProductCard({ id, name, slug, price, stock, categoryName, imageUrl, isFavorited = false }: ProductCardProps) {
   return (
-    <Card className="overflow-hidden group h-full flex flex-col border-none shadow-md hover:shadow-xl transition-all duration-300">
+    <Card className="overflow-hidden group h-full flex flex-col border-none shadow-md hover:shadow-xl transition-all duration-300 relative">
       
       <Link href={`/product/${slug}`} className="block relative aspect-square overflow-hidden bg-slate-100 cursor-pointer">
         {imageUrl ? (
@@ -29,42 +31,36 @@ export function ProductCard({ id, name, slug, price, stock, categoryName, imageU
             className="object-cover w-full h-full group-hover:scale-105 transition-transform duration-500"
           />
         ) : (
-          <div className="flex items-center justify-center h-full text-slate-400">
-            No Image
-          </div>
+          <div className="flex items-center justify-center h-full text-slate-400">No Image</div>
         )}
         
-        {/* Stok Az Kaldı Etiketi */}
+        {/* Favori Butonu - Sağ Üst */}
+        <div className="absolute top-2 right-2 z-20">
+           <FavoriteButton productId={id} initialIsFavorited={isFavorited} />
+        </div>
+
         {stock > 0 && stock < 5 && (
-             <div className="absolute top-2 right-2 z-10">
+             <div className="absolute top-2 left-2 z-10">
                 <Badge variant="destructive" className="shadow-sm">Only {stock} left!</Badge>
              </div>
         )}
 
         {categoryName && (
-          <div className="absolute top-2 left-2 z-10">
-            <Badge variant="secondary" className="bg-white/90 backdrop-blur text-slate-900 shadow-sm">
-              {categoryName}
-            </Badge>
+          <div className="absolute bottom-2 left-2 z-10">
+            <Badge variant="secondary" className="bg-white/90 backdrop-blur text-slate-900 shadow-sm">{categoryName}</Badge>
           </div>
         )}
       </Link>
 
       <CardContent className="p-4 flex-1">
         <Link href={`/product/${slug}`} className="hover:text-blue-600 transition-colors">
-            <h3 className="font-semibold text-lg text-slate-900 leading-tight mb-1">
-            {name}
-            </h3>
+            <h3 className="font-semibold text-lg text-slate-900 leading-tight mb-1">{name}</h3>
         </Link>
-        <p className="text-sm text-slate-500 line-clamp-2">
-            Luxury furniture for your home.
-        </p>
+        <p className="text-sm text-slate-500 line-clamp-2">Luxury furniture for your home.</p>
       </CardContent>
 
       <CardFooter className="p-4 pt-0 flex items-center justify-between">
-        <div className="text-xl font-bold text-slate-900">
-          €{(price / 100).toFixed(2)}
-        </div>
+        <div className="text-xl font-bold text-slate-900">€{(price / 100).toFixed(2)}</div>
         <AddToCartButton 
           size="sm"
           text="Add"
