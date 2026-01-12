@@ -17,6 +17,19 @@ function DialogPortal({ ...props }: React.ComponentProps<typeof DialogPrimitive.
   return <DialogPrimitive.Portal data-slot="dialog-portal" {...props} />
 }
 
+// EKLENDİ: DialogClose bileşeni artık dışarı aktarılıyor
+function DialogClose({ className, ...props }: React.ComponentProps<typeof DialogPrimitive.Close>) {
+  return (
+    <DialogPrimitive.Close
+      className={cn(
+        "opacity-70 ring-offset-background transition-opacity hover:opacity-100 focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2 disabled:pointer-events-none data-[state=open]:bg-accent data-[state=open]:text-muted-foreground",
+        className
+      )}
+      {...props}
+    />
+  )
+}
+
 function DialogOverlay({ className, ...props }: React.ComponentProps<typeof DialogPrimitive.Overlay>) {
   return (
     <DialogPrimitive.Overlay
@@ -64,4 +77,19 @@ function DialogTitle({ className, ...props }: React.ComponentProps<typeof Dialog
   return <DialogPrimitive.Title className={cn("text-lg font-semibold leading-none tracking-tight", className)} {...props} />
 }
 
-export { Dialog, DialogPortal, DialogOverlay, DialogTrigger, DialogContent, DialogHeader, DialogFooter, DialogTitle }
+function DialogDescription({ className, ...props }: React.ComponentProps<typeof DialogPrimitive.Description>) {
+  return <DialogPrimitive.Description className={cn("text-sm text-muted-foreground", className)} {...props} />
+}
+
+export { 
+  Dialog, 
+  DialogPortal, 
+  DialogOverlay, 
+  DialogTrigger, 
+  DialogClose, // <-- Export listesine eklendi
+  DialogContent, 
+  DialogHeader, 
+  DialogFooter, 
+  DialogTitle,
+  DialogDescription
+}

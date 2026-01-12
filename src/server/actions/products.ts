@@ -7,168 +7,110 @@ import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { z } from "zod";
 
+// DÜZELTME: any yerine tam şema tanımı
+const variantSchema = z.object({
+  id: z.string().optional(),
+  name: z.string().optional(),
+  price: z.coerce.number().min(0).default(0),
+  stock: z.coerce.number().min(0).default(0),
+  images: z.array(z.string()).optional().default([]),
+  modelUrl: z.string().optional().nullable(),
+  color: z.string().optional().default(""),
+  colorCode: z.string().optional().default(""),
+  size: z.string().optional().default(""),
+  material: z.string().optional().default(""),
+});
+
 const productSchema = z.object({
-  name: z.string().min(1),
-  slug: z.string().min(1),
-  description: z.string().optional(),
-  price: z.coerce.number().min(0),
-  stock: z.coerce.number().min(0),
-  categoryId: z.string().optional(),
-  images: z.array(z.string()).optional(),
-  modelUrl: z.string().optional(),
-  maskImage: z.string().optional(),
-  width: z.coerce.number().optional(),
-  height: z.coerce.number().optional(),
-  depth: z.coerce.number().optional(),
-  variants: z.array(z.object({
-    id: z.string().optional(),
-    name: z.string().optional(),
-    price: z.coerce.number().min(0),
-    stock: z.coerce.number().min(0),
-    images: z.array(z.string()).optional(),
-    modelUrl: z.string().optional().nullable(),
-    color: z.string().optional(),
-    colorCode: z.string().optional(),
-    size: z.string().optional(),
-    material: z.string().optional(),
-  })).optional()
+  name: z.string().min(1, "Name is required"),
+  slug: z.string().min(1, "Slug is required"),
+  description: z.string().optional().default(""),
+  longDescription: z.string().optional().default(""),
+  price: z.preprocess((val) => Number(val) || 0, z.number().min(0)),
+  stock: z.preprocess((val) => Number(val) || 0, z.number().min(0)),
+  categoryId: z.string().optional().nullable().transform(v => v === "" ? null : v),
+  images: z.array(z.string()).optional().default([]),
+  modelUrl: z.string().optional().nullable(),
+  maskImage: z.string().optional().nullable(),
+  width: z.preprocess((val) => Number(val) || null, z.number().nullable()),
+  height: z.preprocess((val) => Number(val) || null, z.number().nullable()),
+  depth: z.preprocess((val) => Number(val) || null, z.number().nullable()),
+  variants: z.array(variantSchema).optional().default([]) // DÜZELTME: any[] yerine variantSchema[]
 });
 
 export async function createProduct(formData: FormData) {
   const rawData = Object.fromEntries(formData.entries());
-  
   const images = rawData.images ? JSON.parse(rawData.images as string) : [];
   const variants = rawData.variants ? JSON.parse(rawData.variants as string) : [];
 
-  const validatedFields = productSchema.safeParse({
-    ...rawData,
-    images: images,
-    variants: variants
-  });
+  const validatedFields = productSchema.safeParse({ ...rawData, images, variants });
 
   if (!validatedFields.success) {
-    return { success: false, error: "Invalid fields" };
+    console.error("❌ CREATE ERROR:", validatedFields.error.flatten());
+    return { success: false, error: "Validation failed" };
   }
 
   const { variants: variantList, ...productData } = validatedFields.data;
 
   try {
-    const [newProduct] = await db.insert(products).values({
-      name: productData.name,
-      slug: productData.slug,
-      description: productData.description ?? "",
-      price: productData.price * 100,
-      stock: productData.stock,
-      categoryId: productData.categoryId ?? null,
-      images: productData.images ?? [],
-      modelUrl: productData.modelUrl ?? null,
-      maskImage: productData.maskImage ?? null, 
-      width: productData.width ?? null,
-      height: productData.height ?? null,
-      depth: productData.depth ?? null,
-    }).returning();
-
-    if (variantList && variantList.length > 0) {
-      await db.insert(productVariants).values(
-        variantList.map((v) => {
-          const parts = [v.color, v.size, v.material].filter(Boolean);
-          const fullName = parts.length > 0 ? parts.join(" / ") : "Standard";
-
-          return {
-            productId: newProduct.id,
-            name: fullName,
-            price: v.price * 100,
-            stock: v.stock,
-            images: v.images || [], 
-            modelUrl: v.modelUrl || null,
-            attributes: {
-                color: v.color || "",
-                colorCode: v.colorCode || "", 
-                size: v.size || "",
-                material: v.material || ""
-            }
-          };
-        })
-      );
+    const [newProduct] = await db.insert(products).values(productData).returning();
+    if (variantList.length > 0) {
+      // DÜZELTME: v: any kaldırıldı, Zod tipi kullanılıyor
+      await db.insert(productVariants).values(variantList.map((v) => ({
+          productId: newProduct.id,
+          name: [v.color, v.size].filter(Boolean).join(" / ") || "Standard",
+          price: (Number(v.price) || 0) * 100,
+          stock: Number(v.stock) || 0,
+          images: v.images || [],
+          modelUrl: v.modelUrl || null,
+          attributes: { color: v.color, colorCode: v.colorCode, size: v.size, material: v.material }
+      })));
     }
-
     revalidatePath("/admin/products");
-    revalidatePath("/");
   } catch (error) {
-    console.error(error);
-    return { success: false, error: "Failed to create product" };
+    console.error("DB Error:", error);
+    return { success: false, error: "DB Error" };
   }
-
   redirect("/admin/products");
 }
 
 export async function updateProduct(id: string, formData: FormData) {
   const rawData = Object.fromEntries(formData.entries());
-  
   const images = rawData.images ? JSON.parse(rawData.images as string) : [];
   const variants = rawData.variants ? JSON.parse(rawData.variants as string) : [];
 
-  const validatedFields = productSchema.safeParse({
-    ...rawData,
-    images: images,
-    variants: variants
-  });
+  const validatedFields = productSchema.safeParse({ ...rawData, images, variants });
 
-  if (!validatedFields.success) return { success: false, error: "Invalid fields" };
+  if (!validatedFields.success) {
+    console.error("❌ UPDATE ERROR:", validatedFields.error.flatten());
+    return { success: false, error: "Validation failed" };
+  }
 
   const { variants: variantList, ...productData } = validatedFields.data;
 
   try {
-    await db.update(products).set({
-      name: productData.name,
-      slug: productData.slug,
-      description: productData.description ?? "",
-      price: productData.price * 100,
-      stock: productData.stock,
-      categoryId: productData.categoryId ?? null,
-      images: productData.images ?? [],
-      modelUrl: productData.modelUrl ?? null,
-      maskImage: productData.maskImage ?? null,
-      width: productData.width ?? null,
-      height: productData.height ?? null,
-      depth: productData.depth ?? null,
-      updatedAt: new Date()
-    }).where(eq(products.id, id));
-
+    await db.update(products).set({ ...productData, updatedAt: new Date() }).where(eq(products.id, id));
     await db.delete(productVariants).where(eq(productVariants.productId, id));
 
-    if (variantList && variantList.length > 0) {
-      await db.insert(productVariants).values(
-        variantList.map((v) => {
-          const parts = [v.color, v.size, v.material].filter(Boolean);
-          const fullName = parts.length > 0 ? parts.join(" / ") : "Standard";
-
-          return {
-            productId: id,
-            name: fullName,
-            price: v.price * 100,
-            stock: v.stock,
-            images: v.images || [], 
-            modelUrl: v.modelUrl || null,
-            attributes: {
-                color: v.color || "",
-                colorCode: v.colorCode || "",
-                size: v.size || "",
-                material: v.material || ""
-            }
-          };
-        })
-      );
+    if (variantList.length > 0) {
+      // DÜZELTME: v: any kaldırıldı
+      await db.insert(productVariants).values(variantList.map((v) => ({
+          productId: id,
+          name: [v.color, v.size].filter(Boolean).join(" / ") || "Standard",
+          price: (Number(v.price) || 0) * 100,
+          stock: Number(v.stock) || 0,
+          images: v.images || [],
+          modelUrl: v.modelUrl || null,
+          attributes: { color: v.color, colorCode: v.colorCode, size: v.size, material: v.material }
+      })));
     }
-
     revalidatePath("/admin/products");
     revalidatePath("/");
     revalidatePath(`/product/${productData.slug}`);
   } catch (error) {
-    console.error("DB Error:", error);
-    return { success: false, error: "Failed to update product" };
+    console.error("DB Update Error:", error);
+    return { success: false, error: "Update failed" };
   }
-
   redirect("/admin/products");
 }
 
@@ -177,7 +119,5 @@ export async function deleteProduct(id: string) {
         await db.delete(products).where(eq(products.id, id));
         revalidatePath("/admin/products");
         return { success: true };
-    } catch {
-        return { success: false, error: "Failed to delete" };
-    }
+    } catch { return { success: false, error: "Delete failed" }; }
 }

@@ -131,6 +131,7 @@
       "categoryImage": "Kategoriebild",
       "existingCategories": "Vorhandene Kategorien",
       "noCategories": "Noch keine Kategorien.",
-      "noProducts": "Keine Produkte gefunden."
+      "noProducts": "Keine Produkte gefunden.",
+      "de": "Noch keine Bestellungen."
     }
   }

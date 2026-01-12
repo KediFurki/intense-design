@@ -131,6 +131,7 @@
     "categoryImage": "Category Image",
     "existingCategories": "Existing Categories",
     "noCategories": "No categories yet.",
-    "noProducts": "No products found."
+    "noProducts": "No products found.",
+    "noOrders": "No orders yet."
   }
 }

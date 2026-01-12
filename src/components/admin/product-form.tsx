@@ -13,7 +13,7 @@ import { useState } from "react";
 import { createProduct, updateProduct } from "@/server/actions/products";
 import { toast } from "sonner";
 import { useTranslations } from "next-intl";
-import { Plus, Trash2, Box, Layers, Palette, Ruler, Hammer, ChevronDown, ChevronUp, Wand2 } from "lucide-react";
+import { Plus, Trash2, Box, Layers, Palette, Ruler, Hammer, ChevronDown, ChevronUp, Wand2, FileText } from "lucide-react";
 
 type Variant = {
   id?: string;
@@ -41,6 +41,7 @@ type Product = {
     name: string;
     slug: string;
     description: string | null;
+    longDescription?: string | null;
     price: number;
     stock: number;
     categoryId: string | null;
@@ -67,6 +68,19 @@ export default function ProductForm({ initialData, categories }: { initialData?:
   const t = useTranslations("Admin");
   const [loading, setLoading] = useState(false);
 
+  const [formState, setFormState] = useState({
+    name: initialData?.name || "",
+    slug: initialData?.slug || "",
+    description: initialData?.description || "",
+    longDescription: initialData?.longDescription || "",
+    price: initialData ? initialData.price / 100 : 0,
+    stock: initialData?.stock || 0,
+    categoryId: initialData?.categoryId || "",
+    width: initialData?.width || "",
+    height: initialData?.height || "",
+    depth: initialData?.depth || ""
+  });
+
   const [images, setImages] = useState<string[]>(initialData?.images || []);
   const [modelUrl, setModelUrl] = useState<string>(initialData?.modelUrl || "");
   const [maskImage, setMaskImage] = useState<string>(initialData?.maskImage || "");
@@ -92,10 +106,20 @@ export default function ProductForm({ initialData, categories }: { initialData?:
       : []
   );
 
-  const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
+  // DÜZELTME BURADA: 'any' yerine 'string | number'
+  const handleChange = (field: string, value: string | number) => {
+    setFormState(prev => ({ ...prev, [field]: value }));
+  };
+
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setLoading(true);
-    const formData = new FormData(e.currentTarget);
+
+    const formData = new FormData();
+    Object.entries(formState).forEach(([key, value]) => {
+        formData.append(key, String(value));
+    });
+
     formData.set("images", JSON.stringify(images));
     if (modelUrl) formData.set("modelUrl", modelUrl);
     if (maskImage) formData.set("maskImage", maskImage);
@@ -154,17 +178,40 @@ export default function ProductForm({ initialData, categories }: { initialData?:
                     <Card>
                         <CardContent className="p-6 space-y-4">
                             <div className="grid gap-4 md:grid-cols-2">
-                                <div className="space-y-2"><Label>{t('name')}</Label><Input name="name" defaultValue={initialData?.name} required /></div>
-                                <div className="space-y-2"><Label>{t('slug')}</Label><Input name="slug" defaultValue={initialData?.slug} required /></div>
+                                <div className="space-y-2">
+                                    <Label>{t('name')}</Label>
+                                    <Input value={formState.name} onChange={(e) => handleChange('name', e.target.value)} required />
+                                </div>
+                                <div className="space-y-2">
+                                    <Label>{t('slug')}</Label>
+                                    <Input value={formState.slug} onChange={(e) => handleChange('slug', e.target.value)} required />
+                                </div>
                             </div>
-                            <div className="space-y-2"><Label>{t('description')}</Label><Textarea name="description" defaultValue={initialData?.description || ""} rows={5} /></div>
+                            <div className="space-y-2">
+                                <Label>Short Description</Label>
+                                <Textarea value={formState.description} onChange={(e) => handleChange('description', e.target.value)} rows={3} />
+                            </div>
+                            <div className="space-y-2">
+                                <Label className="flex items-center gap-2"><FileText size={14}/> Detailed Description</Label>
+                                <Textarea value={formState.longDescription} onChange={(e) => handleChange('longDescription', e.target.value)} rows={6} />
+                            </div>
+
                             <div className="grid gap-4 md:grid-cols-3">
-                                <div className="space-y-2"><Label>{t('price')} (€)</Label><Input name="price" type="number" step="0.01" defaultValue={initialData ? initialData.price / 100 : ""} required /></div>
-                                <div className="space-y-2"><Label>{t('stock')}</Label><Input name="stock" type="number" defaultValue={initialData?.stock} required /></div>
-                                <div className="space-y-2"><Label>{t('category')}</Label>
-                                    <Select name="categoryId" defaultValue={initialData?.categoryId || undefined}>
+                                <div className="space-y-2">
+                                    <Label>{t('price')} (€)</Label>
+                                    <Input type="number" step="0.01" value={formState.price} onChange={(e) => handleChange('price', e.target.value)} required />
+                                </div>
+                                <div className="space-y-2">
+                                    <Label>{t('stock')}</Label>
+                                    <Input type="number" value={formState.stock} onChange={(e) => handleChange('stock', e.target.value)} required />
+                                </div>
+                                <div className="space-y-2">
+                                    <Label>{t('category')}</Label>
+                                    <Select value={formState.categoryId} onValueChange={(val) => handleChange('categoryId', val)}>
                                         <SelectTrigger><SelectValue placeholder="Select" /></SelectTrigger>
-                                        <SelectContent>{categories.map((c) => (<SelectItem key={c.id} value={c.id}>{c.name}</SelectItem>))}</SelectContent>
+                                        <SelectContent>
+                                            {categories.map((c) => (<SelectItem key={c.id} value={c.id}>{c.name}</SelectItem>))}
+                                        </SelectContent>
                                     </Select>
                                 </div>
                             </div>
@@ -175,9 +222,9 @@ export default function ProductForm({ initialData, categories }: { initialData?:
                         <CardContent className="p-6">
                             <Label className="mb-4 block">{t('dimensions')}</Label>
                             <div className="grid grid-cols-3 gap-4">
-                                <Input name="width" placeholder="Width" type="number" defaultValue={initialData?.width || ""} />
-                                <Input name="height" placeholder="Height" type="number" defaultValue={initialData?.height || ""} />
-                                <Input name="depth" placeholder="Depth" type="number" defaultValue={initialData?.depth || ""} />
+                                <Input placeholder="W" type="number" value={formState.width} onChange={(e) => handleChange('width', e.target.value)} />
+                                <Input placeholder="H" type="number" value={formState.height} onChange={(e) => handleChange('height', e.target.value)} />
+                                <Input placeholder="D" type="number" value={formState.depth} onChange={(e) => handleChange('depth', e.target.value)} />
                             </div>
                         </CardContent>
                     </Card>
@@ -189,8 +236,7 @@ export default function ProductForm({ initialData, categories }: { initialData?:
                     
                     <Card className="border-blue-200 bg-blue-50/50">
                         <CardContent className="p-6 space-y-4">
-                            <Label className="flex items-center gap-2 text-blue-800"><Wand2 size={16}/> AI Color Mask (Optional)</Label>
-                            <div className="text-xs text-blue-600 mb-2">Upload a grayscale mask image where white areas will be colored dynamically.</div>
+                            <Label className="flex items-center gap-2 text-blue-800"><Wand2 size={16}/> AI Color Mask</Label>
                             <ImageUpload value={maskImage ? [maskImage] : []} onChange={(url) => setMaskImage(url)} onRemove={() => setMaskImage("")} />
                         </CardContent>
                     </Card>
@@ -230,41 +276,23 @@ export default function ProductForm({ initialData, categories }: { initialData?:
                                     <div className="space-y-4">
                                         <Label>Attributes</Label>
                                         <div className="flex gap-2">
-                                            <div className="flex-1 space-y-1">
-                                                <Label className="text-xs text-muted-foreground">Color Name</Label>
-                                                <Input placeholder="Red" value={variant.color} onChange={(e) => updateVariant(index, 'color', e.target.value)} />
-                                            </div>
-                                            <div className="w-16 space-y-1">
-                                                <Label className="text-xs text-muted-foreground">Hex</Label>
-                                                <div className="flex h-9 w-full items-center justify-center rounded-md border border-input bg-transparent px-3 py-1">
-                                                     <input type="color" className="w-full h-full cursor-pointer p-0 border-0" value={variant.colorCode || "#000000"} onChange={(e) => updateVariant(index, 'colorCode', e.target.value)} />
-                                                </div>
-                                            </div>
-                                            <div className="flex-1 space-y-1">
-                                                <Label className="text-xs text-muted-foreground">Size</Label>
-                                                <Input placeholder="XL" value={variant.size} onChange={(e) => updateVariant(index, 'size', e.target.value)} />
+                                            <Input placeholder="Color (Red)" value={variant.color} onChange={(e) => updateVariant(index, 'color', e.target.value)} />
+                                            <div className="w-16 h-10 border rounded overflow-hidden relative cursor-pointer">
+                                                <input type="color" className="absolute -top-2 -left-2 w-20 h-20 p-0 cursor-pointer" value={variant.colorCode || "#000000"} onChange={(e) => updateVariant(index, 'colorCode', e.target.value)} />
                                             </div>
                                         </div>
-                                        
                                         <div className="flex gap-2">
-                                            <div className="flex-1 space-y-1">
-                                                <Label className="text-xs text-muted-foreground">Price (€)</Label>
-                                                <Input type="number" step="0.01" value={variant.price} onChange={(e) => updateVariant(index, 'price', parseFloat(e.target.value))} />
-                                            </div>
-                                            <div className="flex-1 space-y-1">
-                                                <Label className="text-xs text-muted-foreground">Stock</Label>
-                                                <Input type="number" value={variant.stock} onChange={(e) => updateVariant(index, 'stock', parseInt(e.target.value))} />
-                                            </div>
+                                            <Input placeholder="Size (XL)" value={variant.size} onChange={(e) => updateVariant(index, 'size', e.target.value)} />
+                                            <Input placeholder="Material" value={variant.material} onChange={(e) => updateVariant(index, 'material', e.target.value)} />
+                                        </div>
+                                        <div className="flex gap-2">
+                                            <Input type="number" placeholder="Price" step="0.01" value={variant.price} onChange={(e) => updateVariant(index, 'price', parseFloat(e.target.value) || 0)} />
+                                            <Input type="number" placeholder="Stock" value={variant.stock} onChange={(e) => updateVariant(index, 'stock', parseInt(e.target.value) || 0)} />
                                         </div>
                                     </div>
-
                                     <div className="space-y-2">
-                                        <Label>Variant Images (Show when selected)</Label>
-                                        <ImageUpload 
-                                            value={variant.images} 
-                                            onChange={(url) => updateVariant(index, 'images', [...variant.images, url])} 
-                                            onRemove={(url) => updateVariant(index, 'images', variant.images.filter(i => i !== url))}
-                                        />
+                                        <Label>Variant Images</Label>
+                                        <ImageUpload value={variant.images} onChange={(url) => updateVariant(index, 'images', [...variant.images, url])} onRemove={(url) => updateVariant(index, 'images', variant.images.filter(i => i !== url))} />
                                     </div>
                                 </div>
                             </CardContent>

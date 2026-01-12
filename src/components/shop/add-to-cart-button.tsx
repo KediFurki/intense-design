@@ -1,75 +1,57 @@
 "use client";
 
 import { Button } from "@/components/ui/button";
-import { ShoppingCart, Ban } from "lucide-react";
 import { useCart } from "@/hooks/use-cart";
-import { MouseEventHandler } from "react";
+import { ShoppingCart } from "lucide-react";
 import { cn } from "@/lib/utils";
 
 interface AddToCartButtonProps {
+  stock: number;
+  text?: string;
+  className?: string;
+  size?: "default" | "sm" | "lg" | "icon";
   data: {
     id: string;
-    variantId?: string; // <-- YENİ
-    variantName?: string; // <-- YENİ
+    variantId?: string;
+    variantName?: string; // <-- Bu alan kritik
     name: string;
     slug: string;
     price: number;
-    image?: string;
+    image: string;
     categoryName?: string;
   };
-  stock: number;
-  className?: string;
-  size?: "default" | "sm" | "lg" | "icon";
-  showIcon?: boolean;
-  text?: string;
 }
 
-export default function AddToCartButton({ 
-  data, 
-  stock,
-  className, 
-  size = "default", 
-  showIcon = true,
-  text = "Add to Cart" 
-}: AddToCartButtonProps) {
+export default function AddToCartButton({ stock, text = "Add to Cart", className, size = "default", data }: AddToCartButtonProps) {
   const cart = useCart();
-  const isOutOfStock = stock <= 0;
 
-  const onAddToCart: MouseEventHandler<HTMLButtonElement> = (event) => {
-    event.stopPropagation();
-    event.preventDefault();
-
-    if (isOutOfStock) return;
+  const onAddToCart = (e: React.MouseEvent<HTMLButtonElement>) => {
+    e.preventDefault(); 
+    e.stopPropagation();
 
     cart.addItem({
       id: data.id,
-      variantId: data.variantId, // <-- Geçiriyoruz
-      variantName: data.variantName, // <-- Geçiriyoruz
+      variantId: data.variantId,
+      variantName: data.variantName, // <-- Sepete iletiliyor
       name: data.name,
       slug: data.slug,
       price: data.price,
-      image: data.image || "",
-      categoryName: data.categoryName || "",
+      image: data.image,
+      categoryName: data.categoryName,
       quantity: 1,
-      maxStock: stock 
+      maxStock: stock,
     });
   };
 
   return (
-    <Button 
+    <Button
       onClick={onAddToCart}
+      disabled={stock <= 0}
       size={size}
-      disabled={isOutOfStock}
-      className={cn(
-        "rounded-full font-bold transition-all duration-200 shadow-sm",
-        isOutOfStock 
-          ? "bg-slate-200 text-slate-500 cursor-not-allowed hover:bg-slate-200" 
-          : "active:scale-95 cursor-pointer hover:shadow-md",
-        className
-      )}
+      className={cn("cursor-pointer relative overflow-hidden transition-all active:scale-95", className)}
     >
-      {showIcon && (isOutOfStock ? <Ban className="mr-2 h-4 w-4" /> : <ShoppingCart className="mr-2 h-4 w-4" />)}
-      {isOutOfStock ? "Sold Out" : text}
+      <ShoppingCart size={18} className={cn(text ? "mr-2" : "")} />
+      {stock > 0 ? text : "Out of Stock"}
     </Button>
   );
 }

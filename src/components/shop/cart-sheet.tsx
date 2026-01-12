@@ -9,7 +9,7 @@ import { ScrollArea } from "@/components/ui/scroll-area";
 import { motion, AnimatePresence } from "framer-motion";
 import { useEffect, useState } from "react";
 import { Link } from "@/i18n/routing";
-import { useTranslations } from "next-intl"; // Çeviri kancası
+import { useTranslations } from "next-intl";
 
 export default function CartSheet() {
   const t = useTranslations("Cart");
@@ -62,7 +62,7 @@ export default function CartSheet() {
                 <AnimatePresence mode="popLayout">
                   {cart.items.map((item) => (
                     <motion.li
-                      key={`${item.id}-${item.variantId}`} // Key benzersiz olmalı
+                      key={`${item.id}-${item.variantId}`}
                       layout
                       initial={{ opacity: 0, x: 20 }}
                       animate={{ opacity: 1, x: 0 }}
@@ -81,7 +81,6 @@ export default function CartSheet() {
                         <div className="flex justify-between items-start">
                             <div>
                                 <h4 className="font-semibold text-slate-900 line-clamp-1">{item.name}</h4>
-                                {/* VARYASYON ADI GÖSTERİMİ */}
                                 {item.variantName && (
                                   <p className="text-xs font-medium text-blue-600 bg-blue-50 px-1.5 py-0.5 rounded w-fit mt-0.5">
                                     {item.variantName}

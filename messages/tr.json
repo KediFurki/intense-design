@@ -131,6 +131,7 @@
     "categoryImage": "Kategori Resmi",
     "existingCategories": "Mevcut Kategoriler",
     "noCategories": "Henüz kategori yok.",
-    "noProducts": "Ürün bulunamadı."
+    "noProducts": "Ürün bulunamadı.",
+    "noOrders": "Henüz sipariş yok."
   }
 }

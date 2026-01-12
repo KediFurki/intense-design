@@ -95,12 +95,16 @@ export const categories = pgTable("category", {
   createdAt: timestamp("created_at").defaultNow(),
 });
 
+// 7. PRODUCTS (GÜNCELLENDİ)
 export const products = pgTable("product", {
   id: uuid("id").defaultRandom().primaryKey(),
   categoryId: uuid("categoryId").references(() => categories.id),
   name: text("name").notNull(),
   slug: text("slug").notNull().unique(),
   description: text("description").notNull(),
+  
+  // YENİ: Detaylı Açıklama ve Özellikler
+  longDescription: text("long_description"), // Blog tarzı uzun yazı
   
   price: integer("price").notNull(),
   stock: integer("stock").default(0).notNull(),
@@ -112,7 +116,7 @@ export const products = pgTable("product", {
   
   images: json("images").$type<string[]>().default([]), 
   modelUrl: text("modelUrl"),
-  maskImage: text("mask_image"), 
+  maskImage: text("mask_image"),
 
   createdAt: timestamp("created_at").defaultNow(),
   updatedAt: timestamp("updated_at").defaultNow(),
@@ -164,49 +168,40 @@ export const orderItems = pgTable("order_item", {
   id: uuid("id").defaultRandom().primaryKey(),
   orderId: uuid("orderId").notNull().references(() => orders.id, { onDelete: "cascade" }),
   productId: uuid("productId").references(() => products.id),
-  
   variantName: text("variant_name"), 
-  
   price: integer("price").notNull(),
   quantity: integer("quantity").notNull(),
 });
 
-// ILISKILER
+// İLİŞKİLER (Değişmedi)
 export const usersRelations = relations(users, ({ many }) => ({
   orders: many(orders),
   addresses: many(addresses),
   favorites: many(favorites),
 }));
-
 export const addressesRelations = relations(addresses, ({ one }) => ({
   user: one(users, { fields: [addresses.userId], references: [users.id] }),
 }));
-
 export const favoritesRelations = relations(favorites, ({ one }) => ({
   user: one(users, { fields: [favorites.userId], references: [users.id] }),
   product: one(products, { fields: [favorites.productId], references: [products.id] }),
 }));
-
 export const productsRelations = relations(products, ({ one, many }) => ({
   category: one(categories, { fields: [products.categoryId], references: [categories.id] }),
   variants: many(productVariants),
   orderItems: many(orderItems),
   favoritedBy: many(favorites),
 }));
-
 export const productVariantsRelations = relations(productVariants, ({ one, many }) => ({
   product: one(products, { fields: [productVariants.productId], references: [products.id] }),
 }));
-
 export const categoriesRelations = relations(categories, ({ many }) => ({
   products: many(products),
 }));
-
 export const ordersRelations = relations(orders, ({ one, many }) => ({
   user: one(users, { fields: [orders.userId], references: [users.id] }),
   items: many(orderItems),
 }));
-
 export const orderItemsRelations = relations(orderItems, ({ one }) => ({
   order: one(orders, { fields: [orderItems.orderId], references: [orders.id] }),
   product: one(products, { fields: [orderItems.productId], references: [products.id] }),

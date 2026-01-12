@@ -7,7 +7,6 @@ import { Label } from "@/components/ui/label";
 import { Separator } from "@/components/ui/separator";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { ArrowLeft, CreditCard, Truck, ShieldCheck, FileText, Building2, User } from "lucide-react";
-// DÜZELTME 1: Kullanılmayan 'Link' importu kaldırıldı
 import { Link as I18nLink } from "@/i18n/routing";
 import Image from "next/image";
 import { useState, useEffect } from "react";
@@ -26,8 +25,8 @@ export default function CheckoutPage() {
   const [invoiceType, setInvoiceType] = useState<"individual" | "corporate">("individual");
 
   useEffect(() => {
-    setIsMounted(true);
     // eslint-disable-next-line react-hooks/exhaustive-deps
+    setIsMounted(true);
   }, []);
 
   if (!isMounted) return null;
@@ -64,7 +63,14 @@ export default function CheckoutPage() {
       companyName: invoiceType === 'corporate' ? formData.get("companyName") as string : undefined,
       taxOffice: invoiceType === 'corporate' ? formData.get("taxOffice") as string : undefined,
       
-      items: cart.items.map(item => ({ id: item.id, price: item.price, quantity: item.quantity }))
+      // ÖNEMLİ DÜZELTME: Varyasyon bilgileri siparişe ekleniyor
+      items: cart.items.map(item => ({ 
+          id: item.id, 
+          variantId: item.variantId,
+          variantName: item.variantName, // <-- Bu alan sipariş detayında varyasyonu gösterir
+          price: item.price, 
+          quantity: item.quantity 
+      }))
     };
 
     const result = await createOrder(orderData);
@@ -169,13 +175,18 @@ export default function CheckoutPage() {
                     <CardContent className="space-y-6">
                         <div className="space-y-4">
                             {cart.items.map((item) => (
-                                <div key={item.id} className="flex gap-4">
+                                <div key={`${item.id}-${item.variantId || 'base'}`} className="flex gap-4">
                                     <div className="relative w-16 h-16 rounded-md overflow-hidden bg-slate-100 shrink-0">
                                         {item.image && <Image src={item.image} alt={item.name} fill className="object-cover" />}
                                     </div>
                                     <div className="flex-1">
                                         <h4 className="font-semibold text-sm line-clamp-1">{item.name}</h4>
-                                        <p className="text-xs text-slate-500">Qty: {item.quantity}</p>
+                                        {item.variantName && (
+                                            <p className="text-xs font-medium text-blue-600 bg-blue-50 px-1.5 py-0.5 rounded w-fit mt-0.5">
+                                                {item.variantName}
+                                            </p>
+                                        )}
+                                        <p className="text-xs text-slate-500 mt-0.5">Qty: {item.quantity}</p>
                                     </div>
                                     <div className="font-medium text-sm">€{((item.price * item.quantity) / 100).toFixed(2)}</div>
                                 </div>
