@@ -1,14 +1,14 @@
 "use server";
 
 import { db } from "@/server/db";
-import { orders, orderItems, products } from "@/server/db/schema";
+import { orders, orderItems, products, productVariants } from "@/server/db/schema";
 import { z } from "zod";
 import { eq } from "drizzle-orm";
 import { revalidatePath } from "next/cache";
 import { Resend } from 'resend';
 import { OrderReceiptEmail } from "@/components/emails/order-receipt";
 import { OrderUpdateEmail } from "@/components/emails/order-update";
-import { auth } from "@/auth"; // <-- EKLENDİ: Oturum kontrolü için
+import { auth } from "@/auth";
 
 const resend = new Resend(process.env.RESEND_API_KEY);
 
@@ -28,6 +28,8 @@ const orderSchema = z.object({
   taxOffice: z.string().optional(),
   items: z.array(z.object({
     id: z.string(),
+    variantId: z.string().optional(),
+    variantName: z.string().optional(),
     price: z.number(),
     quantity: z.number(),
   })).min(1),
@@ -36,7 +38,7 @@ const orderSchema = z.object({
 type OrderInput = z.infer<typeof orderSchema>;
 
 export async function createOrder(data: OrderInput) {
-  const session = await auth(); // <-- EKLENDİ: Kullanıcı oturumunu al
+  const session = await auth();
 
   const validation = orderSchema.safeParse(data);
   if (!validation.success) return { success: false, error: "Invalid data." };
@@ -48,15 +50,9 @@ export async function createOrder(data: OrderInput) {
     items 
   } = validation.data;
 
-  // İsim Formatlama
-  const formatName = (str: string) => str.charAt(0).toUpperCase() + str.slice(1).toLowerCase();
-  const fullName = `${formatName(firstName)} ${formatName(lastName)}`;
-
-  // Dil Belirleme (Basit Mantık)
+  const fullName = `${firstName} ${lastName}`;
   let locale: "en" | "tr" | "de" | "bg" = "en";
   if (country === "Turkey" || country === "TR") locale = "tr";
-  else if (country === "Germany" || country === "DE") locale = "de";
-  else if (country === "Bulgaria" || country === "BG") locale = "bg";
 
   if (invoiceType === 'corporate' && (!companyName || !taxId)) {
       return { success: false, error: "Company details missing." };
@@ -68,24 +64,26 @@ export async function createOrder(data: OrderInput) {
 
   try {
     await db.transaction(async (tx) => {
-      // 1. Stok Kontrol & Hazırlık
       for (const item of items) {
-        const product = await tx.query.products.findFirst({ where: eq(products.id, item.id) });
-        
-        if (!product || (product.stock < item.quantity)) {
-          throw new Error(`Insufficient stock for product: ${product?.name || 'Unknown'}`);
+        if (item.variantId) {
+            const variant = await tx.query.productVariants.findFirst({ where: eq(productVariants.id, item.variantId) });
+            if (!variant || variant.stock < item.quantity) {
+              throw new Error(`Insufficient stock for variant: ${variant?.name || 'Unknown'}`);
+            }
+            await tx.update(productVariants).set({ stock: variant.stock - item.quantity }).where(eq(productVariants.id, item.variantId));
+            emailItems.push({ name: `${variant.name}`, quantity: item.quantity, price: item.price });
+        } else {
+            const product = await tx.query.products.findFirst({ where: eq(products.id, item.id) });
+            if (!product || product.stock < item.quantity) {
+              throw new Error(`Insufficient stock for product: ${product?.name || 'Unknown'}`);
+            }
+            await tx.update(products).set({ stock: product.stock - item.quantity }).where(eq(products.id, item.id));
+            emailItems.push({ name: product.name, quantity: item.quantity, price: item.price });
         }
-        
-        emailItems.push({ name: product.name, quantity: item.quantity, price: item.price });
-
-        await tx.update(products)
-          .set({ stock: product.stock - item.quantity })
-          .where(eq(products.id, item.id));
       }
 
-      // 2. Sipariş Kaydı (userId EKLENDİ)
       const [newOrder] = await tx.insert(orders).values({
-        userId: session?.user?.id || null, // <-- KRİTİK: Siparişi kullanıcıya bağlar
+        userId: session?.user?.id || null,
         customerName: fullName,
         customerEmail: email,
         customerPhone: phone,
@@ -103,6 +101,7 @@ export async function createOrder(data: OrderInput) {
           items.map((item) => ({
             orderId: newOrder.id,
             productId: item.id,
+            variantName: item.variantName || null,
             price: item.price,
             quantity: item.quantity,
           }))
@@ -110,7 +109,6 @@ export async function createOrder(data: OrderInput) {
       }
     });
 
-    // 3. Email Gönderimi (Çok Dilli)
     try {
         await resend.emails.send({
             from: 'InstantDesign <onboarding@resend.dev>',
@@ -123,18 +121,12 @@ export async function createOrder(data: OrderInput) {
                 items: emailItems,
                 totalAmount: totalAmount,
                 shippingAddress: {
-                    address: address,
-                    city: city,
-                    country: country,
-                    zipCode: zipCode
+                    address: address, city: city, country: country, zipCode: zipCode
                 },
-                locale: locale // <-- Dili gönderiyoruz
+                locale: locale
             }),
         });
-        console.log("Professional Email sent!");
-    } catch (emailError) {
-        console.error("Email failed:", emailError);
-    }
+    } catch (emailError) { console.error("Email failed:", emailError); }
 
     revalidatePath("/admin");
     return { success: true };
@@ -146,13 +138,12 @@ export async function createOrder(data: OrderInput) {
   }
 }
 
-// ... Diğer fonksiyonlar (deleteOrder, updateOrderStatus) AYNI KALACAK ...
 export async function deleteOrder(orderId: string) {
     try {
       await db.delete(orders).where(eq(orders.id, orderId));
       revalidatePath("/admin/orders");
       return { success: true, message: "Order deleted" };
-    } catch (error) {
+    } catch {
       return { success: false, message: "Failed to delete order" };
     }
 }
@@ -163,7 +154,6 @@ export async function updateOrderStatus(orderId: string, status: "pending" | "pr
           where: eq(orders.id, orderId),
           columns: { id: true, customerEmail: true, customerName: true }
       });
-
       if (!order) return { success: false, message: "Order not found" };
 
       await db.update(orders).set({ status }).where(eq(orders.id, orderId));
@@ -180,10 +170,9 @@ export async function updateOrderStatus(orderId: string, status: "pending" | "pr
               }),
           });
       } catch (emailError) { console.error(emailError); }
-
       revalidatePath("/admin/orders");
       return { success: true, message: "Status updated" };
-    } catch (error) {
+    } catch {
       return { success: false, message: "Failed to update status" };
     }
 }

@@ -16,18 +16,19 @@ const productSchema = z.object({
   categoryId: z.string().optional(),
   images: z.array(z.string()).optional(),
   modelUrl: z.string().optional(),
+  maskImage: z.string().optional(),
   width: z.coerce.number().optional(),
   height: z.coerce.number().optional(),
   depth: z.coerce.number().optional(),
-  // GÜNCELLEME: Varyasyon yapısı detaylandırıldı
   variants: z.array(z.object({
     id: z.string().optional(),
-    name: z.string().optional(), // Artık opsiyonel, biz oluşturacağız
+    name: z.string().optional(),
     price: z.coerce.number().min(0),
     stock: z.coerce.number().min(0),
-    image: z.string().optional().nullable(),
-    // YENİ: Ayrı özellikler
+    images: z.array(z.string()).optional(),
+    modelUrl: z.string().optional().nullable(),
     color: z.string().optional(),
+    colorCode: z.string().optional(),
     size: z.string().optional(),
     material: z.string().optional(),
   })).optional()
@@ -35,6 +36,7 @@ const productSchema = z.object({
 
 export async function createProduct(formData: FormData) {
   const rawData = Object.fromEntries(formData.entries());
+  
   const images = rawData.images ? JSON.parse(rawData.images as string) : [];
   const variants = rawData.variants ? JSON.parse(rawData.variants as string) : [];
 
@@ -60,6 +62,7 @@ export async function createProduct(formData: FormData) {
       categoryId: productData.categoryId ?? null,
       images: productData.images ?? [],
       modelUrl: productData.modelUrl ?? null,
+      maskImage: productData.maskImage ?? null, 
       width: productData.width ?? null,
       height: productData.height ?? null,
       depth: productData.depth ?? null,
@@ -68,19 +71,19 @@ export async function createProduct(formData: FormData) {
     if (variantList && variantList.length > 0) {
       await db.insert(productVariants).values(
         variantList.map((v) => {
-          // Otomatik İsim Oluşturma: "Kırmızı - XL - Kadife"
           const parts = [v.color, v.size, v.material].filter(Boolean);
           const fullName = parts.length > 0 ? parts.join(" / ") : "Standard";
 
           return {
             productId: newProduct.id,
-            name: fullName, // Sepette görünecek isim
+            name: fullName,
             price: v.price * 100,
             stock: v.stock,
-            image: v.image || null,
-            // JSON sütununa detayları kaydediyoruz
+            images: v.images || [], 
+            modelUrl: v.modelUrl || null,
             attributes: {
                 color: v.color || "",
+                colorCode: v.colorCode || "", 
                 size: v.size || "",
                 material: v.material || ""
             }
@@ -101,6 +104,7 @@ export async function createProduct(formData: FormData) {
 
 export async function updateProduct(id: string, formData: FormData) {
   const rawData = Object.fromEntries(formData.entries());
+  
   const images = rawData.images ? JSON.parse(rawData.images as string) : [];
   const variants = rawData.variants ? JSON.parse(rawData.variants as string) : [];
 
@@ -110,9 +114,7 @@ export async function updateProduct(id: string, formData: FormData) {
     variants: variants
   });
 
-  if (!validatedFields.success) {
-    return { success: false, error: "Invalid fields" };
-  }
+  if (!validatedFields.success) return { success: false, error: "Invalid fields" };
 
   const { variants: variantList, ...productData } = validatedFields.data;
 
@@ -126,6 +128,7 @@ export async function updateProduct(id: string, formData: FormData) {
       categoryId: productData.categoryId ?? null,
       images: productData.images ?? [],
       modelUrl: productData.modelUrl ?? null,
+      maskImage: productData.maskImage ?? null,
       width: productData.width ?? null,
       height: productData.height ?? null,
       depth: productData.depth ?? null,
@@ -137,7 +140,6 @@ export async function updateProduct(id: string, formData: FormData) {
     if (variantList && variantList.length > 0) {
       await db.insert(productVariants).values(
         variantList.map((v) => {
-          // Otomatik İsim Oluşturma
           const parts = [v.color, v.size, v.material].filter(Boolean);
           const fullName = parts.length > 0 ? parts.join(" / ") : "Standard";
 
@@ -146,9 +148,11 @@ export async function updateProduct(id: string, formData: FormData) {
             name: fullName,
             price: v.price * 100,
             stock: v.stock,
-            image: v.image || null,
+            images: v.images || [], 
+            modelUrl: v.modelUrl || null,
             attributes: {
                 color: v.color || "",
+                colorCode: v.colorCode || "",
                 size: v.size || "",
                 material: v.material || ""
             }
@@ -161,7 +165,7 @@ export async function updateProduct(id: string, formData: FormData) {
     revalidatePath("/");
     revalidatePath(`/product/${productData.slug}`);
   } catch (error) {
-    console.error(error);
+    console.error("DB Error:", error);
     return { success: false, error: "Failed to update product" };
   }
 

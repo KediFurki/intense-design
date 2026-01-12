@@ -8,15 +8,14 @@ import {
   integer,
   boolean,
   jsonb,
+  json,
 } from "drizzle-orm/pg-core";
 import { relations } from "drizzle-orm";
 import type { AdapterAccount } from "next-auth/adapters";
 
-// 1. ENUMS
 export const roleEnum = pgEnum("role", ["admin", "customer"]);
 export const orderStatusEnum = pgEnum("order_status", ["pending", "processing", "shipped", "delivered", "cancelled"]);
 
-// 2. USERS TABLE
 export const users = pgTable("user", {
   id: uuid("id").defaultRandom().primaryKey(),
   name: text("name"),
@@ -32,7 +31,6 @@ export const users = pgTable("user", {
   createdAt: timestamp("created_at").defaultNow(),
 });
 
-// 2.1 ADDRESSES TABLE
 export const addresses = pgTable("address", {
   id: uuid("id").defaultRandom().primaryKey(),
   userId: uuid("userId").notNull().references(() => users.id, { onDelete: "cascade" }),
@@ -45,7 +43,6 @@ export const addresses = pgTable("address", {
   createdAt: timestamp("created_at").defaultNow(),
 });
 
-// 2.2 FAVORITES TABLE
 export const favorites = pgTable("favorite", {
   userId: uuid("userId").notNull().references(() => users.id, { onDelete: "cascade" }),
   productId: uuid("productId").notNull().references(() => products.id, { onDelete: "cascade" }),
@@ -53,7 +50,6 @@ export const favorites = pgTable("favorite", {
   pk: primaryKey({ columns: [t.userId, t.productId] }),
 }));
 
-// 3. ACCOUNTS
 export const accounts = pgTable("account", {
     userId: uuid("userId").notNull().references(() => users.id, { onDelete: "cascade" }),
     type: text("type").$type<AdapterAccount["type"]>().notNull(),
@@ -74,14 +70,12 @@ export const accounts = pgTable("account", {
   })
 );
 
-// 4. SESSIONS
 export const sessions = pgTable("session", {
   sessionToken: text("sessionToken").primaryKey(),
   userId: uuid("userId").notNull().references(() => users.id, { onDelete: "cascade" }),
   expires: timestamp("expires", { mode: "date" }).notNull(),
 });
 
-// 5. VERIFICATION TOKENS
 export const verificationTokens = pgTable("verificationToken", {
     identifier: text("identifier").notNull(),
     token: text("token").notNull(),
@@ -92,7 +86,6 @@ export const verificationTokens = pgTable("verificationToken", {
   })
 );
 
-// 6. CATEGORIES
 export const categories = pgTable("category", {
   id: uuid("id").defaultRandom().primaryKey(),
   name: text("name").notNull(),
@@ -102,7 +95,6 @@ export const categories = pgTable("category", {
   createdAt: timestamp("created_at").defaultNow(),
 });
 
-// 7. PRODUCTS (Güncellendi: Varyasyon Desteği)
 export const products = pgTable("product", {
   id: uuid("id").defaultRandom().primaryKey(),
   categoryId: uuid("categoryId").references(() => categories.id),
@@ -110,47 +102,39 @@ export const products = pgTable("product", {
   slug: text("slug").notNull().unique(),
   description: text("description").notNull(),
   
-  // Baz Fiyat ve Stok (Varyasyon yoksa bunlar kullanılır)
   price: integer("price").notNull(),
   stock: integer("stock").default(0).notNull(),
   
-  // Boyutlar
   width: integer("width"),
   height: integer("height"),
   depth: integer("depth"),
   material: text("material"),
   
-  images: text("images").array(), 
+  images: json("images").$type<string[]>().default([]), 
   modelUrl: text("modelUrl"),
-  
-  // YENİ: Bu ürünün varyasyonu var mı?
-  hasVariants: boolean("has_variants").default(false),
+  maskImage: text("mask_image"), 
 
   createdAt: timestamp("created_at").defaultNow(),
   updatedAt: timestamp("updated_at").defaultNow(),
 });
 
-// 7.1 PRODUCT VARIANTS (YENİ TABLO)
 export const productVariants = pgTable("product_variant", {
   id: uuid("id").defaultRandom().primaryKey(),
   productId: uuid("productId").notNull().references(() => products.id, { onDelete: "cascade" }),
   
-  name: text("name").notNull(), // Örn: "Kırmızı / Large"
-  sku: text("sku"), // Stok kodu
+  name: text("name").notNull(), 
+  price: integer("price").notNull(),
+  stock: integer("stock").notNull(),
   
-  price: integer("price").notNull(), // Varyasyona özel fiyat
-  stock: integer("stock").default(0).notNull(), // Varyasyona özel stok
+  images: json("images").$type<string[]>().default([]),
+  modelUrl: text("model_url"), 
   
-  image: text("image"), // Varyasyonun resmi (örn: sadece kırmızı koltuk fotosu)
-  
-  // JSONB ile esnek özellikler: { "Color": "Red", "Size": "XL", "Material": "Velvet" }
   attributes: jsonb("attributes").notNull(), 
   
   createdAt: timestamp("created_at").defaultNow(),
   updatedAt: timestamp("updated_at").defaultNow(),
 });
 
-// 8. ORDERS
 export const orders = pgTable("order", {
   id: uuid("id").defaultRandom().primaryKey(),
   userId: uuid("userId").references(() => users.id),
@@ -176,21 +160,18 @@ export const orders = pgTable("order", {
   createdAt: timestamp("created_at").defaultNow(),
 });
 
-// 9. ORDER ITEMS (Güncellendi: VariantId eklendi)
 export const orderItems = pgTable("order_item", {
   id: uuid("id").defaultRandom().primaryKey(),
   orderId: uuid("orderId").notNull().references(() => orders.id, { onDelete: "cascade" }),
   productId: uuid("productId").references(() => products.id),
   
-  // YENİ: Eğer varyasyonlu bir ürünse, hangi varyasyonun satıldığını tutar.
-  variantId: uuid("variantId").references(() => productVariants.id),
+  variantName: text("variant_name"), 
   
   price: integer("price").notNull(),
   quantity: integer("quantity").notNull(),
 });
 
-// --- İLİŞKİLER ---
-
+// ILISKILER
 export const usersRelations = relations(users, ({ many }) => ({
   orders: many(orders),
   addresses: many(addresses),
@@ -208,15 +189,13 @@ export const favoritesRelations = relations(favorites, ({ one }) => ({
 
 export const productsRelations = relations(products, ({ one, many }) => ({
   category: one(categories, { fields: [products.categoryId], references: [categories.id] }),
-  variants: many(productVariants), // <-- Ürünün varyasyonları
+  variants: many(productVariants),
   orderItems: many(orderItems),
   favoritedBy: many(favorites),
 }));
 
-// YENİ İLİŞKİ: Varyasyonlar
 export const productVariantsRelations = relations(productVariants, ({ one, many }) => ({
   product: one(products, { fields: [productVariants.productId], references: [products.id] }),
-  orderItems: many(orderItems),
 }));
 
 export const categoriesRelations = relations(categories, ({ many }) => ({
@@ -231,5 +210,4 @@ export const ordersRelations = relations(orders, ({ one, many }) => ({
 export const orderItemsRelations = relations(orderItems, ({ one }) => ({
   order: one(orders, { fields: [orderItems.orderId], references: [orders.id] }),
   product: one(products, { fields: [orderItems.productId], references: [products.id] }),
-  variant: one(productVariants, { fields: [orderItems.variantId], references: [productVariants.id] }), // <-- Varyasyon ilişkisi
 }));

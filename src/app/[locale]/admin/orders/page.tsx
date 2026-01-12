@@ -5,7 +5,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardHeader } from "@/components/ui/card";
 import { OrderActions } from "@/components/admin/order-actions";
-import { MapPin, User, FileText, Building2 } from "lucide-react";
+import { MapPin, User, Building2 } from "lucide-react";
 import { PrintOrderButton } from "@/components/admin/print-order-button";
 
 export default async function AdminOrdersPage() {
@@ -32,7 +32,6 @@ export default async function AdminOrdersPage() {
                             </div>
                             
                             <div className="grid md:grid-cols-2 gap-4 mt-2">
-                                {/* Müşteri ve Adres */}
                                 <div>
                                     <div className="flex items-center gap-2 font-semibold text-slate-900">
                                         <User size={16} className="text-blue-600" /> {order.customerName}
@@ -42,15 +41,11 @@ export default async function AdminOrdersPage() {
                                         <p>{order.customerPhone}</p>
                                         <div className="flex items-start gap-1 mt-1 text-slate-500">
                                             <MapPin size={14} className="mt-0.5 shrink-0" />
-                                            <span>
-                                                {order.address},<br/>
-                                                {order.zipCode} {order.city} / {order.country}
-                                            </span>
+                                            <span>{order.address},<br/>{order.zipCode} {order.city} / {order.country}</span>
                                         </div>
                                     </div>
                                 </div>
 
-                                {/* Fatura Bilgileri (Global Standart) */}
                                 <div className="text-sm bg-blue-50/50 p-3 rounded border border-blue-100 print:border-black print:bg-white">
                                     <h4 className="font-semibold flex items-center gap-2 text-blue-900 mb-2">
                                         {order.invoiceType === 'corporate' ? <Building2 size={14}/> : <User size={14}/>} 
@@ -64,7 +59,7 @@ export default async function AdminOrdersPage() {
                                             {order.taxOffice && <p><span className="font-medium text-slate-700">Office:</span> {order.taxOffice}</p>}
                                         </div>
                                     ) : (
-                                        <p className="text-slate-500 italic">No additional tax details required for personal orders.</p>
+                                        <p className="text-slate-500 italic">No additional tax details required.</p>
                                     )}
                                 </div>
                             </div>
@@ -91,7 +86,11 @@ export default async function AdminOrdersPage() {
                         <TableBody>
                             {order.items.map((item) => (
                                 <TableRow key={item.id}>
-                                    <TableCell className="font-medium">{item.product?.name}</TableCell>
+                                    <TableCell>
+                                        <div className="font-medium">{item.product?.name}</div>
+                                        {/* GÜNCELLEME: Varyasyon adını göster */}
+                                        {item.variantName && <div className="text-xs text-muted-foreground">{item.variantName}</div>}
+                                    </TableCell>
                                     <TableCell className="text-right">€{(item.price / 100).toFixed(2)}</TableCell>
                                     <TableCell className="text-right">x{item.quantity}</TableCell>
                                     <TableCell className="text-right font-bold">€{((item.price * item.quantity) / 100).toFixed(2)}</TableCell>

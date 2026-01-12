@@ -1,17 +1,17 @@
 "use client";
 
-import { useState } from "react"; // useEffect silindi, gerek kalmadı
+import { useState } from "react";
 import Image from "next/image";
 import { Badge } from "@/components/ui/badge";
-import { Check, Palette, Ruler, Hammer, Info } from "lucide-react";
+import { Check, Info, Palette, Ruler, Hammer } from "lucide-react";
 import AddToCartButton from "@/components/shop/add-to-cart-button";
 import ModelViewer from "@/components/shop/model-viewer";
 import { cn } from "@/lib/utils";
 import { useTranslations } from "next-intl";
 
-// Veritabanındaki JSON yapısını tanımlıyoruz
 interface VariantAttributes {
   color?: string;
+  colorCode?: string;
   size?: string;
   material?: string;
 }
@@ -21,7 +21,7 @@ interface Variant {
   name: string;
   price: number;
   stock: number;
-  image: string | null;
+  images: unknown;
   attributes: unknown; 
 }
 
@@ -35,6 +35,7 @@ interface ProductDetailsProps {
     stock: number;
     images: string[] | null;
     modelUrl: string | null;
+    maskImage: string | null;
     width: number | null;
     height: number | null;
     depth: number | null;
@@ -46,11 +47,8 @@ interface ProductDetailsProps {
 export function ProductDetails({ product, variants }: ProductDetailsProps) {
   const t = useTranslations("Product");
   
-  // DÜZELTME: useEffect yerine başlangıç değerini burada hesaplıyoruz.
-  // Bu yöntem çok daha performanslıdır ve hatayı çözer.
   const [selectedVariantId, setSelectedVariantId] = useState<string | null>(() => {
     if (variants.length > 0) {
-      // Stokta olan ilk ürünü bul, yoksa ilk ürünü seç
       const firstAvailable = variants.find(v => v.stock > 0);
       return firstAvailable ? firstAvailable.id : variants[0].id;
     }
@@ -58,49 +56,72 @@ export function ProductDetails({ product, variants }: ProductDetailsProps) {
   });
 
   const selectedVariant = variants.find((v) => v.id === selectedVariantId);
-
-  // Attributes verisini güvenli şekilde al
   const selectedAttrs = selectedVariant ? (selectedVariant.attributes as VariantAttributes) : null;
+
+  const variantImages = Array.isArray(selectedVariant?.images) 
+      ? (selectedVariant?.images as string[]) 
+      : [];
+      
+  const displayImages = variantImages.length > 0 ? variantImages : (product.images || []);
+  const mainImage = displayImages[0];
 
   const currentPrice = selectedVariant ? selectedVariant.price : product.price;
   const currentStock = selectedVariant ? selectedVariant.stock : product.stock;
-  const currentImage = selectedVariant?.image || product.images?.[0];
 
   return (
     <div className="grid grid-cols-1 lg:grid-cols-2 gap-12 animate-in fade-in duration-500">
-      {/* SOL: GÖRSEL / 3D MODEL */}
       <div className="space-y-4">
         <div className="aspect-square bg-slate-100 rounded-2xl overflow-hidden relative border shadow-sm group">
-          {product.modelUrl && !selectedVariant ? (
-            <ModelViewer
-              src={product.modelUrl}
-              poster={currentImage || ""}
-              alt={`3D model of ${product.name}`}
-            />
-          ) : (
-            currentImage ? (
-              <Image
-                src={currentImage}
-                alt={product.name}
-                fill
-                className="object-cover transition-all duration-500 hover:scale-105"
-              />
+            {product.maskImage && selectedAttrs?.colorCode ? (
+                <div className="relative w-full h-full">
+                    <Image src={mainImage} alt={product.name} fill className="object-cover z-0" />
+                    <div 
+                        className="absolute inset-0 z-10 mix-blend-multiply opacity-90 transition-colors duration-300"
+                        style={{
+                            backgroundColor: selectedAttrs.colorCode,
+                            maskImage: `url(${product.maskImage})`,
+                            WebkitMaskImage: `url(${product.maskImage})`,
+                            maskSize: 'cover',
+                            WebkitMaskSize: 'cover',
+                            maskRepeat: 'no-repeat',
+                            WebkitMaskRepeat: 'no-repeat'
+                        }}
+                    />
+                </div>
             ) : (
-              <div className="flex items-center justify-center h-full text-slate-400">No Image</div>
-            )
-          )}
-          
-          {/* Stok Durumu Rozeti */}
-          <div className="absolute top-4 left-4">
+                product.modelUrl && !selectedVariant ? (
+                    <ModelViewer
+                      src={product.modelUrl}
+                      poster={mainImage || ""}
+                      alt={`3D model of ${product.name}`}
+                    />
+                ) : (
+                    mainImage ? (
+                        <Image src={mainImage} alt={product.name} fill className="object-cover transition-all duration-500" />
+                    ) : (
+                        <div className="flex items-center justify-center h-full text-slate-400">No Image</div>
+                    )
+                )
+            )}
+            
+            <div className="absolute top-4 left-4 z-20">
              <Badge variant={currentStock > 0 ? "secondary" : "destructive"} className="shadow-sm">
                 {currentStock > 0 ? t('inStock') : t('outOfStock')}
              </Badge>
           </div>
         </div>
         
+        {displayImages.length > 1 && (
+            <div className="flex gap-2 overflow-x-auto pb-2 scrollbar-hide">
+                {displayImages.map((img, i) => (
+                    <div key={i} className="w-20 h-20 relative rounded-md overflow-hidden border cursor-pointer shrink-0 hover:opacity-80">
+                        <Image src={img} alt="thumbnail" fill className="object-cover" />
+                    </div>
+                ))}
+            </div>
+        )}
       </div>
 
-      {/* SAĞ: DETAYLAR */}
       <div className="space-y-8">
         <div>
           <h1 className="text-4xl font-bold text-slate-900 mb-2 tracking-tight">{product.name}</h1>
@@ -113,35 +134,25 @@ export function ProductDetails({ product, variants }: ProductDetailsProps) {
              )}
           </div>
         </div>
-        
-        {/* SEÇİLİ VARYASYON ÖZELLİKLERİ */}
+
         {selectedAttrs && (
             <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
                 {selectedAttrs.color && (
                     <div className="flex items-center gap-2 p-2 bg-slate-50 rounded-lg border">
                         <Palette size={16} className="text-slate-500"/>
-                        <div>
-                            <p className="text-[10px] uppercase text-slate-500 font-bold">Color</p>
-                            <p className="text-sm font-medium">{selectedAttrs.color}</p>
-                        </div>
+                        <div><p className="text-[10px] uppercase text-slate-500 font-bold">Color</p><p className="text-sm font-medium">{selectedAttrs.color}</p></div>
                     </div>
                 )}
                 {selectedAttrs.size && (
                     <div className="flex items-center gap-2 p-2 bg-slate-50 rounded-lg border">
                         <Ruler size={16} className="text-slate-500"/>
-                        <div>
-                            <p className="text-[10px] uppercase text-slate-500 font-bold">Size</p>
-                            <p className="text-sm font-medium">{selectedAttrs.size}</p>
-                        </div>
+                        <div><p className="text-[10px] uppercase text-slate-500 font-bold">Size</p><p className="text-sm font-medium">{selectedAttrs.size}</p></div>
                     </div>
                 )}
                 {selectedAttrs.material && (
                     <div className="flex items-center gap-2 p-2 bg-slate-50 rounded-lg border">
                         <Hammer size={16} className="text-slate-500"/>
-                        <div>
-                            <p className="text-[10px] uppercase text-slate-500 font-bold">Material</p>
-                            <p className="text-sm font-medium">{selectedAttrs.material}</p>
-                        </div>
+                        <div><p className="text-[10px] uppercase text-slate-500 font-bold">Material</p><p className="text-sm font-medium">{selectedAttrs.material}</p></div>
                     </div>
                 )}
             </div>
@@ -151,44 +162,37 @@ export function ProductDetails({ product, variants }: ProductDetailsProps) {
           {product.description || "No description available."}
         </div>
 
-        {/* VARYASYON SEÇİCİ */}
         {variants.length > 0 && (
-          <div className="space-y-3 pt-4 border-t">
+          <div className="space-y-4 pt-4 border-t">
             <label className="text-sm font-semibold text-slate-900 flex items-center gap-2">
-                {t('options') || "Available Options"} 
-                <span className="text-xs font-normal text-slate-500">({variants.length})</span>
+                {t('options') || "Colors & Options"} 
             </label>
-            <div className="flex flex-wrap gap-2">
+            <div className="flex flex-wrap gap-3">
               {variants.map((variant) => {
+                 const attrs = variant.attributes as VariantAttributes;
+                 const isSelected = selectedVariantId === variant.id;
+                 
                  return (
                     <button
                       key={variant.id}
                       onClick={() => setSelectedVariantId(variant.id)}
                       disabled={variant.stock <= 0}
+                      title={`${attrs.color || variant.name} - ${attrs.size || ''}`}
                       className={cn(
-                        "group relative px-4 py-2 rounded-lg text-sm font-medium border transition-all flex flex-col items-center gap-1 min-w-[80px]",
-                        selectedVariantId === variant.id
-                          ? "border-blue-600 bg-blue-50 text-blue-700 ring-1 ring-blue-600"
-                          : "border-slate-200 bg-white text-slate-700 hover:border-slate-300",
-                        variant.stock <= 0 && "opacity-50 cursor-not-allowed bg-slate-50"
+                        "relative w-12 h-12 rounded-full border-2 transition-all flex items-center justify-center overflow-hidden",
+                        isSelected ? "border-blue-600 ring-2 ring-blue-100 scale-110" : "border-slate-200 hover:border-slate-300",
+                        variant.stock <= 0 && "opacity-40 cursor-not-allowed"
                       )}
+                      style={{ backgroundColor: attrs.colorCode || "#eee" }}
                     >
-                      <span>{variant.name}</span>
-                      {variant.stock <= 0 && <span className="text-[10px] text-red-500 font-bold">Sold Out</span>}
+                      {!attrs.colorCode && <span className="text-xs font-bold text-slate-400">{variant.name?.charAt(0)}</span>}
+                      {isSelected && attrs.colorCode && (<div className="bg-white/20 p-1 rounded-full backdrop-blur-sm"><Check size={14} className="text-white drop-shadow-md" /></div>)}
                     </button>
                  );
               })}
             </div>
+            {selectedVariant && (<p className="text-sm text-slate-500">Selected: <span className="font-semibold text-slate-900">{selectedVariant.name}</span></p>)}
           </div>
-        )}
-
-        {/* BOYUTLAR TABLOSU */}
-        {(product.width || product.height || product.depth) && (
-             <div className="grid grid-cols-3 gap-4 border-t border-b py-6 text-center">
-               <div><p className="text-xs uppercase font-bold text-slate-400 mb-1">{t('width')}</p><p className="font-medium text-slate-900">{product.width || "-"} mm</p></div>
-               <div><p className="text-xs uppercase font-bold text-slate-400 mb-1">{t('height')}</p><p className="font-medium text-slate-900">{product.height || "-"} mm</p></div>
-               <div><p className="text-xs uppercase font-bold text-slate-400 mb-1">{t('depth')}</p><p className="font-medium text-slate-900">{product.depth || "-"} mm</p></div>
-             </div>
         )}
 
         <div className="flex flex-col gap-4 pt-4">
@@ -202,18 +206,14 @@ export function ProductDetails({ product, variants }: ProductDetailsProps) {
               name: product.name,
               slug: product.slug,
               price: currentPrice,
-              image: currentImage || "",
+              image: mainImage || "",
               categoryName: product.category?.name,
             }}
             className="w-full h-14 text-lg shadow-xl shadow-blue-900/5"
           />
           
           <div className="flex items-center justify-center gap-2 text-xs text-slate-500">
-            <Check size={14} className="text-green-600" />
-            <span>{t('freeShipping')}</span>
-            <span className="mx-2">•</span>
-            <Info size={14} />
-            <span>2 Year Warranty</span>
+            <Check size={14} className="text-green-600" /><span>{t('freeShipping')}</span><span className="mx-2">•</span><Info size={14} /><span>2 Year Warranty</span>
           </div>
         </div>
       </div>

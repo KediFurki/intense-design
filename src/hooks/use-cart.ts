@@ -4,8 +4,8 @@ import { toast } from "sonner";
 
 export interface CartItem {
   id: string;
-  variantId?: string; // <-- EKLENDİ: Varyasyon Kimliği
-  variantName?: string; // <-- EKLENDİ: Varyasyon Adı (Örn: Kırmızı / XL)
+  variantId?: string;
+  variantName?: string;
   name: string;
   price: number;
   image?: string;
@@ -18,8 +18,8 @@ export interface CartItem {
 interface CartStore {
   items: CartItem[];
   addItem: (data: CartItem) => void;
-  removeItem: (id: string, variantId?: string) => void; // <-- Güncellendi
-  decreaseItem: (id: string, variantId?: string) => void; // <-- Güncellendi
+  removeItem: (id: string, variantId?: string) => void;
+  decreaseItem: (id: string, variantId?: string) => void;
   removeAll: () => void;
 }
 
@@ -30,13 +30,11 @@ export const useCart = create(
       
       addItem: (data: CartItem) => {
         const currentItems = get().items;
-        // Hem Ürün ID'si hem de Varyasyon ID'si eşleşmeli (Ürün aynı olsa bile rengi farklıysa yeni satır olmalı)
         const existingItem = currentItems.find((item) => 
           item.id === data.id && item.variantId === data.variantId
         );
 
         if (existingItem) {
-          // Stok Kontrolü
           if (existingItem.quantity >= data.maxStock) {
             toast.error(`Only ${data.maxStock} items left in stock!`);
             return;
@@ -75,7 +73,6 @@ export const useCart = create(
             ),
           });
         } else {
-          // Miktar 1 ise sil
           set({ items: [...currentItems.filter((item) => !(item.id === id && item.variantId === variantId))] });
         }
       },
