@@ -4,7 +4,6 @@ import createMiddleware from "next-intl/middleware";
 import { routing } from "./i18n/routing";
 
 const { auth } = NextAuth(authConfig);
-
 const intlMiddleware = createMiddleware(routing);
 
 export default auth((req) => {
@@ -12,20 +11,38 @@ export default auth((req) => {
   const isLoggedIn = !!req.auth;
 
   const isApiAuthRoute = nextUrl.pathname.startsWith("/api/auth");
-  const isPublicRoute = nextUrl.pathname === "/" || nextUrl.pathname.startsWith("/login");
   const isAdminRoute = nextUrl.pathname.includes("/admin");
+  const isAuthRoute = nextUrl.pathname.includes("/login");
 
   if (isApiAuthRoute) return;
 
+  // Admin koruması
   if (isAdminRoute && !isLoggedIn) {
-    return Response.redirect(new URL("/login", nextUrl));
+    const locale = nextUrl.pathname.split('/')[1] || routing.defaultLocale;
+    
+    // HATA DÜZELTİLDİ: 'as any' kaldırıldı
+    const safeLocale = routing.locales.includes(locale as (typeof routing.locales)[number]) 
+      ? locale 
+      : routing.defaultLocale;
+      
+    return Response.redirect(new URL(`/${safeLocale}/login`, nextUrl));
   }
 
-  // i18n middleware'ini her zaman çalıştır
+  // Login olmuş kullanıcıyı geri yönlendirme
+  if (isAuthRoute && isLoggedIn) {
+    const locale = nextUrl.pathname.split('/')[1] || routing.defaultLocale;
+    
+    // HATA DÜZELTİLDİ: 'as any' kaldırıldı
+    const safeLocale = routing.locales.includes(locale as (typeof routing.locales)[number]) 
+      ? locale 
+      : routing.defaultLocale;
+      
+    return Response.redirect(new URL(`/${safeLocale}`, nextUrl));
+  }
+
   return intlMiddleware(req);
 });
 
 export const config = {
-  // Statik dosyaları ve API'leri hariç tut
-  matcher: ['/((?!api|_next|.*\\..*).*)', '/', '/(tr|en|bg|de)/:path*']
+  matcher: ['/((?!api|_next|_vercel|.*\\..*).*)']
 };

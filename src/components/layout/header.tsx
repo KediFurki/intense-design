@@ -1,10 +1,12 @@
 import { auth, signOut } from "@/auth";
 import { Button } from "@/components/ui/button";
-import Link from "next/link";
-import { LogOut, User, ChevronDown } from "lucide-react";
+import Link from "next/link"; // <-- DİKKAT: Bunu aşağıda değiştireceğiz
+import { Link as I18nLink } from "@/i18n/routing"; // <-- i18n Uyumlu Link
+import { LogOut, ChevronDown } from "lucide-react";
 import CartSheet from "@/components/shop/cart-sheet";
 import { db } from "@/server/db";
 import { categories } from "@/server/db/schema";
+import LanguageSwitcher from "./language-switcher"; // <-- YENİ BİLEŞEN
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -13,51 +15,54 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
+import { getTranslations } from "next-intl/server";
 
 export default async function Header() {
   const session = await auth();
-  
-  // Kategorileri sunucudan çekiyoruz (Navigasyon için)
   const categoryList = await db.select().from(categories);
+  const t = await getTranslations("Navigation"); // Çevirileri çek
 
   return (
     <header className="sticky top-0 z-50 w-full border-b bg-white/80 backdrop-blur supports-backdrop-filter:bg-white/60">
       <div className="container mx-auto px-4 h-16 flex items-center justify-between">
         
-        {/* SOL: LOGO VE MENÜ */}
+        {/* LOGO */}
         <div className="flex items-center gap-8">
-          <Link href="/" className="text-2xl font-black tracking-tighter text-slate-900 flex items-center gap-1">
+          <I18nLink href="/" className="text-2xl font-black tracking-tighter text-slate-900 flex items-center gap-1">
             Instant<span className="text-blue-600">Design</span>
             <span className="w-2 h-2 rounded-full bg-blue-600 mt-3"></span>
-          </Link>
+          </I18nLink>
 
-          {/* MASAÜSTÜ MENÜSÜ */}
+          {/* MENÜ */}
           <nav className="hidden md:flex items-center gap-6">
-            <Link href="/" className="text-sm font-medium hover:text-blue-600 transition-colors">Home</Link>
+            <I18nLink href="/" className="text-sm font-medium hover:text-blue-600 transition-colors">{t('home')}</I18nLink>
             
-            {/* KATEGORİLER DROPDOWN (HOVER GİBİ ÇALIŞIR) */}
             <DropdownMenu>
               <DropdownMenuTrigger className="flex items-center gap-1 text-sm font-medium hover:text-blue-600 outline-none transition-colors group">
-                Categories <ChevronDown size={14} className="group-data-[state=open]:rotate-180 transition-transform" />
+                {t('categories')} <ChevronDown size={14} className="group-data-[state=open]:rotate-180 transition-transform" />
               </DropdownMenuTrigger>
               <DropdownMenuContent align="start" className="w-48">
                 {categoryList.map((cat) => (
-                  <Link key={cat.id} href={`/category/${cat.slug}`}>
+                  <I18nLink key={cat.id} href={`/category/${cat.slug}`}>
                     <DropdownMenuItem className="cursor-pointer">
                       {cat.name}
                     </DropdownMenuItem>
-                  </Link>
+                  </I18nLink>
                 ))}
               </DropdownMenuContent>
             </DropdownMenu>
 
-            <Link href="/about" className="text-sm font-medium hover:text-blue-600 transition-colors">About</Link>
-            <Link href="/contact" className="text-sm font-medium hover:text-blue-600 transition-colors">Contact</Link>
+            <I18nLink href="/about" className="text-sm font-medium hover:text-blue-600 transition-colors">{t('about')}</I18nLink>
+            <I18nLink href="/contact" className="text-sm font-medium hover:text-blue-600 transition-colors">{t('contact')}</I18nLink>
           </nav>
         </div>
 
-        {/* SAĞ: SEPET & KULLANICI */}
-        <div className="flex items-center gap-4">
+        {/* SAĞ TARAF */}
+        <div className="flex items-center gap-2">
+          
+          {/* DİL SEÇİCİ */}
+          <LanguageSwitcher />
+
           <CartSheet />
 
           {session?.user ? (
@@ -70,26 +75,26 @@ export default async function Header() {
                 </Button>
               </DropdownMenuTrigger>
               <DropdownMenuContent align="end" className="w-56">
-                <DropdownMenuLabel>My Account</DropdownMenuLabel>
+                <DropdownMenuLabel>{t('profile')}</DropdownMenuLabel>
                 <DropdownMenuSeparator />
-                <Link href="/account"><DropdownMenuItem className="cursor-pointer">Profile & Orders</DropdownMenuItem></Link>
+                <I18nLink href="/account"><DropdownMenuItem className="cursor-pointer">{t('profile')}</DropdownMenuItem></I18nLink>
                 {session.user.role === "admin" && (
-                   <Link href="/admin"><DropdownMenuItem className="cursor-pointer text-blue-600 font-semibold">Admin Panel</DropdownMenuItem></Link>
+                   <I18nLink href="/admin"><DropdownMenuItem className="cursor-pointer text-blue-600 font-semibold">{t('admin')}</DropdownMenuItem></I18nLink>
                 )}
                 <DropdownMenuSeparator />
                 <form action={async () => { "use server"; await signOut(); }}>
                   <button type="submit" className="w-full text-left">
                     <DropdownMenuItem className="cursor-pointer text-red-600">
-                      <LogOut className="mr-2 h-4 w-4" /> Sign Out
+                      <LogOut className="mr-2 h-4 w-4" /> {t('logout')}
                     </DropdownMenuItem>
                   </button>
                 </form>
               </DropdownMenuContent>
             </DropdownMenu>
           ) : (
-            <Link href="/login">
-              <Button>Sign In</Button>
-            </Link>
+            <I18nLink href="/login">
+              <Button>{t('login')}</Button>
+            </I18nLink>
           )}
         </div>
       </div>

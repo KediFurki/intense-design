@@ -19,12 +19,8 @@ export default function ImageUpload({
   value,
 }: ImageUploadProps) {
   
-  // TypeScript hatasını düzelten onUpload fonksiyonu
   const onUpload = (result: CloudinaryUploadWidgetResults) => {
-    // result.info'nun "secure_url" içeren bir obje olduğunu belirtiyoruz
     const info = result.info as { secure_url: string };
-    
-    // Güvenlik kontrolü: URL varsa kaydet
     if (info?.secure_url) {
       onChange(info.secure_url);
     }
@@ -33,7 +29,7 @@ export default function ImageUpload({
   return (
     <div className="space-y-4">
       {/* Yüklenen Resimlerin Önizlemesi */}
-      <div className="flex items-center gap-4">
+      <div className="flex items-center gap-4 flex-wrap">
         {value.map((url) => (
           <div key={url} className="relative w-[200px] h-[200px] rounded-md overflow-hidden border border-slate-200">
             <div className="z-10 absolute top-2 right-2">
@@ -55,7 +51,7 @@ export default function ImageUpload({
       {/* Cloudinary Widget Butonu */}
       <CldUploadWidget 
         onSuccess={onUpload} 
-        uploadPreset="mobilya_preset" // Cloudinary'deki ismin aynısı olmalı
+        uploadPreset="mobilya_preset" // Cloudinary ayarınla aynı olmalı
         options={{
             maxFiles: 1,
             sources: ['local', 'url', 'camera'],

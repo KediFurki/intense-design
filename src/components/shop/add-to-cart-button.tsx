@@ -9,6 +9,8 @@ import { cn } from "@/lib/utils";
 interface AddToCartButtonProps {
   data: {
     id: string;
+    variantId?: string; // <-- YENİ
+    variantName?: string; // <-- YENİ
     name: string;
     slug: string;
     price: number;
@@ -41,6 +43,8 @@ export default function AddToCartButton({
 
     cart.addItem({
       id: data.id,
+      variantId: data.variantId, // <-- Geçiriyoruz
+      variantName: data.variantName, // <-- Geçiriyoruz
       name: data.name,
       slug: data.slug,
       price: data.price,

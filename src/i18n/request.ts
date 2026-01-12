@@ -4,8 +4,7 @@ import {routing} from './routing';
 export default getRequestConfig(async ({requestLocale}) => {
   let locale = await requestLocale;
 
-  // DÜZELTİLDİ: 'as any' yerine doğru tip tanımlaması yapıldı.
-  // Bu satır, locale değişkeninin routing.locales dizisindeki değerlerden biri gibi davranmasını sağlar.
+  // HATA DÜZELTİLDİ: 'as any' yerine routing.locales dizisinin tiplerini kullanıyoruz
   if (!locale || !routing.locales.includes(locale as (typeof routing.locales)[number])) {
     locale = routing.defaultLocale;
   }

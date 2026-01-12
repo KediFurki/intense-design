@@ -1,6 +1,6 @@
 import type { Metadata } from "next";
 import { Inter } from "next/font/google";
-import "../globals.css"; // CSS yolunu bir üst klasöre çıktığımız için düzelttik
+import "../globals.css"; // DİKKAT: CSS yolu değişti
 import { Toaster } from "@/components/ui/sonner";
 import Header from "@/components/layout/header";
 import { NextIntlClientProvider } from 'next-intl';
@@ -22,32 +22,22 @@ export default async function RootLayout({
   children: React.ReactNode;
   params: Promise<{ locale: string }>;
 }) {
-  // Params'ı await ediyoruz (Next.js 15+ kuralı)
   const { locale } = await params;
 
-  // Gelen dil bizim desteklediklerimiz arasında mı? Değilse 404.
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   if (!routing.locales.includes(locale as any)) {
     notFound();
   }
 
-  // O dilin mesajlarını sunucudan çek
   const messages = await getMessages();
 
   return (
     <html lang={locale}>
       <body className={inter.className}>
-        {/* Mesajları tüm client bileşenlere dağıt */}
         <NextIntlClientProvider messages={messages}>
-          
           <Header />
-          
-          <main>
-            {children}
-          </main>
-          
+          <main>{children}</main>
           <Toaster />
-
         </NextIntlClientProvider>
       </body>
     </html>

@@ -8,15 +8,17 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import { Plus, Pencil, Trash2, Box } from "lucide-react";
-import Link from "next/link";
+import { Link } from "@/i18n/routing"; // DÜZELTME: i18n uyumlu Link
 import Image from "next/image";
 import { db } from "@/server/db";
 import { products, categories } from "@/server/db/schema";
 import { desc, eq } from "drizzle-orm";
-import { deleteProduct } from "@/server/actions/products"; // <-- EKLENDİ
+import { deleteProduct } from "@/server/actions/products";
+import { getTranslations } from "next-intl/server"; // DÜZELTME: Çeviri
 
 export default async function AdminProductsPage() {
-  // Join sorgusu: Ürünleri ve Kategori isimlerini çek
+  const t = await getTranslations("Admin"); // Çevirileri yükle
+
   const productsList = await db
     .select({
       id: products.id,
@@ -34,14 +36,14 @@ export default async function AdminProductsPage() {
     <div className="space-y-6">
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-3xl font-bold tracking-tight">Products</h1>
+          <h1 className="text-3xl font-bold tracking-tight">{t('products')}</h1>
           <p className="text-muted-foreground">
-            Manage your furniture inventory ({productsList.length})
+            {t('manageInventory')} ({productsList.length})
           </p>
         </div>
         <Link href="/admin/products/new">
-          <Button className="cursor-pointer"> {/* <-- cursor-pointer eklendi */}
-            <Plus className="mr-2 h-4 w-4" /> Add Product
+          <Button className="cursor-pointer">
+            <Plus className="mr-2 h-4 w-4" /> {t('addProduct')}
           </Button>
         </Link>
       </div>
@@ -50,19 +52,19 @@ export default async function AdminProductsPage() {
         <Table>
           <TableHeader>
             <TableRow>
-              <TableHead className="w-[80px]">Image</TableHead>
-              <TableHead>Name</TableHead>
-              <TableHead>Category</TableHead>
-              <TableHead>Price</TableHead>
-              <TableHead>Stock</TableHead>
-              <TableHead className="text-right">Actions</TableHead>
+              <TableHead className="w-[80px]">{t('image')}</TableHead>
+              <TableHead>{t('name')}</TableHead>
+              <TableHead>{t('category')}</TableHead>
+              <TableHead>{t('price')}</TableHead>
+              <TableHead>{t('stock')}</TableHead>
+              <TableHead className="text-right">{t('actions')}</TableHead>
             </TableRow>
           </TableHeader>
           <TableBody>
             {productsList.length === 0 ? (
               <TableRow>
                 <TableCell colSpan={6} className="h-24 text-center">
-                  No products found. Add your first furniture.
+                  {t('noProducts')}
                 </TableCell>
               </TableRow>
             ) : (
@@ -99,7 +101,6 @@ export default async function AdminProductsPage() {
                         </Button>
                       </Link>
                       
-                      {/* SİLME İŞLEMİ FORM İÇİNDE */}
                       <form action={async () => {
                         "use server";
                         await deleteProduct(product.id);

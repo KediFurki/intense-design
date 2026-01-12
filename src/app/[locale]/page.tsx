@@ -3,17 +3,16 @@ import { db } from "@/server/db";
 import { products, categories, favorites } from "@/server/db/schema";
 import { desc, eq } from "drizzle-orm";
 import { ProductCard } from "@/components/shop/product-card";
-import { Link } from "@/i18n/routing"; // <-- Link artık i18n routing'den geliyor
+import { Link } from "@/i18n/routing"; // YENİ IMPORT
 import { Button } from "@/components/ui/button";
 import { ArrowRight } from "lucide-react";
-import { getTranslations } from 'next-intl/server'; // Server component çevirisi için
+import { getTranslations } from 'next-intl/server';
 
 export default async function Home() {
   const session = await auth();
-  const t = await getTranslations('Home'); // 'Home' anahtarındaki çevirileri al
-  const tNav = await getTranslations('Navigation'); // Butonlar için
+  const t = await getTranslations('Home'); // Çevirileri çek
+  const tNav = await getTranslations('Navigation');
 
-  // 1. Ürünleri Çek
   const latestProducts = await db
     .select({
       id: products.id,
@@ -32,7 +31,6 @@ export default async function Home() {
 
   const allCategories = await db.select().from(categories);
 
-  // 2. Favorileri Çek
   let userFavorites: string[] = [];
   if (session?.user) {
     const favs = await db.select({ pid: favorites.productId }).from(favorites).where(eq(favorites.userId, session.user.id));
@@ -41,8 +39,6 @@ export default async function Home() {
 
   return (
     <div className="min-h-screen bg-slate-50">
-      
-      {/* HERO SECTION */}
       <section className="relative bg-slate-900 text-white overflow-hidden">
         <div className="absolute inset-0 opacity-20 bg-[url('https://images.unsplash.com/photo-1618221195710-dd6b41faaea6?q=80&w=2000')] bg-cover bg-center" />
         <div className="container mx-auto px-4 py-32 relative z-10 text-center">
@@ -55,7 +51,6 @@ export default async function Home() {
         </div>
       </section>
 
-      {/* KATEGORİLER */}
       <section className="container mx-auto px-4 py-16">
         <h2 className="text-2xl font-bold mb-8 text-slate-900">{tNav('categories')}</h2>
         <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
@@ -71,7 +66,6 @@ export default async function Home() {
         </div>
       </section>
 
-      {/* YENİ GELENLER */}
       <main className="container mx-auto px-4 pb-20">
         <div className="flex items-center justify-between mb-8">
             <h2 className="text-2xl font-bold text-slate-900">{t('newArrivals')}</h2>

@@ -7,15 +7,18 @@ import { Label } from "@/components/ui/label";
 import { Separator } from "@/components/ui/separator";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { ArrowLeft, CreditCard, Truck, ShieldCheck, FileText, Building2, User } from "lucide-react";
-import Link from "next/link";
+// DÜZELTME 1: Kullanılmayan 'Link' importu kaldırıldı
+import { Link as I18nLink } from "@/i18n/routing";
 import Image from "next/image";
 import { useState, useEffect } from "react";
 import { toast } from "sonner";
-import { useRouter } from "next/navigation";
+import { useRouter } from "@/i18n/routing";
 import { createOrder } from "@/server/actions/order";
 import { AddressSelector } from "@/components/checkout/address-selector";
+import { useTranslations } from "next-intl";
 
 export default function CheckoutPage() {
+  const t = useTranslations("Checkout");
   const cart = useCart();
   const router = useRouter();
   const [isMounted, setIsMounted] = useState(false);
@@ -32,8 +35,8 @@ export default function CheckoutPage() {
   if (cart.items.length === 0) {
     return (
         <div className="min-h-screen flex flex-col items-center justify-center space-y-4">
-            <h2 className="text-2xl font-bold text-slate-900">Cart is empty</h2>
-            <Link href="/"><Button>Go Shopping</Button></Link>
+            <h2 className="text-2xl font-bold text-slate-900">{t('emptyCart')}</h2>
+            <I18nLink href="/"><Button>{t('goShopping')}</Button></I18nLink>
         </div>
     )
   }
@@ -44,9 +47,6 @@ export default function CheckoutPage() {
     e.preventDefault();
     setIsLoading(true);
     const formData = new FormData(e.currentTarget);
-    
-    // AddressSelector 'name' attribute'ları sayesinde veriyi otomatik forma ekler.
-    // Ekstra işlem yapmaya gerek yok, formData.get ile alabiliriz.
     
     const orderData = {
       firstName: formData.get("firstName") as string,
@@ -82,7 +82,7 @@ export default function CheckoutPage() {
   return (
     <div className="min-h-screen bg-slate-50 py-10">
       <div className="container mx-auto px-4 max-w-6xl">
-        <Link href="/" className="inline-flex items-center text-slate-500 hover:text-slate-900 mb-8 transition-colors"><ArrowLeft className="mr-2 h-4 w-4" /> Back to Shop</Link>
+        <I18nLink href="/" className="inline-flex items-center text-slate-500 hover:text-slate-900 mb-8 transition-colors"><ArrowLeft className="mr-2 h-4 w-4" /> Back to Shop</I18nLink>
 
         <div className="grid lg:grid-cols-5 gap-12">
             {/* SOL: FORM */}
@@ -90,16 +90,16 @@ export default function CheckoutPage() {
                 
                 {/* 1. Kargo Bilgileri */}
                 <Card className="border-none shadow-md">
-                    <CardHeader><CardTitle className="flex items-center gap-2"><Truck className="h-5 w-5 text-blue-600" /> Shipping Details</CardTitle></CardHeader>
+                    <CardHeader><CardTitle className="flex items-center gap-2"><Truck className="h-5 w-5 text-blue-600" /> {t('title')}</CardTitle></CardHeader>
                     <CardContent>
                         <form id="checkout-form" onSubmit={onSubmit} className="grid gap-6">
                             <div className="grid grid-cols-2 gap-4">
-                                <div className="space-y-2"><Label>First Name</Label><Input name="firstName" placeholder="Jane" required /></div>
-                                <div className="space-y-2"><Label>Last Name</Label><Input name="lastName" placeholder="Doe" required /></div>
+                                <div className="space-y-2"><Label>{t('firstName')}</Label><Input name="firstName" placeholder="Jane" required /></div>
+                                <div className="space-y-2"><Label>{t('lastName')}</Label><Input name="lastName" placeholder="Doe" required /></div>
                             </div>
                             <div className="grid grid-cols-2 gap-4">
-                                <div className="space-y-2"><Label>Email</Label><Input name="email" type="email" placeholder="jane@example.eu" required /></div>
-                                <div className="space-y-2"><Label>Phone Number</Label><Input name="phone" type="tel" placeholder="+359..." required /></div>
+                                <div className="space-y-2"><Label>{t('email')}</Label><Input name="email" type="email" placeholder="jane@example.eu" required /></div>
+                                <div className="space-y-2"><Label>{t('phone')}</Label><Input name="phone" type="tel" placeholder="+359..." required /></div>
                             </div>
                             
                             {/* AKILLI ADRES SEÇİCİ */}
@@ -108,37 +108,37 @@ export default function CheckoutPage() {
                             </div>
 
                             {/* Manuel Adres Detayı */}
-                            <div className="space-y-2"><Label>Address Line</Label><Input name="address" placeholder="Street, Building, Apt..." required /></div>
-                            <div className="space-y-2"><Label>Postal Code</Label><Input name="zipCode" placeholder="1000" required /></div>
+                            <div className="space-y-2"><Label>{t('address')}</Label><Input name="address" placeholder="Street, Building, Apt..." required /></div>
+                            <div className="space-y-2"><Label>{t('zipCode')}</Label><Input name="zipCode" placeholder="1000" required /></div>
 
                             <Separator />
 
                             {/* 2. Fatura Bilgileri */}
                             <div className="space-y-4">
-                                <h3 className="font-semibold flex items-center gap-2"><FileText className="h-4 w-4 text-blue-600" /> Billing Details</h3>
+                                <h3 className="font-semibold flex items-center gap-2"><FileText className="h-4 w-4 text-blue-600" /> {t('billingDetails')}</h3>
                                 <div className="flex gap-4">
                                     <div 
                                       className={`flex-1 border rounded-lg p-4 cursor-pointer transition-all flex items-center gap-3 ${invoiceType === 'individual' ? 'border-blue-600 bg-blue-50/50 ring-1 ring-blue-600' : 'border-slate-200 hover:border-slate-300'}`} 
                                       onClick={() => setInvoiceType('individual')}
                                     >
                                         <div className={`p-2 rounded-full ${invoiceType === 'individual' ? 'bg-blue-100 text-blue-600' : 'bg-slate-100 text-slate-500'}`}><User size={18}/></div>
-                                        <div><div className="font-medium text-sm">Personal</div><div className="text-xs text-slate-500">Standard receipt</div></div>
+                                        <div><div className="font-medium text-sm">{t('personal')}</div><div className="text-xs text-slate-500">{t('personalDesc')}</div></div>
                                     </div>
                                     <div 
                                       className={`flex-1 border rounded-lg p-4 cursor-pointer transition-all flex items-center gap-3 ${invoiceType === 'corporate' ? 'border-blue-600 bg-blue-50/50 ring-1 ring-blue-600' : 'border-slate-200 hover:border-slate-300'}`} 
                                       onClick={() => setInvoiceType('corporate')}
                                     >
                                         <div className={`p-2 rounded-full ${invoiceType === 'corporate' ? 'bg-blue-100 text-blue-600' : 'bg-slate-100 text-slate-500'}`}><Building2 size={18}/></div>
-                                        <div><div className="font-medium text-sm">Business</div><div className="text-xs text-slate-500">VAT Invoice</div></div>
+                                        <div><div className="font-medium text-sm">{t('business')}</div><div className="text-xs text-slate-500">{t('businessDesc')}</div></div>
                                     </div>
                                 </div>
 
                                 {invoiceType === "corporate" && (
                                     <div className="space-y-4 animate-in fade-in slide-in-from-top-2 pt-2">
-                                        <div className="space-y-2"><Label>Company Name</Label><Input name="companyName" placeholder="Tech Solutions Ltd." required /></div>
+                                        <div className="space-y-2"><Label>{t('companyName')}</Label><Input name="companyName" placeholder="Tech Solutions Ltd." required /></div>
                                         <div className="grid grid-cols-2 gap-4">
-                                            <div className="space-y-2"><Label>VAT Number</Label><Input name="taxId" placeholder="BG123456789" required /></div>
-                                            <div className="space-y-2"><Label>Tax Office</Label><Input name="taxOffice" placeholder="Optional" /></div>
+                                            <div className="space-y-2"><Label>{t('vatNumber')}</Label><Input name="taxId" placeholder="BG123456789" required /></div>
+                                            <div className="space-y-2"><Label>{t('taxOffice')}</Label><Input name="taxOffice" placeholder="Optional" /></div>
                                         </div>
                                     </div>
                                 )}
@@ -149,12 +149,12 @@ export default function CheckoutPage() {
 
                 {/* 3. Ödeme */}
                 <Card className="border-none shadow-md">
-                    <CardHeader><CardTitle className="flex items-center gap-2"><CreditCard className="h-5 w-5 text-blue-600" /> Payment</CardTitle></CardHeader>
+                    <CardHeader><CardTitle className="flex items-center gap-2"><CreditCard className="h-5 w-5 text-blue-600" /> {t('payment')}</CardTitle></CardHeader>
                     <CardContent>
                         <div className="p-4 border rounded-lg bg-slate-50 flex items-center justify-between cursor-pointer border-blue-200 ring-1 ring-blue-200">
                             <div className="flex items-center gap-3">
                                 <div className="w-4 h-4 rounded-full bg-blue-600 flex items-center justify-center"><div className="w-1.5 h-1.5 bg-white rounded-full" /></div>
-                                <span className="font-medium text-slate-900">Credit Card (Stripe Mock)</span>
+                                <span className="font-medium text-slate-900">{t('creditCard')}</span>
                             </div>
                             <CreditCard className="text-slate-400" size={20}/>
                         </div>
@@ -165,7 +165,7 @@ export default function CheckoutPage() {
             {/* SAĞ: ÖZET */}
             <div className="lg:col-span-2">
                 <Card className="border-none shadow-md sticky top-24">
-                    <CardHeader><CardTitle>Order Summary</CardTitle></CardHeader>
+                    <CardHeader><CardTitle>{t('orderSummary')}</CardTitle></CardHeader>
                     <CardContent className="space-y-6">
                         <div className="space-y-4">
                             {cart.items.map((item) => (
@@ -183,17 +183,17 @@ export default function CheckoutPage() {
                         </div>
                         <Separator />
                         <div className="space-y-2 text-sm">
-                            <div className="flex justify-between"><span className="text-slate-500">Subtotal</span><span>€{(totalPrice / 100).toFixed(2)}</span></div>
-                            <div className="flex justify-between"><span className="text-slate-500">VAT (20%)</span><span>€{((totalPrice * 0.20) / 100).toFixed(2)}</span></div>
-                            <div className="flex justify-between"><span className="text-slate-500">Shipping</span><span className="text-green-600 font-medium">Free</span></div>
+                            <div className="flex justify-between"><span className="text-slate-500">{t('subtotal')}</span><span>€{(totalPrice / 100).toFixed(2)}</span></div>
+                            <div className="flex justify-between"><span className="text-slate-500">{t('vat')} (20%)</span><span>€{((totalPrice * 0.20) / 100).toFixed(2)}</span></div>
+                            <div className="flex justify-between"><span className="text-slate-500">{t('shipping')}</span><span className="text-green-600 font-medium">Free</span></div>
                         </div>
                         <Separator />
                         <div className="flex justify-between items-center font-bold text-lg">
-                            <span>Total</span>
+                            <span>{t('total')}</span>
                             <span>€{(totalPrice / 100).toFixed(2)}</span> 
                         </div>
                         <Button type="submit" form="checkout-form" className="w-full h-12 text-lg" disabled={isLoading}>
-                            {isLoading ? "Processing..." : `Pay €${(totalPrice / 100).toFixed(2)}`}
+                            {isLoading ? t('processing') : `${t('pay')} €${(totalPrice / 100).toFixed(2)}`}
                         </Button>
                         <div className="flex items-center justify-center gap-2 text-xs text-slate-400"><ShieldCheck size={14} /> Secure Payment</div>
                     </CardContent>

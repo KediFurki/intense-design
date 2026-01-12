@@ -1,28 +1,37 @@
 import { auth } from "@/auth";
-import { redirect } from "next/navigation";
+import { redirect } from "@/i18n/routing";
 import { db } from "@/server/db";
-import { orders, users, favorites } from "@/server/db/schema";
+import { orders, users } from "@/server/db/schema";
 import { eq, desc } from "drizzle-orm";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+// DÜZELTME: CardDescription import listesine eklendi
+import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Button } from "@/components/ui/button";
 import { Package, MapPin, User, Heart } from "lucide-react";
-import { AddressDialog } from "@/components/account/address-dialog"; // <-- EKLENDİ
+import { AddressDialog } from "@/components/account/address-dialog";
 import { ProductCard } from "@/components/shop/product-card";
+import { getTranslations } from "next-intl/server";
 
 export default async function AccountPage() {
   const session = await auth();
-  if (!session?.user) redirect("/login");
+  
+  if (!session || !session.user) {
+    redirect({href: "/login", locale: "en"});
+    return null;
+  }
 
-  // Kullanıcı Verilerini Çek
+  const t = await getTranslations("Account");
+
+  if (!session.user.id) return null;
+
   const userProfile = await db.query.users.findFirst({
     where: eq(users.id, session.user.id),
     with: {
         addresses: true,
-        favorites: { with: { product: true } }, // <-- Favoriler eklendi
+        favorites: { with: { product: true } },
         orders: {
             orderBy: [desc(orders.createdAt)],
             with: { items: { with: { product: true } } }
@@ -36,8 +45,8 @@ export default async function AccountPage() {
     <div className="container mx-auto px-4 py-10 max-w-5xl">
       <div className="flex flex-col md:flex-row items-start md:items-center justify-between mb-8 gap-4">
         <div>
-            <h1 className="text-3xl font-bold text-slate-900">My Account</h1>
-            <p className="text-slate-500">Manage your profile, orders and addresses.</p>
+            <h1 className="text-3xl font-bold text-slate-900">{t('title')}</h1>
+            <p className="text-slate-500">{t('description')}</p>
         </div>
         <div className="flex items-center gap-3">
             <div className="w-12 h-12 rounded-full bg-blue-100 flex items-center justify-center text-blue-600 font-bold text-xl">
@@ -52,23 +61,23 @@ export default async function AccountPage() {
 
       <Tabs defaultValue="orders" className="space-y-6">
         <TabsList>
-          <TabsTrigger value="orders" className="gap-2"><Package size={16}/> Orders</TabsTrigger>
-          <TabsTrigger value="favorites" className="gap-2"><Heart size={16}/> Favorites</TabsTrigger>
-          <TabsTrigger value="addresses" className="gap-2"><MapPin size={16}/> Addresses</TabsTrigger>
-          <TabsTrigger value="profile" className="gap-2"><User size={16}/> Profile</TabsTrigger>
+          <TabsTrigger value="orders" className="gap-2"><Package size={16}/> {t('tabOrders')}</TabsTrigger>
+          <TabsTrigger value="favorites" className="gap-2"><Heart size={16}/> {t('tabFavorites')}</TabsTrigger>
+          <TabsTrigger value="addresses" className="gap-2"><MapPin size={16}/> {t('tabAddresses')}</TabsTrigger>
+          <TabsTrigger value="profile" className="gap-2"><User size={16}/> {t('tabProfile')}</TabsTrigger>
         </TabsList>
 
-        {/* SİPARİŞLER SEKMEİ */}
+        {/* SİPARİŞLER */}
         <TabsContent value="orders" className="space-y-4">
             {userProfile.orders.length === 0 ? (
-                <Card><CardContent className="py-10 text-center text-muted-foreground">You haven&apos;t placed any orders yet.</CardContent></Card>
+                <Card><CardContent className="py-10 text-center text-muted-foreground">{t('noOrders')}</CardContent></Card>
             ) : (
                 userProfile.orders.map((order) => (
                     <Card key={order.id}>
                         <CardHeader className="bg-slate-50/50 border-b py-4">
                             <div className="flex justify-between items-center">
                                 <div className="space-y-1">
-                                    <p className="font-semibold text-sm">Order #{order.id.slice(0, 8)}</p>
+                                    <p className="font-semibold text-sm">{t('orderPrefix')} {order.id.slice(0, 8)}</p>
                                     <p className="text-xs text-muted-foreground">{order.createdAt?.toLocaleDateString()}</p>
                                 </div>
                                 <div className="text-right">
@@ -90,11 +99,11 @@ export default async function AccountPage() {
             )}
         </TabsContent>
 
-        {/* FAVORİLER (YENİ SEKME) */}
+        {/* FAVORİLER */}
         <TabsContent value="favorites">
              {userProfile.favorites.length === 0 ? (
                  <div className="text-center py-10 text-muted-foreground border-2 border-dashed rounded-xl">
-                    No favorites yet. Start exploring!
+                    {t('noFavorites')}
                  </div>
              ) : (
                  <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-6">
@@ -111,12 +120,13 @@ export default async function AccountPage() {
              )}
         </TabsContent>
 
-        {/* ADRESLER SEKMEİ */}
+        {/* ADRESLER */}
         <TabsContent value="addresses">
             <Card>
                 <CardHeader>
-                    <CardTitle>Saved Addresses</CardTitle>
-                    <CardDescription>Manage your shipping and billing addresses.</CardDescription>
+                    <CardTitle>{t('savedAddresses')}</CardTitle>
+                    {/* ARTIK HATA VERMEYECEK */}
+                    <CardDescription>{t('addressesDesc')}</CardDescription>
                 </CardHeader>
                 <CardContent>
                     <div className="grid gap-4 md:grid-cols-2 mb-4">
@@ -128,26 +138,25 @@ export default async function AccountPage() {
                             </div>
                         ))}
                     </div>
-                    {/* ADRES EKLEME BUTONU (DİALOG) */}
                     <AddressDialog /> 
                 </CardContent>
             </Card>
         </TabsContent>
 
-        {/* PROFİL SEKMEİ */}
+        {/* PROFİL */}
         <TabsContent value="profile">
             <Card>
-                <CardHeader><CardTitle>Personal Information</CardTitle></CardHeader>
+                <CardHeader><CardTitle>{t('personalInfo')}</CardTitle></CardHeader>
                 <CardContent className="space-y-4">
                     <div className="grid gap-2">
-                        <Label>Full Name</Label>
+                        <Label>{t('fullName')}</Label>
                         <Input defaultValue={userProfile.name || ""} disabled />
                     </div>
                     <div className="grid gap-2">
-                        <Label>Email</Label>
+                        <Label>{t('email')}</Label>
                         <Input defaultValue={userProfile.email} disabled />
                     </div>
-                    <Button>Save Changes</Button>
+                    <Button>{t('saveChanges')}</Button>
                 </CardContent>
             </Card>
         </TabsContent>

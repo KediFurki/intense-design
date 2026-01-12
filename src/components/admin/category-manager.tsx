@@ -12,6 +12,7 @@ import { useState, useEffect } from "react";
 import { Plus, Trash2, Pencil, Save, X } from "lucide-react";
 import { toast } from "sonner";
 import Image from "next/image";
+import { useTranslations } from "next-intl"; // Çeviri
 
 type Category = {
   id: string;
@@ -23,6 +24,7 @@ type Category = {
 };
 
 export function CategoryManager({ initialCategories }: { initialCategories: Category[] }) {
+  const t = useTranslations("Admin"); // Çeviri kancası
   const [categories, setCategories] = useState<Category[]>(initialCategories);
   const [editingId, setEditingId] = useState<string | null>(null);
   
@@ -78,15 +80,15 @@ export function CategoryManager({ initialCategories }: { initialCategories: Cate
 
   return (
     <div className="grid gap-8 md:grid-cols-3">
-      {/* FORM KISMI */}
+      {/* FORM */}
       <Card className="md:col-span-1 h-fit border-slate-200 shadow-sm sticky top-4">
         <CardHeader>
-            <CardTitle>{editingId ? "Edit Category" : "Add New Category"}</CardTitle>
+            <CardTitle>{editingId ? t('edit') : t('create')}</CardTitle>
         </CardHeader>
         <CardContent>
           <form action={handleSubmit} className="space-y-4">
             <div className="space-y-2">
-                <Label>Category Image</Label>
+                <Label>{t('categoryImage')}</Label>
                 <div className="p-2 border rounded-lg bg-slate-50">
                     <ImageUpload 
                         value={image ? [image] : []} 
@@ -97,21 +99,21 @@ export function CategoryManager({ initialCategories }: { initialCategories: Cate
                 <input type="hidden" name="image" value={image} />
             </div>
             <div className="space-y-2">
-              <Label>Name</Label>
+              <Label>{t('name')}</Label>
               <Input name="name" value={name} onChange={e => setName(e.target.value)} placeholder="Living Room" required />
             </div>
             <div className="space-y-2">
-              <Label>Slug</Label>
+              <Label>{t('slug')}</Label>
               <Input name="slug" value={slug} onChange={e => setSlug(e.target.value)} placeholder="living-room" required />
             </div>
             <div className="space-y-2">
-              <Label>Description</Label>
-              <Textarea name="description" value={description} onChange={e => setDescription(e.target.value)} placeholder="Optional description..." />
+              <Label>{t('description')}</Label>
+              <Textarea name="description" value={description} onChange={e => setDescription(e.target.value)} placeholder="..." />
             </div>
             <div className="flex gap-2">
                 <Button type="submit" className="flex-1 gap-2 bg-slate-900 hover:bg-slate-800 cursor-pointer">
                     {editingId ? <Save size={16}/> : <Plus size={16}/>}
-                    {editingId ? "Update" : "Create"}
+                    {editingId ? t('save') : t('create')}
                 </Button>
                 {editingId && (
                     <Button type="button" variant="outline" onClick={handleCancel} className="px-3 cursor-pointer">
@@ -123,44 +125,36 @@ export function CategoryManager({ initialCategories }: { initialCategories: Cate
         </CardContent>
       </Card>
 
-      {/* LİSTE KISMI */}
+      {/* LİSTE */}
       <Card className="md:col-span-2 border-slate-200 shadow-sm">
-        <CardHeader><CardTitle>Existing Categories</CardTitle></CardHeader>
+        <CardHeader><CardTitle>{t('existingCategories')}</CardTitle></CardHeader>
         <CardContent>
           <Table>
             <TableHeader>
               <TableRow>
-                <TableHead className="w-[80px]">Image</TableHead>
-                <TableHead>Name</TableHead>
-                <TableHead>Slug</TableHead>
-                <TableHead className="text-right">Actions</TableHead>
+                <TableHead className="w-[80px]">{t('image')}</TableHead>
+                <TableHead>{t('name')}</TableHead>
+                <TableHead>{t('slug')}</TableHead>
+                <TableHead className="text-right">{t('actions')}</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
               {categories.length === 0 ? (
-                <TableRow><TableCell colSpan={4} className="text-center py-4 text-muted-foreground">No categories yet.</TableCell></TableRow>
+                <TableRow><TableCell colSpan={4} className="text-center py-4 text-muted-foreground">{t('noCategories')}</TableCell></TableRow>
               ) : (
                 categories.map((cat) => (
                   <TableRow key={cat.id} className={editingId === cat.id ? "bg-blue-50" : ""}>
                     <TableCell>
                         {cat.image ? (
-                            <div className="relative w-10 h-10 rounded-md overflow-hidden border">
-                                <Image src={cat.image} alt={cat.name} fill className="object-cover" />
-                            </div>
-                        ) : (
-                            <div className="w-10 h-10 bg-slate-100 rounded-md flex items-center justify-center text-xs text-slate-400">N/A</div>
-                        )}
+                            <div className="relative w-10 h-10 rounded-md overflow-hidden border"><Image src={cat.image} alt={cat.name} fill className="object-cover" /></div>
+                        ) : (<div className="w-10 h-10 bg-slate-100 rounded-md flex items-center justify-center text-xs text-slate-400">N/A</div>)}
                     </TableCell>
                     <TableCell className="font-medium">{cat.name}</TableCell>
                     <TableCell className="text-muted-foreground text-sm">{cat.slug}</TableCell>
                     <TableCell className="text-right">
                       <div className="flex justify-end gap-2">
-                        <Button variant="ghost" size="icon" onClick={() => handleEdit(cat)} className="h-8 w-8 hover:bg-blue-100 text-blue-600 cursor-pointer">
-                            <Pencil size={16} />
-                        </Button>
-                        <Button variant="ghost" size="icon" onClick={() => handleDelete(cat.id)} className="h-8 w-8 text-red-500 hover:bg-red-50 cursor-pointer">
-                            <Trash2 size={16} />
-                        </Button>
+                        <Button variant="ghost" size="icon" onClick={() => handleEdit(cat)} className="h-8 w-8 hover:bg-blue-100 text-blue-600 cursor-pointer"><Pencil size={16} /></Button>
+                        <Button variant="ghost" size="icon" onClick={() => handleDelete(cat.id)} className="h-8 w-8 text-red-500 hover:bg-red-50 cursor-pointer"><Trash2 size={16} /></Button>
                       </div>
                     </TableCell>
                   </TableRow>

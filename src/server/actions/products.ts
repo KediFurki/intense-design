@@ -1,149 +1,179 @@
 "use server";
 
 import { db } from "@/server/db";
-import { products } from "@/server/db/schema";
+import { products, productVariants } from "@/server/db/schema";
+import { eq } from "drizzle-orm";
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { z } from "zod";
-import { eq } from "drizzle-orm";
 
-// 1. DOĞRULAMA ŞEMASI (ZOD)
 const productSchema = z.object({
-  name: z.string().min(3, "Name must be at least 3 characters"),
-  slug: z.string().min(3, "Slug is required"),
-  description: z.string().min(10, "Description is too short"),
-  price: z.coerce.number().min(0.01, "Price must be greater than 0"),
-  stock: z.coerce.number().default(0),
-  categoryId: z.string().min(1, "Please select a category"),
+  name: z.string().min(1),
+  slug: z.string().min(1),
+  description: z.string().optional(),
+  price: z.coerce.number().min(0),
+  stock: z.coerce.number().min(0),
+  categoryId: z.string().optional(),
+  images: z.array(z.string()).optional(),
+  modelUrl: z.string().optional(),
   width: z.coerce.number().optional(),
   height: z.coerce.number().optional(),
   depth: z.coerce.number().optional(),
-  imageUrl: z.string().optional().or(z.literal("")),
-  modelUrl: z.string().optional().or(z.literal("")),
+  // GÜNCELLEME: Varyasyon yapısı detaylandırıldı
+  variants: z.array(z.object({
+    id: z.string().optional(),
+    name: z.string().optional(), // Artık opsiyonel, biz oluşturacağız
+    price: z.coerce.number().min(0),
+    stock: z.coerce.number().min(0),
+    image: z.string().optional().nullable(),
+    // YENİ: Ayrı özellikler
+    color: z.string().optional(),
+    size: z.string().optional(),
+    material: z.string().optional(),
+  })).optional()
 });
 
-export type State = {
-  message?: string | null;
-  errors?: {
-    name?: string[];
-    slug?: string[];
-    description?: string[];
-    price?: string[];
-    stock?: string[];
-    categoryId?: string[];
-    imageUrl?: string[];
-    modelUrl?: string[];
-  };
-};
+export async function createProduct(formData: FormData) {
+  const rawData = Object.fromEntries(formData.entries());
+  const images = rawData.images ? JSON.parse(rawData.images as string) : [];
+  const variants = rawData.variants ? JSON.parse(rawData.variants as string) : [];
 
-// 2. CREATE PRODUCT ACTION
-export async function createProduct(prevState: State, formData: FormData): Promise<State> {
-  const rawData = {
-    name: formData.get("name"),
-    slug: formData.get("slug"),
-    description: formData.get("description"),
-    price: formData.get("price"),
-    stock: formData.get("stock"),
-    categoryId: formData.get("categoryId"),
-    width: formData.get("width"),
-    height: formData.get("height"),
-    depth: formData.get("depth"),
-    imageUrl: formData.get("imageUrl"),
-    modelUrl: formData.get("modelUrl"),
-  };
+  const validatedFields = productSchema.safeParse({
+    ...rawData,
+    images: images,
+    variants: variants
+  });
 
-  const validated = productSchema.safeParse(rawData);
-
-  if (!validated.success) {
-    return {
-      message: "Lütfen tüm zorunlu alanları doldurun.",
-      errors: validated.error.flatten().fieldErrors,
-    };
+  if (!validatedFields.success) {
+    return { success: false, error: "Invalid fields" };
   }
 
+  const { variants: variantList, ...productData } = validatedFields.data;
+
   try {
-    await db.insert(products).values({
-      name: validated.data.name,
-      slug: validated.data.slug,
-      description: validated.data.description,
-      price: Math.round(validated.data.price * 100),
-      stock: validated.data.stock,
-      categoryId: validated.data.categoryId,
-      width: validated.data.width || 0,
-      height: validated.data.height || 0,
-      depth: validated.data.depth || 0,
-      images: validated.data.imageUrl ? [validated.data.imageUrl] : [],
-      modelUrl: validated.data.modelUrl || null,
-    });
+    const [newProduct] = await db.insert(products).values({
+      name: productData.name,
+      slug: productData.slug,
+      description: productData.description ?? "",
+      price: productData.price * 100,
+      stock: productData.stock,
+      categoryId: productData.categoryId ?? null,
+      images: productData.images ?? [],
+      modelUrl: productData.modelUrl ?? null,
+      width: productData.width ?? null,
+      height: productData.height ?? null,
+      depth: productData.depth ?? null,
+    }).returning();
+
+    if (variantList && variantList.length > 0) {
+      await db.insert(productVariants).values(
+        variantList.map((v) => {
+          // Otomatik İsim Oluşturma: "Kırmızı - XL - Kadife"
+          const parts = [v.color, v.size, v.material].filter(Boolean);
+          const fullName = parts.length > 0 ? parts.join(" / ") : "Standard";
+
+          return {
+            productId: newProduct.id,
+            name: fullName, // Sepette görünecek isim
+            price: v.price * 100,
+            stock: v.stock,
+            image: v.image || null,
+            // JSON sütununa detayları kaydediyoruz
+            attributes: {
+                color: v.color || "",
+                size: v.size || "",
+                material: v.material || ""
+            }
+          };
+        })
+      );
+    }
 
     revalidatePath("/admin/products");
+    revalidatePath("/");
   } catch (error) {
-    console.error("Veritabanı Hatası:", error);
-    return { message: "Veritabanı hatası: Ürün oluşturulamadı." };
+    console.error(error);
+    return { success: false, error: "Failed to create product" };
   }
 
   redirect("/admin/products");
 }
 
-// 3. UPDATE PRODUCT ACTION
-export async function updateProduct(id: string, prevState: State, formData: FormData): Promise<State> {
-  const rawData = {
-    name: formData.get("name"),
-    slug: formData.get("slug"),
-    description: formData.get("description"),
-    price: formData.get("price"),
-    stock: formData.get("stock"),
-    categoryId: formData.get("categoryId"),
-    width: formData.get("width"),
-    height: formData.get("height"),
-    depth: formData.get("depth"),
-    imageUrl: formData.get("imageUrl"),
-    modelUrl: formData.get("modelUrl"),
-  };
+export async function updateProduct(id: string, formData: FormData) {
+  const rawData = Object.fromEntries(formData.entries());
+  const images = rawData.images ? JSON.parse(rawData.images as string) : [];
+  const variants = rawData.variants ? JSON.parse(rawData.variants as string) : [];
 
-  const validated = productSchema.safeParse(rawData);
+  const validatedFields = productSchema.safeParse({
+    ...rawData,
+    images: images,
+    variants: variants
+  });
 
-  if (!validated.success) {
-    return {
-      message: "Doğrulama Hatası.",
-      errors: validated.error.flatten().fieldErrors,
-    };
+  if (!validatedFields.success) {
+    return { success: false, error: "Invalid fields" };
   }
 
+  const { variants: variantList, ...productData } = validatedFields.data;
+
   try {
-    await db.update(products)
-      .set({
-        name: validated.data.name,
-        slug: validated.data.slug,
-        description: validated.data.description,
-        price: Math.round(validated.data.price * 100),
-        stock: validated.data.stock,
-        categoryId: validated.data.categoryId,
-        width: validated.data.width || 0,
-        height: validated.data.height || 0,
-        depth: validated.data.depth || 0,
-        images: validated.data.imageUrl ? [validated.data.imageUrl] : [],
-        modelUrl: validated.data.modelUrl || null,
-        updatedAt: new Date(),
-      })
-      .where(eq(products.id, id));
+    await db.update(products).set({
+      name: productData.name,
+      slug: productData.slug,
+      description: productData.description ?? "",
+      price: productData.price * 100,
+      stock: productData.stock,
+      categoryId: productData.categoryId ?? null,
+      images: productData.images ?? [],
+      modelUrl: productData.modelUrl ?? null,
+      width: productData.width ?? null,
+      height: productData.height ?? null,
+      depth: productData.depth ?? null,
+      updatedAt: new Date()
+    }).where(eq(products.id, id));
+
+    await db.delete(productVariants).where(eq(productVariants.productId, id));
+
+    if (variantList && variantList.length > 0) {
+      await db.insert(productVariants).values(
+        variantList.map((v) => {
+          // Otomatik İsim Oluşturma
+          const parts = [v.color, v.size, v.material].filter(Boolean);
+          const fullName = parts.length > 0 ? parts.join(" / ") : "Standard";
+
+          return {
+            productId: id,
+            name: fullName,
+            price: v.price * 100,
+            stock: v.stock,
+            image: v.image || null,
+            attributes: {
+                color: v.color || "",
+                size: v.size || "",
+                material: v.material || ""
+            }
+          };
+        })
+      );
+    }
 
     revalidatePath("/admin/products");
-    revalidatePath(`/admin/products/${id}`);
+    revalidatePath("/");
+    revalidatePath(`/product/${productData.slug}`);
   } catch (error) {
-    return { message: "Veritabanı hatası: Ürün güncellenemedi." };
+    console.error(error);
+    return { success: false, error: "Failed to update product" };
   }
 
   redirect("/admin/products");
 }
 
-// 4. DELETE PRODUCT ACTION
 export async function deleteProduct(id: string) {
-  try {
-    await db.delete(products).where(eq(products.id, id));
-    revalidatePath("/admin/products");
-    return { success: true };
-  } catch (error) {
-    return { success: false, error: "Failed to delete product." };
-  }
+    try {
+        await db.delete(products).where(eq(products.id, id));
+        revalidatePath("/admin/products");
+        return { success: true };
+    } catch {
+        return { success: false, error: "Failed to delete" };
+    }
 }

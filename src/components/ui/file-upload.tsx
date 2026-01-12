@@ -19,6 +19,7 @@ export default function FileUpload({
 }: FileUploadProps) {
   
   const onUpload = (result: CloudinaryUploadWidgetResults) => {
+    // result.info tip güvenliği
     const info = result.info as { secure_url: string };
     if (info?.secure_url) {
       onChange(info.secure_url);
@@ -27,7 +28,7 @@ export default function FileUpload({
 
   return (
     <div className="space-y-4">
-      {/* Yüklenen Dosyanın Önizlemesi (İkon olarak) */}
+      {/* Yüklenen Dosyanın Önizlemesi */}
       {value && (
         <div className="flex items-center gap-4 p-4 border rounded-md bg-slate-50">
            <FileBox className="h-10 w-10 text-blue-500" />
@@ -36,26 +37,25 @@ export default function FileUpload({
              <p className="text-xs text-green-600 font-bold">3D Model Ready</p>
            </div>
            <Button
-              type="button"
-              onClick={() => onRemove(value)}
-              variant="destructive"
-              size="sm"
-            >
-              <Trash className="h-4 w-4" />
-            </Button>
+             type="button"
+             onClick={() => onRemove(value)}
+             variant="destructive"
+             size="sm"
+           >
+             <Trash className="h-4 w-4" />
+           </Button>
         </div>
       )}
 
       {/* Yükleme Butonu */}
       <CldUploadWidget 
         onSuccess={onUpload} 
-        uploadPreset="mobilya_preset" 
+        uploadPreset="mobilya_preset" // Cloudinary ayarınla aynı olmalı
         options={{
             maxFiles: 1,
-            resourceType: "raw", // <-- DİKKAT: .glb dosyaları için 'raw' veya 'auto' gerekir
-            clientAllowedFormats: ["glb", "gltf"], // Sadece 3D formatlarına izin ver
+            resourceType: "raw", // .glb için çok önemli
+            clientAllowedFormats: ["glb", "gltf"],
             styles: {
-                // ... aynı stiller ...
                 palette: {
                     window: "#FFFFFF",
                     windowBorder: "#90A0B3",
