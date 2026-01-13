@@ -1,74 +1,51 @@
 "use client";
 
-import { createCategory, updateCategory, deleteCategory } from "@/server/actions/category";
+import { deleteCategory } from "@/server/actions/category";
 import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
-import { Textarea } from "@/components/ui/textarea";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import ImageUpload from "@/components/ui/image-upload";
 import { useState, useEffect } from "react";
-import { Plus, Trash2, Pencil, Save, X } from "lucide-react";
+import { Trash2, Pencil } from "lucide-react";
 import { toast } from "sonner";
 import Image from "next/image";
-import { useTranslations } from "next-intl"; // Çeviri
+import { useTranslations, useLocale } from "next-intl";
+import { CategoryForm } from "./category-form";
 
 type Category = {
   id: string;
-  name: string;
+  name: unknown; // JSON verisi için unknown
   slug: string;
-  description: string | null;
+  description: unknown; // JSON verisi için unknown
   image: string | null;
   createdAt: Date | null;
 };
 
 export function CategoryManager({ initialCategories }: { initialCategories: Category[] }) {
-  const t = useTranslations("Admin"); // Çeviri kancası
+  const t = useTranslations("Admin");
+  const locale = useLocale();
   const [categories, setCategories] = useState<Category[]>(initialCategories);
-  const [editingId, setEditingId] = useState<string | null>(null);
-  
-  const [name, setName] = useState("");
-  const [slug, setSlug] = useState("");
-  const [description, setDescription] = useState("");
-  const [image, setImage] = useState("");
+  const [editingCategory, setEditingCategory] = useState<Category | null>(null);
 
   useEffect(() => {
     setCategories(initialCategories);
   }, [initialCategories]);
 
+  // Yardımcı Fonksiyon: JSON verisinden doğru dili çek
+  const getLocalized = (data: unknown) => {
+    if (!data) return "N/A";
+    if (typeof data === "string") return data;
+    
+    const obj = data as Record<string, string>;
+    return obj[locale] || obj["en"] || Object.values(obj)[0] || "N/A";
+  };
+
   const handleEdit = (cat: Category) => {
-    setEditingId(cat.id);
-    setName(cat.name);
-    setSlug(cat.slug);
-    setDescription(cat.description || "");
-    setImage(cat.image || "");
+    setEditingCategory(cat);
     window.scrollTo({ top: 0, behavior: 'smooth' });
   };
 
   const handleCancel = () => {
-    setEditingId(null);
-    setName("");
-    setSlug("");
-    setDescription("");
-    setImage("");
-  };
-
-  const handleSubmit = async (formData: FormData) => {
-    if (image) formData.set("image", image);
-    let result;
-    if (editingId) {
-      result = await updateCategory(editingId, formData);
-    } else {
-      result = await createCategory(formData);
-    }
-
-    if (result.success) {
-      toast.success(editingId ? "Category updated!" : "Category created!");
-      handleCancel();
-    } else {
-      toast.error(result.error || "Operation failed");
-    }
+    setEditingCategory(null);
   };
 
   const handleDelete = async (id: string) => {
@@ -80,60 +57,23 @@ export function CategoryManager({ initialCategories }: { initialCategories: Cate
 
   return (
     <div className="grid gap-8 md:grid-cols-3">
-      {/* FORM */}
-      <Card className="md:col-span-1 h-fit border-slate-200 shadow-sm sticky top-4">
-        <CardHeader>
-            <CardTitle>{editingId ? t('edit') : t('create')}</CardTitle>
-        </CardHeader>
-        <CardContent>
-          <form action={handleSubmit} className="space-y-4">
-            <div className="space-y-2">
-                <Label>{t('categoryImage')}</Label>
-                <div className="p-2 border rounded-lg bg-slate-50">
-                    <ImageUpload 
-                        value={image ? [image] : []} 
-                        onChange={(url) => setImage(url)} 
-                        onRemove={() => setImage("")} 
-                    />
-                </div>
-                <input type="hidden" name="image" value={image} />
-            </div>
-            <div className="space-y-2">
-              <Label>{t('name')}</Label>
-              <Input name="name" value={name} onChange={e => setName(e.target.value)} placeholder="Living Room" required />
-            </div>
-            <div className="space-y-2">
-              <Label>{t('slug')}</Label>
-              <Input name="slug" value={slug} onChange={e => setSlug(e.target.value)} placeholder="living-room" required />
-            </div>
-            <div className="space-y-2">
-              <Label>{t('description')}</Label>
-              <Textarea name="description" value={description} onChange={e => setDescription(e.target.value)} placeholder="..." />
-            </div>
-            <div className="flex gap-2">
-                <Button type="submit" className="flex-1 gap-2 bg-slate-900 hover:bg-slate-800 cursor-pointer">
-                    {editingId ? <Save size={16}/> : <Plus size={16}/>}
-                    {editingId ? t('save') : t('create')}
-                </Button>
-                {editingId && (
-                    <Button type="button" variant="outline" onClick={handleCancel} className="px-3 cursor-pointer">
-                        <X size={16} />
-                    </Button>
-                )}
-            </div>
-          </form>
-        </CardContent>
-      </Card>
+      {/* FORM: Key prop'u ile re-render zorlanıyor, böylece state sıfırlanıyor */}
+      <div className="md:col-span-1">
+         <CategoryForm 
+            key={editingCategory ? editingCategory.id : "new"}
+            initialData={editingCategory} 
+            onSuccess={handleCancel} 
+         />
+      </div>
 
-      {/* LİSTE */}
-      <Card className="md:col-span-2 border-slate-200 shadow-sm">
+      <Card className="md:col-span-2 border-slate-200 shadow-sm h-fit">
         <CardHeader><CardTitle>{t('existingCategories')}</CardTitle></CardHeader>
         <CardContent>
           <Table>
             <TableHeader>
               <TableRow>
                 <TableHead className="w-[80px]">{t('image')}</TableHead>
-                <TableHead>{t('name')}</TableHead>
+                <TableHead>{t('name')} ({locale.toUpperCase()})</TableHead>
                 <TableHead>{t('slug')}</TableHead>
                 <TableHead className="text-right">{t('actions')}</TableHead>
               </TableRow>
@@ -143,13 +83,13 @@ export function CategoryManager({ initialCategories }: { initialCategories: Cate
                 <TableRow><TableCell colSpan={4} className="text-center py-4 text-muted-foreground">{t('noCategories')}</TableCell></TableRow>
               ) : (
                 categories.map((cat) => (
-                  <TableRow key={cat.id} className={editingId === cat.id ? "bg-blue-50" : ""}>
+                  <TableRow key={cat.id} className={editingCategory?.id === cat.id ? "bg-blue-50" : ""}>
                     <TableCell>
                         {cat.image ? (
-                            <div className="relative w-10 h-10 rounded-md overflow-hidden border"><Image src={cat.image} alt={cat.name} fill className="object-cover" /></div>
+                            <div className="relative w-10 h-10 rounded-md overflow-hidden border"><Image src={cat.image} alt="Cat" fill className="object-cover" /></div>
                         ) : (<div className="w-10 h-10 bg-slate-100 rounded-md flex items-center justify-center text-xs text-slate-400">N/A</div>)}
                     </TableCell>
-                    <TableCell className="font-medium">{cat.name}</TableCell>
+                    <TableCell className="font-medium">{getLocalized(cat.name)}</TableCell>
                     <TableCell className="text-muted-foreground text-sm">{cat.slug}</TableCell>
                     <TableCell className="text-right">
                       <div className="flex justify-end gap-2">

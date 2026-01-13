@@ -6,18 +6,24 @@ import { z } from "zod";
 import { eq } from "drizzle-orm";
 import { revalidatePath } from "next/cache";
 
+// Şema: İsim ve Açıklama artık JSON string olarak geliyor
 const categorySchema = z.object({
-  name: z.string().min(2),
   slug: z.string().min(2),
-  description: z.string().optional(),
   image: z.string().optional(),
+  // JSON.parse ile string'den objeye çeviriyoruz
+  names: z.string().transform((str) => {
+    try { return JSON.parse(str); } catch { return {}; }
+  }),
+  descriptions: z.string().transform((str) => {
+    try { return JSON.parse(str); } catch { return {}; }
+  }),
 });
 
 export async function createCategory(formData: FormData) {
   const rawData = {
-    name: formData.get("name"),
+    names: formData.get("names"),
     slug: formData.get("slug"),
-    description: formData.get("description"),
+    descriptions: formData.get("descriptions"),
     image: formData.get("image"),
   };
 
@@ -26,25 +32,25 @@ export async function createCategory(formData: FormData) {
 
   try {
     await db.insert(categories).values({
-      name: validated.data.name,
+      name: validated.data.names,       // JSONB olarak kaydet
+      description: validated.data.descriptions, // JSONB olarak kaydet
       slug: validated.data.slug,
-      description: validated.data.description || "",
       image: validated.data.image || null,
     });
     revalidatePath("/admin/categories");
     revalidatePath("/"); 
     return { success: true };
   } catch (error) {
+    console.error("Create Category Error:", error);
     return { success: false, error: "Creation failed" };
   }
 }
 
-// YENİ: GÜNCELLEME AKSİYONU
 export async function updateCategory(id: string, formData: FormData) {
   const rawData = {
-    name: formData.get("name"),
+    names: formData.get("names"),
     slug: formData.get("slug"),
-    description: formData.get("description"),
+    descriptions: formData.get("descriptions"),
     image: formData.get("image"),
   };
 
@@ -54,9 +60,9 @@ export async function updateCategory(id: string, formData: FormData) {
   try {
     await db.update(categories)
       .set({
-        name: validated.data.name,
+        name: validated.data.names,
+        description: validated.data.descriptions,
         slug: validated.data.slug,
-        description: validated.data.description || "",
         image: validated.data.image || null,
       })
       .where(eq(categories.id, id));
@@ -65,6 +71,7 @@ export async function updateCategory(id: string, formData: FormData) {
     revalidatePath("/");
     return { success: true };
   } catch (error) {
+    console.error("Update Category Error:", error);
     return { success: false, error: "Update failed" };
   }
 }

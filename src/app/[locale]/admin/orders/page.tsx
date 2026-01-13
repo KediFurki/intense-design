@@ -7,12 +7,22 @@ import { Card, CardContent, CardHeader } from "@/components/ui/card";
 import { OrderActions } from "@/components/admin/order-actions";
 import { MapPin, User, Building2 } from "lucide-react";
 import { PrintOrderButton } from "@/components/admin/print-order-button";
+import { getLocale } from "next-intl/server";
 
 export default async function AdminOrdersPage() {
+  const locale = await getLocale();
+  
   const ordersList = await db.query.orders.findMany({
     orderBy: [desc(orders.createdAt)],
     with: { items: { with: { product: true } } }
   });
+
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const getLocalized = (data: any) => {
+    if (!data) return "Unknown Product";
+    if (typeof data === "string") return data;
+    return data[locale] || data['en'] || Object.values(data)[0] || "Product";
+  };
 
   return (
     <div className="space-y-6">
@@ -27,8 +37,11 @@ export default async function AdminOrdersPage() {
                     <div className="flex flex-col md:flex-row md:items-start justify-between gap-6">
                         <div className="space-y-1.5 flex-1">
                             <div className="flex items-center gap-2">
-                                <Badge variant="outline" className="text-xs">Order #{order.id.slice(0, 8)}</Badge>
+                                <Badge variant="outline" className="text-xs bg-white">Order #{order.id.slice(0, 8)}</Badge>
                                 <span className="text-sm text-slate-500">{order.createdAt?.toLocaleDateString()}</span>
+                                <Badge className={`capitalize ${order.status === 'delivered' ? 'bg-green-100 text-green-700' : 'bg-blue-100 text-blue-700'} border-none`}>
+                                    {order.status}
+                                </Badge>
                             </div>
                             
                             <div className="grid md:grid-cols-2 gap-4 mt-2">
@@ -46,20 +59,19 @@ export default async function AdminOrdersPage() {
                                     </div>
                                 </div>
 
-                                <div className="text-sm bg-blue-50/50 p-3 rounded border border-blue-100 print:border-black print:bg-white">
-                                    <h4 className="font-semibold flex items-center gap-2 text-blue-900 mb-2">
+                                <div className="text-sm bg-white p-3 rounded border border-slate-200 print:border-black">
+                                    <h4 className="font-semibold flex items-center gap-2 text-slate-900 mb-2">
                                         {order.invoiceType === 'corporate' ? <Building2 size={14}/> : <User size={14}/>} 
                                         {order.invoiceType === 'corporate' ? 'Business Invoice' : 'Personal Receipt'}
                                     </h4>
                                     
                                     {order.invoiceType === 'corporate' ? (
-                                        <div className="space-y-1">
-                                            <p><span className="font-medium text-slate-700">Company:</span> {order.companyName}</p>
-                                            <p><span className="font-medium text-slate-700">VAT Number:</span> {order.taxId}</p>
-                                            {order.taxOffice && <p><span className="font-medium text-slate-700">Office:</span> {order.taxOffice}</p>}
+                                        <div className="space-y-1 text-slate-600">
+                                            <p><span className="font-medium text-slate-900">Company:</span> {order.companyName}</p>
+                                            <p><span className="font-medium text-slate-900">VAT:</span> {order.taxId}</p>
                                         </div>
                                     ) : (
-                                        <p className="text-slate-500 italic">No additional tax details required.</p>
+                                        <p className="text-slate-500 italic">No additional tax details.</p>
                                     )}
                                 </div>
                             </div>
@@ -81,15 +93,21 @@ export default async function AdminOrdersPage() {
                 <CardContent className="p-0">
                     <Table>
                         <TableHeader>
-                            <TableRow><TableHead>Product</TableHead><TableHead className="text-right">Price</TableHead><TableHead className="text-right">Qty</TableHead><TableHead className="text-right">Total</TableHead></TableRow>
+                            <TableRow className="bg-slate-50/50 hover:bg-slate-50/50"><TableHead>Product</TableHead><TableHead className="text-right">Price</TableHead><TableHead className="text-right">Qty</TableHead><TableHead className="text-right">Total</TableHead></TableRow>
                         </TableHeader>
                         <TableBody>
                             {order.items.map((item) => (
                                 <TableRow key={item.id}>
                                     <TableCell>
-                                        <div className="font-medium">{item.product?.name}</div>
-                                        {/* GÜNCELLEME: Varyasyon adını göster */}
-                                        {item.variantName && <div className="text-xs text-muted-foreground">{item.variantName}</div>}
+                                        <div className="font-medium text-slate-900">
+                                            {getLocalized(item.product?.name)}
+                                        </div>
+                                        {/* VARYASYON ADI BURADA GÖSTERİLİYOR */}
+                                        {item.variantName && item.variantName !== "Standard" && (
+                                            <div className="text-xs font-medium text-blue-600 bg-blue-50 px-2 py-0.5 rounded w-fit mt-1 border border-blue-100">
+                                                {item.variantName}
+                                            </div>
+                                        )}
                                     </TableCell>
                                     <TableCell className="text-right">€{(item.price / 100).toFixed(2)}</TableCell>
                                     <TableCell className="text-right">x{item.quantity}</TableCell>

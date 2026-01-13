@@ -37,6 +37,14 @@ const orderSchema = z.object({
 
 type OrderInput = z.infer<typeof orderSchema>;
 
+// Helper: JSON isimlendirmeyi string'e çevir
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+const getLocalizedName = (nameObj: any, locale: string) => {
+    if (!nameObj) return "Unknown Product";
+    if (typeof nameObj === "string") return nameObj;
+    return nameObj[locale] || nameObj["en"] || Object.values(nameObj)[0] || "Product";
+};
+
 export async function createOrder(data: OrderInput) {
   const session = await auth();
 
@@ -53,6 +61,8 @@ export async function createOrder(data: OrderInput) {
   const fullName = `${firstName} ${lastName}`;
   let locale: "en" | "tr" | "de" | "bg" = "en";
   if (country === "Turkey" || country === "TR") locale = "tr";
+  else if (country === "Germany" || country === "DE") locale = "de";
+  else if (country === "Bulgaria" || country === "BG") locale = "bg";
 
   if (invoiceType === 'corporate' && (!companyName || !taxId)) {
       return { success: false, error: "Company details missing." };
@@ -68,17 +78,23 @@ export async function createOrder(data: OrderInput) {
         if (item.variantId) {
             const variant = await tx.query.productVariants.findFirst({ where: eq(productVariants.id, item.variantId) });
             if (!variant || variant.stock < item.quantity) {
-              throw new Error(`Insufficient stock for variant: ${variant?.name || 'Unknown'}`);
+              throw new Error(`Insufficient stock for variant`);
             }
             await tx.update(productVariants).set({ stock: variant.stock - item.quantity }).where(eq(productVariants.id, item.variantId));
-            emailItems.push({ name: `${variant.name}`, quantity: item.quantity, price: item.price });
+            
+            // DÜZELTME: JSON -> String
+            const vName = getLocalizedName(variant.name, locale);
+            emailItems.push({ name: vName, quantity: item.quantity, price: item.price });
         } else {
             const product = await tx.query.products.findFirst({ where: eq(products.id, item.id) });
             if (!product || product.stock < item.quantity) {
-              throw new Error(`Insufficient stock for product: ${product?.name || 'Unknown'}`);
+              throw new Error(`Insufficient stock for product`);
             }
             await tx.update(products).set({ stock: product.stock - item.quantity }).where(eq(products.id, item.id));
-            emailItems.push({ name: product.name, quantity: item.quantity, price: item.price });
+            
+            // DÜZELTME: JSON -> String
+            const pName = getLocalizedName(product.name, locale);
+            emailItems.push({ name: pName, quantity: item.quantity, price: item.price });
         }
       }
 

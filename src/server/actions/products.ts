@@ -7,63 +7,88 @@ import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { z } from "zod";
 
-// DÜZELTME: any yerine tam şema tanımı
+type VariantInput = {
+    id?: string;
+    names: Record<string, string>;
+    price: number;
+    stock: number;
+    images: string[];
+    modelUrl?: string | null;
+    attributes: Record<string, unknown>;
+};
+
+// DÜZELTME: Enum listesini Schema ile eşitledik
+type ProductType = "furniture" | "sofa" | "bed" | "kitchen" | "lighting" | "decoration";
+
 const variantSchema = z.object({
   id: z.string().optional(),
-  name: z.string().optional(),
+  names: z.any(), 
   price: z.coerce.number().min(0).default(0),
   stock: z.coerce.number().min(0).default(0),
   images: z.array(z.string()).optional().default([]),
   modelUrl: z.string().optional().nullable(),
-  color: z.string().optional().default(""),
-  colorCode: z.string().optional().default(""),
-  size: z.string().optional().default(""),
-  material: z.string().optional().default(""),
+  attributes: z.any() 
 });
 
 const productSchema = z.object({
-  name: z.string().min(1, "Name is required"),
-  slug: z.string().min(1, "Slug is required"),
-  description: z.string().optional().default(""),
-  longDescription: z.string().optional().default(""),
+  slug: z.string().min(1),
   price: z.preprocess((val) => Number(val) || 0, z.number().min(0)),
   stock: z.preprocess((val) => Number(val) || 0, z.number().min(0)),
   categoryId: z.string().optional().nullable().transform(v => v === "" ? null : v),
-  images: z.array(z.string()).optional().default([]),
+  
+  // DÜZELTME: Yeni tipleri ekledik
+  type: z.enum(["furniture", "sofa", "bed", "kitchen", "lighting", "decoration"]).optional().default("furniture"),
+  
+  names: z.string().transform(str => JSON.parse(str)),
+  descriptions: z.string().transform(str => JSON.parse(str)),
+  longDescriptions: z.string().transform(str => JSON.parse(str)),
+  
+  images: z.string().transform(str => JSON.parse(str)),
   modelUrl: z.string().optional().nullable(),
   maskImage: z.string().optional().nullable(),
   width: z.preprocess((val) => Number(val) || null, z.number().nullable()),
   height: z.preprocess((val) => Number(val) || null, z.number().nullable()),
   depth: z.preprocess((val) => Number(val) || null, z.number().nullable()),
-  variants: z.array(variantSchema).optional().default([]) // DÜZELTME: any[] yerine variantSchema[]
+  
+  variants: z.string().transform(str => JSON.parse(str))
 });
 
 export async function createProduct(formData: FormData) {
   const rawData = Object.fromEntries(formData.entries());
-  const images = rawData.images ? JSON.parse(rawData.images as string) : [];
-  const variants = rawData.variants ? JSON.parse(rawData.variants as string) : [];
+  const validated = productSchema.safeParse(rawData);
 
-  const validatedFields = productSchema.safeParse({ ...rawData, images, variants });
-
-  if (!validatedFields.success) {
-    console.error("❌ CREATE ERROR:", validatedFields.error.flatten());
+  if (!validated.success) {
+    console.error("Validation Error:", validated.error.flatten());
     return { success: false, error: "Validation failed" };
   }
-
-  const { variants: variantList, ...productData } = validatedFields.data;
+  const data = validated.data;
 
   try {
-    const [newProduct] = await db.insert(products).values(productData).returning();
-    if (variantList.length > 0) {
-      // DÜZELTME: v: any kaldırıldı, Zod tipi kullanılıyor
-      await db.insert(productVariants).values(variantList.map((v) => ({
+    const [newProduct] = await db.insert(products).values({
+      name: data.names,
+      description: data.descriptions,
+      longDescription: data.longDescriptions,
+      slug: data.slug,
+      price: data.price * 100,
+      stock: data.stock,
+      categoryId: data.categoryId,
+      type: data.type as ProductType, // Type Casting
+      width: data.width,
+      height: data.height,
+      depth: data.depth,
+      images: data.images,
+      modelUrl: data.modelUrl,
+      maskImage: data.maskImage
+    }).returning();
+
+    if (data.variants.length > 0) {
+      await db.insert(productVariants).values(data.variants.map((v: VariantInput) => ({
           productId: newProduct.id,
-          name: [v.color, v.size].filter(Boolean).join(" / ") || "Standard",
+          name: v.names,
           price: (Number(v.price) || 0) * 100,
           stock: Number(v.stock) || 0,
           images: v.images || [],
-          modelUrl: v.modelUrl || null,
-          attributes: { color: v.color, colorCode: v.colorCode, size: v.size, material: v.material }
+          attributes: v.attributes
       })));
     }
     revalidatePath("/admin/products");
@@ -76,39 +101,46 @@ export async function createProduct(formData: FormData) {
 
 export async function updateProduct(id: string, formData: FormData) {
   const rawData = Object.fromEntries(formData.entries());
-  const images = rawData.images ? JSON.parse(rawData.images as string) : [];
-  const variants = rawData.variants ? JSON.parse(rawData.variants as string) : [];
+  const validated = productSchema.safeParse(rawData);
 
-  const validatedFields = productSchema.safeParse({ ...rawData, images, variants });
-
-  if (!validatedFields.success) {
-    console.error("❌ UPDATE ERROR:", validatedFields.error.flatten());
-    return { success: false, error: "Validation failed" };
-  }
-
-  const { variants: variantList, ...productData } = validatedFields.data;
+  if (!validated.success) return { success: false, error: "Validation failed" };
+  const data = validated.data;
 
   try {
-    await db.update(products).set({ ...productData, updatedAt: new Date() }).where(eq(products.id, id));
+    await db.update(products).set({
+      name: data.names,
+      description: data.descriptions,
+      longDescription: data.longDescriptions,
+      slug: data.slug,
+      price: data.price * 100,
+      stock: data.stock,
+      categoryId: data.categoryId,
+      type: data.type as ProductType,
+      width: data.width,
+      height: data.height,
+      depth: data.depth,
+      images: data.images,
+      modelUrl: data.modelUrl,
+      maskImage: data.maskImage,
+      updatedAt: new Date()
+    }).where(eq(products.id, id));
+
     await db.delete(productVariants).where(eq(productVariants.productId, id));
 
-    if (variantList.length > 0) {
-      // DÜZELTME: v: any kaldırıldı
-      await db.insert(productVariants).values(variantList.map((v) => ({
+    if (data.variants.length > 0) {
+      await db.insert(productVariants).values(data.variants.map((v: VariantInput) => ({
           productId: id,
-          name: [v.color, v.size].filter(Boolean).join(" / ") || "Standard",
+          name: v.names,
           price: (Number(v.price) || 0) * 100,
           stock: Number(v.stock) || 0,
           images: v.images || [],
-          modelUrl: v.modelUrl || null,
-          attributes: { color: v.color, colorCode: v.colorCode, size: v.size, material: v.material }
+          attributes: v.attributes
       })));
     }
     revalidatePath("/admin/products");
     revalidatePath("/");
-    revalidatePath(`/product/${productData.slug}`);
+    revalidatePath(`/product/${data.slug}`);
   } catch (error) {
-    console.error("DB Update Error:", error);
     return { success: false, error: "Update failed" };
   }
   redirect("/admin/products");
