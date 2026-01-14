@@ -4,6 +4,7 @@ import { stripe } from "@/server/payments/stripe";
 import { db } from "@/server/db";
 import { orders } from "@/server/db/schema";
 import { eq } from "drizzle-orm";
+import { sendPaymentUpdatedEmails } from "@/server/services/order-email-service";
 
 export const runtime = "nodejs";
 
@@ -11,6 +12,12 @@ function toMessage(err: unknown): string {
   if (err instanceof Error) return err.message;
   if (typeof err === "string") return err;
   return "Webhook failed";
+}
+
+function getLocaleFromMetadata(meta: Stripe.Metadata | null | undefined): string {
+  const v = meta?.locale;
+  if (typeof v === "string" && v.length >= 2) return v;
+  return "en";
 }
 
 export async function POST(req: Request) {
@@ -31,27 +38,43 @@ export async function POST(req: Request) {
 
   try {
     if (event.type === "checkout.session.completed") {
-      const session = event.data.object as Stripe.Checkout.Session;
+      const sessionObj = event.data.object;
+
+      if (sessionObj.object !== "checkout.session") {
+        return NextResponse.json({ received: true });
+      }
+
+      const session = sessionObj as Stripe.Checkout.Session;
 
       const orderId = session.metadata?.orderId;
-      const paymentType = session.metadata?.paymentType as "full" | "deposit" | undefined;
+      const paymentType = session.metadata?.paymentType === "deposit" ? "deposit" : "full";
+      const locale = getLocaleFromMetadata(session.metadata);
 
       if (!orderId) return NextResponse.json({ received: true });
 
       const paymentIntentId = typeof session.payment_intent === "string" ? session.payment_intent : null;
 
       if (paymentType === "deposit") {
-        await db.update(orders).set({
-          paymentStatus: "deposit_paid",
-          stripePaymentIntentId: paymentIntentId,
-        }).where(eq(orders.id, orderId));
+        await db
+          .update(orders)
+          .set({
+            paymentStatus: "deposit_paid",
+            stripePaymentIntentId: paymentIntentId,
+          })
+          .where(eq(orders.id, orderId));
       } else {
-        await db.update(orders).set({
-          paymentStatus: "paid",
-          remainingAmount: 0,
-          stripePaymentIntentId: paymentIntentId,
-        }).where(eq(orders.id, orderId));
+        await db
+          .update(orders)
+          .set({
+            paymentStatus: "paid",
+            remainingAmount: 0,
+            stripePaymentIntentId: paymentIntentId,
+          })
+          .where(eq(orders.id, orderId));
       }
+
+      // Email after DB update
+      await sendPaymentUpdatedEmails({ orderId, locale: "en" });
     }
 
     return NextResponse.json({ received: true });

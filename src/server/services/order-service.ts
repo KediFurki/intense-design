@@ -1,12 +1,13 @@
 import { db } from "@/server/db";
-import { orders, orderItems, products, productVariants } from "@/server/db/schema";
+import { orders, orderItems, products, productVariants, addresses } from "@/server/db/schema";
+import { and, lt, inArray } from "drizzle-orm";
 import { eq } from "drizzle-orm";
 
 export type CartItemInput = {
-  id: string;               // productId
+  id: string; // productId
   variantId?: string;
   variantName?: string;
-  price: number;            // cents
+  price: number; // cents
   quantity: number;
 };
 
@@ -47,7 +48,10 @@ export async function createOrderWithReservation(args: CreateOrderArgs) {
       if (item.variantId) {
         const v = await tx.query.productVariants.findFirst({ where: eq(productVariants.id, item.variantId) });
         if (!v || v.stock < item.quantity) throw new Error("INSUFFICIENT_STOCK_VARIANT");
-        await tx.update(productVariants).set({ stock: v.stock - item.quantity }).where(eq(productVariants.id, item.variantId));
+        await tx
+          .update(productVariants)
+          .set({ stock: v.stock - item.quantity })
+          .where(eq(productVariants.id, item.variantId));
       } else {
         const p = await tx.query.products.findFirst({ where: eq(products.id, item.id) });
         if (!p || p.stock < item.quantity) throw new Error("INSUFFICIENT_STOCK_PRODUCT");
@@ -55,33 +59,36 @@ export async function createOrderWithReservation(args: CreateOrderArgs) {
       }
     }
 
-    const [newOrder] = await tx.insert(orders).values({
-      userId: args.customer.userId ?? null,
-      customerName: args.customer.customerName,
-      customerEmail: args.customer.customerEmail,
-      customerPhone: args.customer.customerPhone,
-      country: args.customer.country,
-      state: args.customer.state || "",
-      city: args.customer.city,
-      address: args.customer.address,
-      zipCode: args.customer.zipCode,
+    const [newOrder] = await tx
+      .insert(orders)
+      .values({
+        userId: args.customer.userId ?? null,
+        customerName: args.customer.customerName,
+        customerEmail: args.customer.customerEmail,
+        customerPhone: args.customer.customerPhone,
+        country: args.customer.country,
+        state: args.customer.state || "",
+        city: args.customer.city,
+        address: args.customer.address,
+        zipCode: args.customer.zipCode,
 
-      invoiceType: args.customer.invoiceType ?? "individual",
-      taxId: args.customer.taxId ?? null,
-      companyName: args.customer.companyName ?? null,
-      taxOffice: args.customer.taxOffice ?? null,
+        invoiceType: args.customer.invoiceType ?? "individual",
+        taxId: args.customer.taxId ?? null,
+        companyName: args.customer.companyName ?? null,
+        taxOffice: args.customer.taxOffice ?? null,
 
-      totalAmount,
-      status: "pending",
+        totalAmount,
+        status: "pending",
 
-      paymentMethod: args.paymentMethod,
-      paymentStatus: args.paymentStatus,
-      depositPercent,
-      remainingAmount,
-      paymentDueAt: args.paymentDueAt ?? null,
+        paymentMethod: args.paymentMethod,
+        paymentStatus: args.paymentStatus,
+        depositPercent,
+        remainingAmount,
+        paymentDueAt: args.paymentDueAt ?? null,
 
-      stockReserved: true,
-    }).returning({ id: orders.id });
+        stockReserved: true,
+      })
+      .returning({ id: orders.id });
 
     await tx.insert(orderItems).values(
       args.items.map((item) => ({
@@ -94,6 +101,19 @@ export async function createOrderWithReservation(args: CreateOrderArgs) {
       }))
     );
 
+    // Save address to user profile (if logged in)
+    if (args.customer.userId) {
+      await tx.insert(addresses).values({
+        userId: args.customer.userId,
+        title: "Checkout Address",
+        address: args.customer.address,
+        city: args.customer.city,
+        state: args.customer.state || "",
+        zipCode: args.customer.zipCode,
+        country: args.customer.country,
+      });
+    }
+
     return { orderId: newOrder.id, totalAmount, depositAmount, remainingAmount };
   });
 
@@ -104,21 +124,21 @@ export async function restockAndCancelOrder(orderId: string) {
   return db.transaction(async (tx) => {
     const order = await tx.query.orders.findFirst({
       where: eq(orders.id, orderId),
-      columns: { id: true, stockReserved: true, paymentStatus: true }
+      columns: { id: true, stockReserved: true, paymentStatus: true },
     });
     if (!order) throw new Error("ORDER_NOT_FOUND");
 
     if (order.stockReserved) {
       const items = await tx.query.orderItems.findMany({
         where: eq(orderItems.orderId, orderId),
-        columns: { productId: true, variantId: true, quantity: true }
+        columns: { productId: true, variantId: true, quantity: true },
       });
 
       for (const it of items) {
         if (it.variantId) {
           const v = await tx.query.productVariants.findFirst({ where: eq(productVariants.id, it.variantId) });
           if (v) await tx.update(productVariants).set({ stock: v.stock + it.quantity }).where(eq(productVariants.id, it.variantId));
-        } else if (it.productId) {
+        } else {
           const p = await tx.query.products.findFirst({ where: eq(products.id, it.productId) });
           if (p) await tx.update(products).set({ stock: p.stock + it.quantity }).where(eq(products.id, it.productId));
         }
@@ -131,3 +151,25 @@ export async function restockAndCancelOrder(orderId: string) {
     return { ok: true };
   });
 }
+export async function expireOverdueIbanOrders(now: Date = new Date()): Promise<{ expired: number }> {
+    // 1) Süresi geçen, IBAN bekleyen siparişleri bul
+    const overdue = await db.query.orders.findMany({
+      where: and(
+        eq(orders.paymentMethod, "iban"),
+        eq(orders.paymentStatus, "awaiting_payment"),
+        lt(orders.paymentDueAt, now)
+      ),
+      columns: { id: true },
+    });
+  
+    if (overdue.length === 0) return { expired: 0 };
+  
+    const ids = overdue.map((o) => o.id);
+  
+    // 2) Her siparişi iptal et + stok geri koy
+    for (const id of ids) {
+      await restockAndCancelOrder(id);
+    }
+  
+    return { expired: ids.length };
+  }

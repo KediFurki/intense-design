@@ -19,12 +19,13 @@ import type { LocalizedText } from "@/lib/i18n/get-locale-value";
 export const roleEnum = pgEnum("role", ["admin", "customer"]);
 
 export const orderStatusEnum = pgEnum("order_status", [
-  "pending",
-  "processing",
-  "shipped",
-  "delivered",
-  "cancelled",
-]);
+    "pending",
+    "processing",
+    "shipped",
+    "delivered",
+    "cancelled",
+    "expired",
+  ]);
 
 export const productTypeEnum = pgEnum("product_type", [
   "furniture",

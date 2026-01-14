@@ -8,6 +8,7 @@ import { orders } from "@/server/db/schema";
 import { eq } from "drizzle-orm";
 
 const schema = z.object({
+  locale: z.string().min(2).optional().default("en"),
   customer: z.object({
     firstName: z.string().min(1),
     lastName: z.string().min(1),
@@ -23,13 +24,17 @@ const schema = z.object({
     companyName: z.string().optional().nullable(),
     taxOffice: z.string().optional().nullable(),
   }),
-  items: z.array(z.object({
-    id: z.string(),
-    variantId: z.string().optional(),
-    variantName: z.string().optional(),
-    price: z.number().int().nonnegative(),
-    quantity: z.number().int().positive(),
-  })).min(1),
+  items: z
+    .array(
+      z.object({
+        id: z.string(),
+        variantId: z.string().optional(),
+        variantName: z.string().optional(),
+        price: z.number().int().nonnegative(),
+        quantity: z.number().int().positive(),
+      })
+    )
+    .min(1),
   paymentType: z.enum(["full", "deposit"]),
 });
 
@@ -76,8 +81,8 @@ export async function POST(req: Request) {
 
     const stripeSession = await stripe.checkout.sessions.create({
       mode: "payment",
-      success_url: `${appUrl}/checkout/success?oid=${orderId}`,
-      cancel_url: `${appUrl}/checkout/cancel?oid=${orderId}`,
+      success_url: `${appUrl}/${parsed.locale}/checkout/success?oid=${orderId}`,
+      cancel_url: `${appUrl}/${parsed.locale}/checkout/cancel?oid=${orderId}`,
       line_items: [
         {
           price_data: {
@@ -93,16 +98,20 @@ export async function POST(req: Request) {
         paymentType: parsed.paymentType,
         depositPercent: String(depositPercent),
         remainingAmount: String(remainingAmount),
+        locale: parsed.locale,
       },
     });
 
-    await db.update(orders).set({
-      stripeCheckoutSessionId: stripeSession.id,
-      paymentStatus: "awaiting_payment",
-      paymentMethod: "stripe",
-      depositPercent,
-      remainingAmount,
-    }).where(eq(orders.id, orderId));
+    await db
+      .update(orders)
+      .set({
+        stripeCheckoutSessionId: stripeSession.id,
+        paymentStatus: "awaiting_payment",
+        paymentMethod: "stripe",
+        depositPercent,
+        remainingAmount,
+      })
+      .where(eq(orders.id, orderId));
 
     return NextResponse.json({ url: stripeSession.url, orderId });
   } catch (e: unknown) {

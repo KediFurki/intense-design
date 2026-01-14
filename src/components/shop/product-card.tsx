@@ -75,7 +75,7 @@ export function ProductCard({
         <Link href={`/product/${slug}`} className="hover:text-blue-600 transition-colors">
           <h3 className="font-semibold text-lg text-slate-900 leading-tight mb-1">{title}</h3>
         </Link>
-        <p className="text-sm text-slate-500 line-clamp-2 min-h-[2.5rem]">
+        <p className="text-sm text-slate-500 line-clamp-2 min-h-2.5rem">
           {descText || "No description available."}
         </p>
       </CardContent>

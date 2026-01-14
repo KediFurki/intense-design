@@ -65,7 +65,7 @@ export default async function Home({
             <Link
               key={cat.id}
               href={`/category/${cat.slug}`}
-              className="group relative aspect-[4/3] overflow-hidden rounded-xl bg-slate-200 block cursor-pointer"
+              className="group relative aspect-4/3 overflow-hidden rounded-xl bg-slate-200 block cursor-pointer"
             >
               {cat.image && <div className="absolute inset-0 bg-cover bg-center" style={{ backgroundImage: `url(${cat.image})` }} />}
               <div className="absolute inset-0 bg-black/40 group-hover:bg-black/50 transition-colors" />

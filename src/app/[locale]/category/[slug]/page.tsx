@@ -9,30 +9,20 @@ import { Button } from "@/components/ui/button";
 import { FilterSidebar } from "@/components/shop/filter-sidebar";
 import { getLocaleValue } from "@/lib/i18n/get-locale-value";
 
-type SearchParamsRecord = Record<string, string | undefined>;
+type RouteParams = { locale: string; slug: string };
+type RouteSearchParams = Record<string, string | undefined>;
 
 export default async function CategoryPage({
   params,
   searchParams,
 }: {
-  params: Promise<{ locale: string; slug: string }> | { locale: string; slug: string };
-  searchParams: Promise<SearchParamsRecord> | SearchParamsRecord;
+  params: Promise<RouteParams> | RouteParams;
+  searchParams: Promise<RouteSearchParams> | RouteSearchParams;
 }) {
   const { slug, locale } = await Promise.resolve(params);
   const sp = await Promise.resolve(searchParams);
 
   const session = await auth();
-
-  // preserve current filters when changing sort
-  const qs = (updates: Partial<SearchParamsRecord>) => {
-    const next: SearchParamsRecord = { ...sp, ...updates };
-    const u = new URLSearchParams();
-    Object.entries(next).forEach(([k, v]) => {
-      if (v !== undefined && v !== "") u.set(k, v);
-    });
-    const s = u.toString();
-    return s ? `?${s}` : "";
-  };
 
   let categoryId: string | undefined;
   let categoryTitle = slug === "all" ? "All Products" : slug;
@@ -44,13 +34,14 @@ export default async function CategoryPage({
       where: eq(categories.slug, slug),
     });
     if (!category) notFound();
+
     categoryId = category.id;
     categoryTitle = getLocaleValue(category.name, locale);
   }
 
   const sort = sp.sort || "newest";
   const minPrice = sp.min ? Number(sp.min) * 100 : 0;
-  const maxPrice = sp.max ? Number(sp.max) * 100 : 1000000;
+  const maxPrice = sp.max ? Number(sp.max) * 100 : 1_000_000;
   const onlyInStock = sp.instock === "true";
 
   const whereConditions = [
@@ -64,8 +55,8 @@ export default async function CategoryPage({
     sort === "price_asc"
       ? asc(products.price)
       : sort === "price_desc"
-      ? desc(products.price)
-      : desc(products.createdAt);
+        ? desc(products.price)
+        : desc(products.createdAt);
 
   const productsList = await db.query.products.findMany({
     where: and(...whereConditions),
@@ -92,6 +83,7 @@ export default async function CategoryPage({
             </Link>{" "}
             / <span className="text-slate-900 font-medium capitalize">{slug}</span>
           </div>
+
           <h1 className="text-3xl font-bold text-slate-900">{categoryTitle}</h1>
           <p className="text-slate-500">{productsList.length} products found</p>
         </div>
@@ -100,7 +92,7 @@ export default async function CategoryPage({
           <span className="text-sm text-slate-600">Sort by:</span>
           <div className="flex gap-2 text-sm font-medium">
             <Link
-              href={qs({ sort: "newest" })}
+              href="?sort=newest"
               className={`px-3 py-1 rounded-md transition-colors ${
                 sort === "newest"
                   ? "bg-slate-900 text-white"
@@ -109,8 +101,9 @@ export default async function CategoryPage({
             >
               Newest
             </Link>
+
             <Link
-              href={qs({ sort: "price_asc" })}
+              href="?sort=price_asc"
               className={`px-3 py-1 rounded-md transition-colors ${
                 sort === "price_asc"
                   ? "bg-slate-900 text-white"
@@ -119,8 +112,9 @@ export default async function CategoryPage({
             >
               Price ↑
             </Link>
+
             <Link
-              href={qs({ sort: "price_desc" })}
+              href="?sort=price_desc"
               className={`px-3 py-1 rounded-md transition-colors ${
                 sort === "price_desc"
                   ? "bg-slate-900 text-white"

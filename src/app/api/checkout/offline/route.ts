@@ -4,6 +4,9 @@ import { auth } from "@/auth";
 import { createOrderWithReservation } from "@/server/services/order-service";
 
 const schema = z.object({
+  // locale artık zorunlu değil
+  locale: z.string().min(2).optional(),
+
   customer: z.object({
     firstName: z.string().min(1),
     lastName: z.string().min(1),
@@ -19,13 +22,19 @@ const schema = z.object({
     companyName: z.string().optional().nullable(),
     taxOffice: z.string().optional().nullable(),
   }),
-  items: z.array(z.object({
-    id: z.string(),
-    variantId: z.string().optional(),
-    variantName: z.string().optional(),
-    price: z.number().int().nonnegative(),
-    quantity: z.number().int().positive(),
-  })).min(1),
+
+  items: z
+    .array(
+      z.object({
+        id: z.string(),
+        variantId: z.string().optional(),
+        variantName: z.string().optional(),
+        price: z.number().int().nonnegative(),
+        quantity: z.number().int().positive(),
+      })
+    )
+    .min(1),
+
   paymentMethod: z.enum(["iban", "cash_on_installation"]),
 });
 
@@ -35,11 +44,30 @@ function toMessage(err: unknown): string {
   return "Failed";
 }
 
+function inferLocale(req: Request): string {
+  // 1) custom header (istersen client’ta gönderirsin)
+  const headerLocale = req.headers.get("x-app-locale");
+  if (headerLocale && headerLocale.trim().length >= 2) return headerLocale.trim();
+
+  // 2) accept-language -> "tr-TR,tr;q=0.9,en;q=0.8" gibi gelir
+  const al = req.headers.get("accept-language");
+  if (al) {
+    const first = al.split(",")[0]?.trim(); // tr-TR
+    const lang = first?.split("-")[0]?.trim(); // tr
+    if (lang && lang.length >= 2) return lang;
+  }
+
+  // 3) en güvenlisi default
+  return "en";
+}
+
 export async function POST(req: Request) {
   try {
     const sessionAuth = await auth();
     const body = await req.json();
     const parsed = schema.parse(body);
+
+    const locale = parsed.locale ?? inferLocale(req);
 
     const customerName = `${parsed.customer.firstName} ${parsed.customer.lastName}`.trim();
 
@@ -77,6 +105,7 @@ export async function POST(req: Request) {
       paymentMethod: parsed.paymentMethod,
       paymentStatus,
       paymentDueAt: paymentDueAt ? paymentDueAt.toISOString() : null,
+      locale,
     });
   } catch (e: unknown) {
     return NextResponse.json({ error: toMessage(e) }, { status: 400 });

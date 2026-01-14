@@ -2,10 +2,12 @@ import { db } from "@/server/db";
 import { orders } from "@/server/db/schema";
 import { eq } from "drizzle-orm";
 
+type PendingSearchParams = { oid?: string };
+
 export default async function CheckoutPendingPage({
   searchParams,
 }: {
-  searchParams: Promise<{ oid?: string }> | { oid?: string };
+  searchParams: Promise<PendingSearchParams> | PendingSearchParams;
 }) {
   const sp = await Promise.resolve(searchParams);
   const oid = sp?.oid;
@@ -13,9 +15,7 @@ export default async function CheckoutPendingPage({
   if (!oid) {
     return (
       <div className="min-h-screen bg-slate-50 flex items-center justify-center p-6">
-        <div className="max-w-lg w-full bg-white border rounded-lg p-6">
-          Missing order id.
-        </div>
+        <div className="max-w-lg w-full bg-white border rounded-lg p-6">Missing order id.</div>
       </div>
     );
   }
@@ -32,6 +32,14 @@ export default async function CheckoutPendingPage({
     },
   });
 
+  if (!order) {
+    return (
+      <div className="min-h-screen bg-slate-50 flex items-center justify-center p-6">
+        <div className="max-w-lg w-full bg-white border rounded-lg p-6">Order not found.</div>
+      </div>
+    );
+  }
+
   const iban = process.env.NEXT_PUBLIC_COMPANY_IBAN || "IBAN_NOT_SET";
   const beneficiary = process.env.NEXT_PUBLIC_COMPANY_BENEFICIARY || "Intense Design";
 
@@ -41,14 +49,15 @@ export default async function CheckoutPendingPage({
         <h1 className="text-2xl font-semibold">Order Created</h1>
 
         <p className="text-slate-600">
-          Order ID: <b>{order?.id}</b>
+          Order ID: <b>{order.id}</b>
         </p>
 
-        {order?.paymentMethod === "iban" ? (
+        {order.paymentMethod === "iban" ? (
           <>
             <p className="text-slate-600">
               Please complete the bank transfer within <b>3 days</b> to keep the reservation.
             </p>
+
             <div className="bg-slate-50 border rounded p-3 text-sm space-y-1">
               <div>
                 <b>Beneficiary:</b> {beneficiary}
@@ -57,12 +66,12 @@ export default async function CheckoutPendingPage({
                 <b>IBAN:</b> {iban}
               </div>
               <div>
-                <b>Reference:</b> INTENSE-{order?.id}
+                <b>Reference:</b> INTENSE-{order.id}
               </div>
               <div>
-                <b>Amount:</b> €{((order?.totalAmount ?? 0) / 100).toFixed(2)}
+                <b>Amount:</b> €{((order.totalAmount ?? 0) / 100).toFixed(2)}
               </div>
-              {order?.paymentDueAt ? (
+              {order.paymentDueAt ? (
                 <div>
                   <b>Due:</b> {new Date(order.paymentDueAt).toLocaleString()}
                 </div>
@@ -71,12 +80,10 @@ export default async function CheckoutPendingPage({
           </>
         ) : (
           <>
-            <p className="text-slate-600">
-              You will pay the remaining amount at installation (link / IBAN / cash).
-            </p>
+            <p className="text-slate-600">You will pay the remaining amount at installation (link / IBAN / cash).</p>
             <div className="bg-slate-50 border rounded p-3 text-sm">
               <div>
-                <b>Remaining Amount:</b> €{((order?.remainingAmount ?? 0) / 100).toFixed(2)}
+                <b>Remaining Amount:</b> €{((order.remainingAmount ?? 0) / 100).toFixed(2)}
               </div>
             </div>
           </>
