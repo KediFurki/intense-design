@@ -1,125 +1,169 @@
 import { db } from "@/server/db";
 import { products, categories, favorites } from "@/server/db/schema";
-import { eq, and, gte, lte, gt, desc, asc, type SQL } from "drizzle-orm"; // gt (greater than) eklendi
+import { eq, and, gte, lte, gt, desc, asc, type SQL } from "drizzle-orm";
 import { notFound } from "next/navigation";
 import { ProductCard } from "@/components/shop/product-card";
 import { auth } from "@/auth";
-import Link from "next/link";
+import { Link } from "@/lib/i18n/routing";
 import { Button } from "@/components/ui/button";
 import { FilterSidebar } from "@/components/shop/filter-sidebar";
-import {
-  Select, SelectContent, SelectItem, SelectTrigger, SelectValue,
-} from "@/components/ui/select";
+import { getLocaleValue } from "@/lib/i18n/get-locale-value";
 
-interface CategoryPageProps {
-  params: Promise<{ slug: string }>;
-  searchParams: Promise<{ [key: string]: string | undefined }>;
-}
+type SearchParamsRecord = Record<string, string | undefined>;
 
-export default async function CategoryPage({ params, searchParams }: CategoryPageProps) {
-  const { slug } = await params;
-  const search = await searchParams;
+export default async function CategoryPage({
+  params,
+  searchParams,
+}: {
+  params: Promise<{ locale: string; slug: string }> | { locale: string; slug: string };
+  searchParams: Promise<SearchParamsRecord> | SearchParamsRecord;
+}) {
+  const { slug, locale } = await Promise.resolve(params);
+  const sp = await Promise.resolve(searchParams);
+
   const session = await auth();
 
-  // 1. Kategoriyi Bul
+  // preserve current filters when changing sort
+  const qs = (updates: Partial<SearchParamsRecord>) => {
+    const next: SearchParamsRecord = { ...sp, ...updates };
+    const u = new URLSearchParams();
+    Object.entries(next).forEach(([k, v]) => {
+      if (v !== undefined && v !== "") u.set(k, v);
+    });
+    const s = u.toString();
+    return s ? `?${s}` : "";
+  };
+
   let categoryId: string | undefined;
-  let categoryName = "All Products";
+  let categoryTitle = slug === "all" ? "All Products" : slug;
 
   if (slug === "new") {
-    categoryName = "New Arrivals";
+    categoryTitle = "New Arrivals";
   } else if (slug !== "all") {
     const category = await db.query.categories.findFirst({
       where: eq(categories.slug, slug),
     });
     if (!category) notFound();
     categoryId = category.id;
-    categoryName = category.name;
+    categoryTitle = getLocaleValue(category.name, locale);
   }
 
-  // 2. Filtreler
-  const sort = search.sort || "newest";
-  const minPrice = search.min ? Number(search.min) * 100 : 0;
-  const maxPrice = search.max ? Number(search.max) * 100 : 1000000;
-  const onlyInStock = search.instock === "true"; // Stok kontrolü
+  const sort = sp.sort || "newest";
+  const minPrice = sp.min ? Number(sp.min) * 100 : 0;
+  const maxPrice = sp.max ? Number(sp.max) * 100 : 1000000;
+  const onlyInStock = sp.instock === "true";
 
-  // 3. Sorgu
   const whereConditions = [
     gte(products.price, minPrice),
     lte(products.price, maxPrice),
     categoryId ? eq(products.categoryId, categoryId) : undefined,
-    onlyInStock ? gt(products.stock, 0) : undefined, // <-- YENİ: Stok > 0
-  ].filter((item): item is SQL => item !== undefined); 
+    onlyInStock ? gt(products.stock, 0) : undefined,
+  ].filter((item): item is SQL => item !== undefined);
 
-  let orderBy;
-  if (sort === "price_asc") orderBy = asc(products.price);
-  else if (sort === "price_desc") orderBy = desc(products.price);
-  else orderBy = desc(products.createdAt);
+  const orderBy =
+    sort === "price_asc"
+      ? asc(products.price)
+      : sort === "price_desc"
+      ? desc(products.price)
+      : desc(products.createdAt);
 
   const productsList = await db.query.products.findMany({
     where: and(...whereConditions),
-    orderBy: orderBy,
-    with: {
-        category: true,
-    }
+    orderBy,
+    with: { category: true },
   });
 
-  // 4. Favoriler
   let userFavorites: string[] = [];
   if (session?.user) {
-    const favs = await db.select({ pid: favorites.productId }).from(favorites).where(eq(favorites.userId, session.user.id));
-    userFavorites = favs.map(f => f.pid);
+    const favs = await db
+      .select({ pid: favorites.productId })
+      .from(favorites)
+      .where(eq(favorites.userId, session.user.id));
+    userFavorites = favs.map((f) => f.pid);
   }
 
   return (
     <div className="container mx-auto px-4 py-10">
-      {/* ... (Header ve Diğer kısımlar AYNI KALIYOR) ... */}
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-8">
         <div>
-            <div className="flex items-center gap-2 text-sm text-muted-foreground mb-1">
-                <Link href="/" className="hover:text-slate-900">Home</Link> / <span className="text-slate-900 font-medium capitalize">{slug}</span>
-            </div>
-            <h1 className="text-3xl font-bold text-slate-900">{categoryName}</h1>
-            <p className="text-slate-500">{productsList.length} products found</p>
+          <div className="flex items-center gap-2 text-sm text-muted-foreground mb-1">
+            <Link href="/" className="hover:text-slate-900">
+              Home
+            </Link>{" "}
+            / <span className="text-slate-900 font-medium capitalize">{slug}</span>
+          </div>
+          <h1 className="text-3xl font-bold text-slate-900">{categoryTitle}</h1>
+          <p className="text-slate-500">{productsList.length} products found</p>
         </div>
 
         <div className="flex items-center gap-2">
-            <span className="text-sm text-slate-600">Sort by:</span>
-            <div className="flex gap-2 text-sm font-medium">
-                <Link href="?sort=newest" className={`px-3 py-1 rounded-md transition-colors ${sort === 'newest' ? 'bg-slate-900 text-white' : 'bg-slate-100 text-slate-600 hover:bg-slate-200'}`}>Newest</Link>
-                <Link href="?sort=price_asc" className={`px-3 py-1 rounded-md transition-colors ${sort === 'price_asc' ? 'bg-slate-900 text-white' : 'bg-slate-100 text-slate-600 hover:bg-slate-200'}`}>Price ↑</Link>
-                <Link href="?sort=price_desc" className={`px-3 py-1 rounded-md transition-colors ${sort === 'price_desc' ? 'bg-slate-900 text-white' : 'bg-slate-100 text-slate-600 hover:bg-slate-200'}`}>Price ↓</Link>
-            </div>
+          <span className="text-sm text-slate-600">Sort by:</span>
+          <div className="flex gap-2 text-sm font-medium">
+            <Link
+              href={qs({ sort: "newest" })}
+              className={`px-3 py-1 rounded-md transition-colors ${
+                sort === "newest"
+                  ? "bg-slate-900 text-white"
+                  : "bg-slate-100 text-slate-600 hover:bg-slate-200"
+              }`}
+            >
+              Newest
+            </Link>
+            <Link
+              href={qs({ sort: "price_asc" })}
+              className={`px-3 py-1 rounded-md transition-colors ${
+                sort === "price_asc"
+                  ? "bg-slate-900 text-white"
+                  : "bg-slate-100 text-slate-600 hover:bg-slate-200"
+              }`}
+            >
+              Price ↑
+            </Link>
+            <Link
+              href={qs({ sort: "price_desc" })}
+              className={`px-3 py-1 rounded-md transition-colors ${
+                sort === "price_desc"
+                  ? "bg-slate-900 text-white"
+                  : "bg-slate-100 text-slate-600 hover:bg-slate-200"
+              }`}
+            >
+              Price ↓
+            </Link>
+          </div>
         </div>
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-4 gap-10">
         <div className="hidden lg:block">
-            <FilterSidebar />
+          <FilterSidebar />
         </div>
+
         <div className="lg:col-span-3">
-            {productsList.length > 0 ? (
-                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
-                    {productsList.map((product) => (
-                        <ProductCard
-                            key={product.id}
-                            id={product.id}
-                            name={product.name}
-                            slug={product.slug}
-                            price={product.price}
-                            stock={product.stock}
-                            categoryName={product.category?.name || ""}
-                            imageUrl={product.images?.[0] || null}
-                            isFavorited={userFavorites.includes(product.id)}
-                            description={product.description}
-                        />
-                    ))}
-                </div>
-            ) : (
-                <div className="py-20 text-center border-2 border-dashed rounded-xl bg-slate-50">
-                    <p className="text-slate-500 text-lg">No products found matching your filters.</p>
-                    <Link href="/category/all"><Button variant="link">Clear Filters</Button></Link>
-                </div>
-            )}
+          {productsList.length > 0 ? (
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
+              {productsList.map((product) => (
+                <ProductCard
+                  key={product.id}
+                  id={product.id}
+                  name={product.name}
+                  slug={product.slug}
+                  price={product.price}
+                  stock={product.stock}
+                  categoryName={product.category?.name ?? null}
+                  imageUrl={product.images?.[0] || null}
+                  isFavorited={userFavorites.includes(product.id)}
+                  description={product.description}
+                />
+              ))}
+            </div>
+          ) : (
+            <div className="py-20 text-center border-2 border-dashed rounded-xl bg-slate-50">
+              <p className="text-slate-500 text-lg">No products found matching your filters.</p>
+              <Link href="/category/all">
+                <Button variant="link">Clear Filters</Button>
+              </Link>
+            </div>
+          )}
         </div>
       </div>
     </div>

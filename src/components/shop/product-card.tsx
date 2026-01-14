@@ -1,73 +1,99 @@
 "use client";
 
 import { Card, CardContent, CardFooter } from "@/components/ui/card";
-import { Badge } from "@/components/ui/badge"; 
+import { Badge } from "@/components/ui/badge";
 import Image from "next/image";
 import Link from "next/link";
 import AddToCartButton from "./add-to-cart-button";
 import { FavoriteButton } from "./favorite-button";
+import { useLocale } from "next-intl";
+import { getLocaleValue, type LocalizedText } from "@/lib/i18n/get-locale-value";
 
 interface ProductCardProps {
   id: string;
-  name: string;
+  name: LocalizedText;
   slug: string;
-  description: string | null;
+  description: LocalizedText;
   price: number;
   stock: number;
-  categoryName: string | null;
+  categoryName: LocalizedText | null;
   imageUrl: string | null;
   isFavorited?: boolean;
 }
 
-export function ProductCard({ id, name, slug, description, price, stock, categoryName, imageUrl, isFavorited = false }: ProductCardProps) {
+export function ProductCard({
+  id,
+  name,
+  slug,
+  description,
+  price,
+  stock,
+  categoryName,
+  imageUrl,
+  isFavorited = false,
+}: ProductCardProps) {
+  const locale = useLocale();
+
+  const title = getLocaleValue(name, locale);
+  const descText = getLocaleValue(description, locale);
+  const catText = categoryName ? getLocaleValue(categoryName, locale) : "";
+
   return (
     <Card className="overflow-hidden group h-full flex flex-col border-none shadow-md hover:shadow-xl transition-all duration-300 relative bg-white">
-      
       <Link href={`/product/${slug}`} className="block relative aspect-square overflow-hidden bg-white p-4 cursor-pointer">
         {imageUrl ? (
           <Image
             src={imageUrl}
-            alt={name}
+            alt={title}
             fill
             className="object-contain w-full h-full group-hover:scale-105 transition-transform duration-500"
           />
         ) : (
           <div className="flex items-center justify-center h-full text-slate-400">No Image</div>
         )}
-        
+
         <div className="absolute top-2 right-2 z-20">
-           <FavoriteButton productId={id} initialIsFavorited={isFavorited} />
+          <FavoriteButton productId={id} initialIsFavorited={isFavorited} />
         </div>
 
         {stock > 0 && stock < 5 && (
-             <div className="absolute top-2 left-2 z-10">
-                <Badge variant="destructive" className="shadow-sm">Only {stock} left!</Badge>
-             </div>
+          <div className="absolute top-2 left-2 z-10">
+            <Badge variant="destructive" className="shadow-sm">Only {stock} left!</Badge>
+          </div>
         )}
 
-        {categoryName && (
+        {catText && (
           <div className="absolute bottom-2 left-2 z-10">
-            <Badge variant="secondary" className="bg-white/90 backdrop-blur text-slate-900 shadow-sm">{categoryName}</Badge>
+            <Badge variant="secondary" className="bg-white/90 backdrop-blur text-slate-900 shadow-sm">
+              {catText}
+            </Badge>
           </div>
         )}
       </Link>
 
       <CardContent className="p-4 flex-1">
         <Link href={`/product/${slug}`} className="hover:text-blue-600 transition-colors">
-            <h3 className="font-semibold text-lg text-slate-900 leading-tight mb-1">{name}</h3>
+          <h3 className="font-semibold text-lg text-slate-900 leading-tight mb-1">{title}</h3>
         </Link>
         <p className="text-sm text-slate-500 line-clamp-2 min-h-[2.5rem]">
-            {description || "No description available."}
+          {descText || "No description available."}
         </p>
       </CardContent>
 
       <CardFooter className="p-4 pt-0 flex items-center justify-between">
         <div className="text-xl font-bold text-slate-900">€{(price / 100).toFixed(2)}</div>
-        <AddToCartButton 
+        <AddToCartButton
           size="sm"
           text="Add"
-          stock={stock} 
-          data={{ id, name, slug, price, categoryName: categoryName || "", image: imageUrl || "" }}
+          stock={stock}
+          data={{
+            id,
+            name: title, // cart için string olmalı
+            slug,
+            price,
+            categoryName: catText,
+            image: imageUrl || "",
+          }}
         />
       </CardFooter>
     </Card>

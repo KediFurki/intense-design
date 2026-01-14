@@ -1,33 +1,38 @@
 import type { Metadata } from "next";
 import { Inter } from "next/font/google";
-import "../globals.css"; // DİKKAT: CSS yolu değişti
+import "../globals.css";
 import { Toaster } from "@/components/ui/sonner";
 import Header from "@/components/layout/header";
-import { NextIntlClientProvider } from 'next-intl';
-import { getMessages } from 'next-intl/server';
-import { notFound } from 'next/navigation';
-import { routing } from '@/lib/i18n/routing';
+import { NextIntlClientProvider } from "next-intl";
+import { getMessages } from "next-intl/server";
+import { notFound } from "next/navigation";
+import { routing } from "@/lib/i18n/routing";
 
 const inter = Inter({ subsets: ["latin"] });
 
 export const metadata: Metadata = {
-  title: "Instant Design",
+  title: "Intense Design",
   description: "Premium Furniture Store",
 };
 
+type AppLocale = (typeof routing.locales)[number];
+
+function isAppLocale(locale: string): locale is AppLocale {
+  return routing.locales.includes(locale as AppLocale);
+}
+
 export default async function RootLayout({
   children,
-  params
+  params,
 }: {
   children: React.ReactNode;
-  params: Promise<{ locale: string }>;
+  params: Promise<{ locale: string }> | { locale: string };
 }) {
-  const { locale } = await params;
+  // Next 16 / Turbopack bazı durumlarda params'ı Promise verir
+  const resolvedParams = await Promise.resolve(params);
+  const locale = resolvedParams.locale;
 
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  if (!routing.locales.includes(locale as any)) {
-    notFound();
-  }
+  if (!isAppLocale(locale)) notFound();
 
   const messages = await getMessages();
 
@@ -35,7 +40,7 @@ export default async function RootLayout({
     <html lang={locale}>
       <body className={inter.className}>
         <NextIntlClientProvider messages={messages}>
-          <Header />
+          <Header locale={locale} />
           <main>{children}</main>
           <Toaster />
         </NextIntlClientProvider>
