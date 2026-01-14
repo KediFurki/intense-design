@@ -6,7 +6,7 @@ import { DollarSign, Package, ShoppingBag, AlertTriangle, ArrowRight } from "luc
 import { db } from "@/server/db";
 import { orders, products } from "@/server/db/schema";
 import { count, sum, desc, gt, lt, and, eq } from "drizzle-orm";
-import { Link } from "@/i18n/routing"; // DÜZELTME: i18n uyumlu Link
+import { Link } from "@/lib/i18n/routing"; // DÜZELTME: i18n uyumlu Link
 import { DashboardActions } from "@/components/admin/dashboard-actions";
 import { getTranslations } from "next-intl/server"; // DÜZELTME: Çeviri fonksiyonu
 

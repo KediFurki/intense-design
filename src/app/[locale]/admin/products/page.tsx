@@ -1,7 +1,7 @@
 import { Button } from "@/components/ui/button";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Plus, Pencil, Trash2, Box } from "lucide-react";
-import { Link } from "@/i18n/routing";
+import { Link } from "@/lib/i18n/routing";
 import Image from "next/image";
 import { db } from "@/server/db";
 import { products, categories } from "@/server/db/schema";

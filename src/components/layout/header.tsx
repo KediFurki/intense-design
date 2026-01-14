@@ -1,7 +1,7 @@
 import { auth, signOut } from "@/auth";
 import { Button } from "@/components/ui/button";
 import Link from "next/link"; // <-- DİKKAT: Bunu aşağıda değiştireceğiz
-import { Link as I18nLink } from "@/i18n/routing"; // <-- i18n Uyumlu Link
+import { Link as I18nLink } from "@/lib/i18n/routing"; // <-- i18n Uyumlu Link
 import { LogOut, ChevronDown } from "lucide-react";
 import CartSheet from "@/components/shop/cart-sheet";
 import { db } from "@/server/db";

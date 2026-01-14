@@ -8,7 +8,7 @@ import Image from "next/image";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { motion, AnimatePresence } from "framer-motion";
 import { useEffect, useState } from "react";
-import { Link } from "@/i18n/routing";
+import { Link } from "@/lib/i18n/routing";
 import { useTranslations } from "next-intl";
 
 export default function CartSheet() {

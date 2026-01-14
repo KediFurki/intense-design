@@ -3,7 +3,7 @@ import { db } from "@/server/db";
 import { products, categories, favorites } from "@/server/db/schema";
 import { desc, eq } from "drizzle-orm";
 import { ProductCard } from "@/components/shop/product-card";
-import { Link } from "@/i18n/routing"; // YENİ IMPORT
+import { Link } from "@/lib/i18n/routing"; // YENİ IMPORT
 import { Button } from "@/components/ui/button";
 import { ArrowRight } from "lucide-react";
 import { getTranslations } from 'next-intl/server';

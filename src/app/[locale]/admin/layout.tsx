@@ -1,6 +1,6 @@
 import { auth } from "@/auth";
-import { redirect } from "@/i18n/routing";
-import { Link } from "@/i18n/routing";
+import { redirect } from "@/lib/i18n/routing";
+import { Link } from "@/lib/i18n/routing";
 import { 
   LayoutDashboard, 
   Package, 
