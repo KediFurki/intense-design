@@ -60,10 +60,11 @@
     "offlineCreateFailed": "Неуспешно създаване на поръчка.",
     "orderIdMissing": "Не можа да се получи номер на поръчката.",
     "savedAddresses": "Запазени адреси",
-    "selectSavedAddress": "Изберете запазен адрес",
-    "noSavedAddresses": "Все още няма запазени адреси.",
     "loading": "Зареждане...",
-    "saveAddress": "Запази този адрес в профила ми"
+    "selectSavedAddress": "Изберете адрес",
+    "noSavedAddresses": "Все още няма запазени адреси.",
+    "saveAddress": "Запази този адрес в профила ми",
+    "freeShipping": "Безплатна доставка при поръчки над 500 €"
   },
   "Cart": {
     "title": "Количка",
@@ -90,6 +91,7 @@
     "fullName": "Три имена",
     "email": "Имейл",
     "saveChanges": "Запази промените",
+
     "addNewAddress": "Добави нов адрес",
     "editAddress": "Редактирай адрес",
     "addressTitle": "Заглавие (напр. Дом)",
@@ -111,7 +113,23 @@
     "addressUpdated": "Адресът е обновен.",
     "addressDeleted": "Адресът е изтрит.",
     "addressActionFailed": "Действието е неуспешно.",
-    "noAddresses": "Все още няма адреси."
+    "noAddresses": "Все още няма адреси.",
+
+    "addAddress": "Добави нов адрес",
+    "addAddressTitle": "Добави нов адрес",
+    "editAddressTitle": "Редактирай адрес",
+    "addrTitleLabel": "Заглавие (напр. Дом)",
+    "addrTitlePh": "Дом",
+    "addrAddressLabel": "Адрес",
+    "addrAddressPh": "Улица, номер, сграда и т.н.",
+    "addrCityLabel": "Град",
+    "addrCityPh": "София",
+    "addrStateLabel": "Област/Регион",
+    "addrStatePh": "По избор",
+    "addrZipLabel": "Пощенски код",
+    "addrZipPh": "1000",
+    "addrCountryLabel": "Държава",
+    "addrCountryPh": "България"
   },
   "Admin": {
     "panelTitle": "Админ панел",

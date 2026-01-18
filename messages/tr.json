@@ -60,10 +60,11 @@
     "offlineCreateFailed": "Sipariş oluşturulamadı.",
     "orderIdMissing": "Sipariş numarası alınamadı.",
     "savedAddresses": "Kayıtlı adresler",
-    "selectSavedAddress": "Kayıtlı bir adres seç",
-    "noSavedAddresses": "Henüz kayıtlı adres yok.",
     "loading": "Yükleniyor...",
-    "saveAddress": "Bu adresi hesabıma kaydet"
+    "selectSavedAddress": "Bir adres seç",
+    "noSavedAddresses": "Henüz kayıtlı adres yok.",
+    "saveAddress": "Bu adresi profilime kaydet",
+    "freeShipping": "500 € üzeri siparişlerde ücretsiz kargo"
   },
   "Cart": {
     "title": "Sepet",
@@ -90,6 +91,7 @@
     "fullName": "Ad Soyad",
     "email": "E-posta",
     "saveChanges": "Değişiklikleri Kaydet",
+
     "addNewAddress": "Yeni Adres Ekle",
     "editAddress": "Adresi Düzenle",
     "addressTitle": "Başlık (örn. Ev)",
@@ -111,7 +113,23 @@
     "addressUpdated": "Adres güncellendi.",
     "addressDeleted": "Adres silindi.",
     "addressActionFailed": "İşlem başarısız.",
-    "noAddresses": "Henüz adres yok."
+    "noAddresses": "Henüz adres yok.",
+
+    "addAddress": "Yeni adres ekle",
+    "addAddressTitle": "Yeni adres ekle",
+    "editAddressTitle": "Adresi düzenle",
+    "addrTitleLabel": "Başlık (örn. Ev)",
+    "addrTitlePh": "Ev",
+    "addrAddressLabel": "Adres",
+    "addrAddressPh": "Cadde, numara, bina vb.",
+    "addrCityLabel": "Şehir",
+    "addrCityPh": "Sofya",
+    "addrStateLabel": "Bölge/İl",
+    "addrStatePh": "Opsiyonel",
+    "addrZipLabel": "Posta Kodu",
+    "addrZipPh": "1000",
+    "addrCountryLabel": "Ülke",
+    "addrCountryPh": "Bulgaristan"
   },
   "Admin": {
     "panelTitle": "Yönetim Paneli",

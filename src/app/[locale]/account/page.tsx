@@ -1,7 +1,7 @@
 import { auth } from "@/auth";
 import { redirect } from "@/lib/i18n/routing";
 import { db } from "@/server/db";
-import { orders, users } from "@/server/db/schema";
+import { orders, users, addresses } from "@/server/db/schema";
 import { eq, desc } from "drizzle-orm";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import {
@@ -45,7 +45,6 @@ export default async function AccountPage({
   const userProfile = await db.query.users.findFirst({
     where: eq(users.id, session.user.id),
     with: {
-      addresses: true,
       favorites: {
         with: {
           product: {
@@ -67,6 +66,21 @@ export default async function AccountPage({
   });
 
   if (!userProfile) return null;
+
+  // Addresses: ayrı query (sıralama garanti)
+  const userAddresses = await db.query.addresses.findMany({
+    where: eq(addresses.userId, session.user.id),
+    orderBy: [desc(addresses.createdAt)],
+    columns: {
+      id: true,
+      title: true,
+      address: true,
+      city: true,
+      state: true,
+      zipCode: true,
+      country: true,
+    },
+  });
 
   return (
     <div className="container mx-auto px-4 py-10 max-w-5xl">
@@ -135,14 +149,22 @@ export default async function AccountPage({
                 <CardContent className="p-4 space-y-2">
                   {order.items.map((item) => {
                     const productName = item.product?.name
-                      ? getLocaleValue(item.product.name as LocalizedText, locale)
+                      ? getLocaleValue(
+                          item.product.name as LocalizedText,
+                          locale
+                        )
                       : t("unknownProduct");
 
                     return (
-                      <div key={item.id} className="flex justify-between text-sm">
+                      <div
+                        key={item.id}
+                        className="flex justify-between text-sm"
+                      >
                         <span>
                           {productName}{" "}
-                          <span className="text-slate-400">x{item.quantity}</span>
+                          <span className="text-slate-400">
+                            x{item.quantity}
+                          </span>
                         </span>
                         <span>
                           €{((item.price * item.quantity) / 100).toFixed(2)}
@@ -199,13 +221,13 @@ export default async function AccountPage({
             </CardHeader>
 
             <CardContent>
-              {userProfile.addresses.length === 0 ? (
+              {userAddresses.length === 0 ? (
                 <div className="text-center py-10 text-slate-500 border-2 border-dashed rounded-xl">
                   {t("noAddresses")}
                 </div>
               ) : (
                 <div className="grid gap-4 md:grid-cols-2">
-                  {userProfile.addresses.map((addr) => (
+                  {userAddresses.map((addr) => (
                     <AddressCard
                       key={addr.id}
                       addr={{
@@ -213,7 +235,7 @@ export default async function AccountPage({
                         title: addr.title,
                         address: addr.address,
                         city: addr.city,
-                        state: addr.state,
+                        state: addr.state ?? "",
                         zipCode: addr.zipCode,
                         country: addr.country,
                       }}

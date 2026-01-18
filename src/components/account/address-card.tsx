@@ -44,10 +44,12 @@ export function AddressCard({
     title: addr.title,
     address: addr.address,
     city: addr.city,
-    state: addr.state,
+    state: addr.state ?? "",
     zipCode: addr.zipCode,
     country: addr.country,
   };
+
+  const cityLine = `${addr.zipCode} ${addr.city}${addr.state ? `, ${addr.state}` : ""}`;
 
   return (
     <div className="border rounded-xl bg-white shadow-sm">
@@ -67,9 +69,7 @@ export function AddressCard({
 
           <div className="mt-3 text-sm text-slate-700 leading-5">
             <div>{addr.address}</div>
-            <div className="text-slate-600">
-              {addr.zipCode} {addr.city}, {addr.state}
-            </div>
+            <div className="text-slate-600">{cityLine}</div>
             <div className="text-slate-600">{addr.country}</div>
           </div>
         </div>
@@ -87,24 +87,17 @@ export function AddressCard({
             <AlertDialogContent>
               <AlertDialogHeader>
                 <AlertDialogTitle>{t("deleteAddressTitle")}</AlertDialogTitle>
-                <AlertDialogDescription>
-                  {t("deleteAddressDesc")}
-                </AlertDialogDescription>
+                <AlertDialogDescription>{t("deleteAddressDesc")}</AlertDialogDescription>
               </AlertDialogHeader>
               <AlertDialogFooter>
-                <AlertDialogCancel disabled={deleting}>
-                  {t("cancel")}
-                </AlertDialogCancel>
+                <AlertDialogCancel disabled={deleting}>{t("cancel")}</AlertDialogCancel>
                 <AlertDialogAction
                   onClick={async () => {
                     setDeleting(true);
                     try {
                       const res = await deleteAddress(addr.id, locale);
-                      if (res.success) {
-                        toast.success(t("addressDeleted"));
-                      } else {
-                        toast.error(res.error || t("addressActionFailed"));
-                      }
+                      if (res.success) toast.success(t("addressDeleted"));
+                      else toast.error(res.error || t("addressActionFailed"));
                     } finally {
                       setDeleting(false);
                     }

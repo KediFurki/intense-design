@@ -60,10 +60,11 @@
     "offlineCreateFailed": "Bestellung konnte nicht erstellt werden.",
     "orderIdMissing": "Bestellnummer konnte nicht abgerufen werden.",
     "savedAddresses": "Gespeicherte Adressen",
-    "selectSavedAddress": "Gespeicherte Adresse auswählen",
-    "noSavedAddresses": "Noch keine gespeicherten Adressen.",
     "loading": "Wird geladen...",
-    "saveAddress": "Diese Adresse in meinem Konto speichern"
+    "selectSavedAddress": "Adresse auswählen",
+    "noSavedAddresses": "Noch keine gespeicherten Adressen.",
+    "saveAddress": "Diese Adresse in meinem Profil speichern",
+    "freeShipping": "Kostenloser Versand bei Bestellungen über 500 €"
   },
   "Cart": {
     "title": "Warenkorb",
@@ -90,6 +91,7 @@
     "fullName": "Vollständiger Name",
     "email": "E-Mail",
     "saveChanges": "Änderungen speichern",
+
     "addNewAddress": "Neue Adresse hinzufügen",
     "editAddress": "Adresse bearbeiten",
     "addressTitle": "Titel (z. B. Zuhause)",
@@ -111,7 +113,23 @@
     "addressUpdated": "Adresse aktualisiert.",
     "addressDeleted": "Adresse gelöscht.",
     "addressActionFailed": "Aktion fehlgeschlagen.",
-    "noAddresses": "Noch keine Adressen."
+    "noAddresses": "Noch keine Adressen.",
+
+    "addAddress": "Neue Adresse hinzufügen",
+    "addAddressTitle": "Neue Adresse hinzufügen",
+    "editAddressTitle": "Adresse bearbeiten",
+    "addrTitleLabel": "Titel (z. B. Zuhause)",
+    "addrTitlePh": "Zuhause",
+    "addrAddressLabel": "Adresse",
+    "addrAddressPh": "Straße, Hausnummer, Gebäude usw.",
+    "addrCityLabel": "Stadt",
+    "addrCityPh": "Sofia",
+    "addrStateLabel": "Bundesland/Region",
+    "addrStatePh": "Optional",
+    "addrZipLabel": "Postleitzahl",
+    "addrZipPh": "1000",
+    "addrCountryLabel": "Land",
+    "addrCountryPh": "Bulgarien"
   },
   "Admin": {
     "panelTitle": "Admin-Bereich",

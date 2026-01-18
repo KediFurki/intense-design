@@ -60,10 +60,11 @@
     "offlineCreateFailed": "Failed to create order.",
     "orderIdMissing": "Could not retrieve order number.",
     "savedAddresses": "Saved addresses",
-    "selectSavedAddress": "Select a saved address",
-    "noSavedAddresses": "No saved addresses yet.",
     "loading": "Loading...",
-    "saveAddress": "Save this address to my account"
+    "selectSavedAddress": "Select an address",
+    "noSavedAddresses": "No saved addresses yet.",
+    "saveAddress": "Save this address to my profile",
+    "freeShipping": "Free shipping on orders over €500"
   },
   "Cart": {
     "title": "Shopping Cart",
@@ -90,6 +91,7 @@
     "fullName": "Full Name",
     "email": "Email",
     "saveChanges": "Save Changes",
+
     "addNewAddress": "Add New Address",
     "editAddress": "Edit Address",
     "addressTitle": "Title (e.g. Home)",
@@ -111,7 +113,23 @@
     "addressUpdated": "Address updated.",
     "addressDeleted": "Address deleted.",
     "addressActionFailed": "Action failed.",
-    "noAddresses": "No addresses yet."
+    "noAddresses": "No addresses yet.",
+
+    "addAddress": "Add new address",
+    "addAddressTitle": "Add new address",
+    "editAddressTitle": "Edit address",
+    "addrTitleLabel": "Title (e.g. Home)",
+    "addrTitlePh": "Home",
+    "addrAddressLabel": "Address",
+    "addrAddressPh": "Street, number, building, etc.",
+    "addrCityLabel": "City",
+    "addrCityPh": "Sofia",
+    "addrStateLabel": "State/Region",
+    "addrStatePh": "Optional",
+    "addrZipLabel": "Postal code",
+    "addrZipPh": "1000",
+    "addrCountryLabel": "Country",
+    "addrCountryPh": "Bulgaria"
   },
   "Admin": {
     "panelTitle": "Admin Panel",
@@ -166,7 +184,7 @@
   "CheckoutPending": {
     "title": "Order Created",
     "orderId": "Order ID:",
-    "missingOrderId": "Missing order id.",
+    "missingOrderId": "Missing order number.",
     "orderNotFound": "Order not found.",
     "ibanHint": "To keep the reservation, complete the bank transfer within 3 days.",
     "installHint": "You will pay the remaining balance at installation.",
