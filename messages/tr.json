@@ -59,12 +59,30 @@
     "stripeUrlMissing": "Stripe URL eksik.",
     "offlineCreateFailed": "Sipariş oluşturulamadı.",
     "orderIdMissing": "Sipariş numarası alınamadı.",
+
     "savedAddresses": "Kayıtlı adresler",
     "loading": "Yükleniyor...",
-    "selectSavedAddress": "Bir adres seç",
+    "selectSavedAddress": "Kayıtlı bir adres seç",
     "noSavedAddresses": "Henüz kayıtlı adres yok.",
     "saveAddress": "Bu adresi profilime kaydet",
-    "freeShipping": "500 € üzeri siparişlerde ücretsiz kargo"
+    "freeShipping": "500 € üzeri siparişlerde ücretsiz kargo",
+
+    "countryLabel": "Ülke",
+    "stateLabel": "Bölge / İl",
+    "cityLabel": "Şehir",
+    "selectCountry": "Ülke seç",
+    "selectState": "Bölge/İl seç",
+    "selectCity": "Şehir seç",
+    "cityManualPlaceholder": "Şehrinizi yazın",
+
+    "invoiceTitle": "Fatura bilgileri",
+    "invoiceType": "Fatura türü",
+    "selectInvoiceType": "Fatura türünü seç",
+    "invoiceIndividual": "Bireysel",
+    "invoiceCorporate": "Şirket",
+    "companyName": "Şirket adı",
+    "taxId": "Vergi/VAT numarası",
+    "taxOffice": "Vergi dairesi"
   },
   "Cart": {
     "title": "Sepet",
@@ -129,7 +147,12 @@
     "addrZipLabel": "Posta Kodu",
     "addrZipPh": "1000",
     "addrCountryLabel": "Ülke",
-    "addrCountryPh": "Bulgaristan"
+    "addrCountryPh": "Bulgaristan",
+    "firstName": "Ad",
+    "lastName": "Soyad",
+    "phone": "Telefon",
+    "address": "Adres",
+    "saveAddress": "Adresi kaydet"
   },
   "Admin": {
     "panelTitle": "Yönetim Paneli",

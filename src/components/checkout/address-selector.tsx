@@ -1,109 +1,162 @@
 "use client";
 
-import { useState } from "react";
-// Tipleri import ediyoruz (any hatasını çözer)
-import { Country, State, City, IState, ICity } from "country-state-city";
+import { useEffect, useMemo, useState } from "react";
+import { Country, State, City } from "country-state-city";
+
 import { Label } from "@/components/ui/label";
-import {
-  Select, SelectContent, SelectItem, SelectTrigger, SelectValue,
-} from "@/components/ui/select";
 import { Input } from "@/components/ui/input";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 
-export function AddressSelector() {
-  const [countries] = useState(Country.getAllCountries());
-  const [selectedCountry, setSelectedCountry] = useState("");
-  
-  // 'any' yerine doğru tipleri kullanıyoruz
-  const [states, setStates] = useState<IState[]>([]);
-  const [selectedState, setSelectedState] = useState("");
-  
-  const [cities, setCities] = useState<ICity[]>([]);
-  const [selectedCity, setSelectedCity] = useState("");
+export type AddressSelectorValue = {
+  country: string;
+  state: string;
+  city: string;
+};
 
-  // useEffect YERİNE Event Handler kullanıyoruz (Performans artışı)
-  const handleCountryChange = (value: string) => {
-    setSelectedCountry(value);
-    setStates(State.getStatesOfCountry(value)); // Eyaletleri hemen güncelle
-    setSelectedState(""); // Eyalet seçimini sıfırla
-    setCities([]); // Şehirleri sıfırla
-    setSelectedCity(""); // Şehir seçimini sıfırla
+type Props = {
+  value: AddressSelectorValue;
+  onChange: (next: Partial<AddressSelectorValue>) => void;
+
+  labels: {
+    country: string;
+    state: string;
+    city: string;
+    selectCountry: string;
+    selectState: string;
+    selectCity: string;
+    cityManualPlaceholder: string;
   };
 
-  const handleStateChange = (value: string) => {
-    setSelectedState(value);
-    setCities(City.getCitiesOfState(selectedCountry, value)); // Şehirleri hemen güncelle
-    setSelectedCity(""); // Şehir seçimini sıfırla
-  };
+  /** State/city selects are optional; city can always be manually typed. */
+  requiredCity?: boolean;
+};
 
-  const getCountryName = () => countries.find(c => c.isoCode === selectedCountry)?.name || selectedCountry;
-  const getStateName = () => states.find(s => s.isoCode === selectedState)?.name || selectedState;
-  
-  const showCityInput = selectedState && cities.length === 0;
+function findCountryIsoByName(name: string): string {
+  const n = name.trim().toLowerCase();
+  if (!n) return "";
+  return Country.getAllCountries().find((c) => c.name.toLowerCase() === n)?.isoCode ?? "";
+}
+
+function findStateIsoByName(countryIso: string, stateName: string): string {
+  const n = stateName.trim().toLowerCase();
+  if (!countryIso || !n) return "";
+  return (
+    State.getStatesOfCountry(countryIso).find((s) => s.name.toLowerCase() === n)?.isoCode ?? ""
+  );
+}
+
+export function AddressSelector({ value, onChange, labels, requiredCity = true }: Props) {
+  const countries = useMemo(() => Country.getAllCountries(), []);
+
+  const [countryIso, setCountryIso] = useState<string>(() => findCountryIsoByName(value.country));
+  const [stateIso, setStateIso] = useState<string>(() => findStateIsoByName(countryIso, value.state));
+
+  // Keep ISO state in sync when parent value changes (e.g., saved address applied)
+  useEffect(() => {
+    const nextCountryIso = findCountryIsoByName(value.country);
+    setCountryIso(nextCountryIso);
+    setStateIso(findStateIsoByName(nextCountryIso, value.state));
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [value.country, value.state]);
+
+  const states = useMemo(() => {
+    if (!countryIso) return [];
+    return State.getStatesOfCountry(countryIso);
+  }, [countryIso]);
+
+  const cities = useMemo(() => {
+    if (!countryIso || !stateIso) return [];
+    return City.getCitiesOfState(countryIso, stateIso);
+  }, [countryIso, stateIso]);
+
+  const cityHasSelectableList = cities.length > 0;
 
   return (
-    <div className="space-y-4">
-      {/* GİZLİ INPUTLAR */}
-      <input type="hidden" name="country" value={getCountryName()} />
-      <input type="hidden" name="state" value={getStateName()} />
+    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+      <div className="space-y-2">
+        <Label>{labels.country}</Label>
+        <Select
+          value={countryIso || ""}
+          onValueChange={(iso) => {
+            const country = countries.find((c) => c.isoCode === iso);
+            setCountryIso(iso);
+            setStateIso("");
+            onChange({
+              country: country?.name ?? "",
+              state: "",
+              city: "",
+            });
+          }}
+        >
+          <SelectTrigger className="w-full bg-white">
+            <SelectValue placeholder={labels.selectCountry} />
+          </SelectTrigger>
+          <SelectContent className="max-h-72">
+            {countries.map((c) => (
+              <SelectItem key={c.isoCode} value={c.isoCode}>
+                {c.name}
+              </SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
+      </div>
 
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-        {/* ÜLKE SEÇİMİ */}
-        <div className="space-y-2">
-          <Label>Country</Label>
-          <Select onValueChange={handleCountryChange} value={selectedCountry}>
-            <SelectTrigger className="bg-white">
-              <SelectValue placeholder="Select Country" />
+      <div className="space-y-2">
+        <Label>{labels.state}</Label>
+        <Select
+          value={stateIso || ""}
+          onValueChange={(iso) => {
+            const st = states.find((s) => s.isoCode === iso);
+            setStateIso(iso);
+            onChange({ state: st?.name ?? "", city: "" });
+          }}
+          disabled={!countryIso || states.length === 0}
+        >
+          <SelectTrigger className="w-full bg-white">
+            <SelectValue placeholder={labels.selectState} />
+          </SelectTrigger>
+          <SelectContent className="max-h-72">
+            {states.map((s) => (
+              <SelectItem key={s.isoCode} value={s.isoCode}>
+                {s.name}
+              </SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
+      </div>
+
+      <div className="space-y-2 md:col-span-2">
+        <Label>{labels.city}</Label>
+        {cityHasSelectableList ? (
+          <Select
+            value={value.city || ""}
+            onValueChange={(name) => onChange({ city: name })}
+          >
+            <SelectTrigger className="w-full bg-white">
+              <SelectValue placeholder={labels.selectCity} />
             </SelectTrigger>
-            <SelectContent>
-              {countries.map((c) => (
-                <SelectItem key={c.isoCode} value={c.isoCode}>
-                  {c.flag} {c.name}
+            <SelectContent className="max-h-72">
+              {cities.map((c) => (
+                <SelectItem key={`${c.name}-${c.latitude}-${c.longitude}`} value={c.name}>
+                  {c.name}
                 </SelectItem>
               ))}
             </SelectContent>
           </Select>
-        </div>
-
-        {/* EYALET / BÖLGE SEÇİMİ */}
-        <div className="space-y-2">
-          <Label>State / Province</Label>
-          <Select onValueChange={handleStateChange} value={selectedState} disabled={!selectedCountry}>
-            <SelectTrigger className="bg-white">
-              <SelectValue placeholder="Select State" />
-            </SelectTrigger>
-            <SelectContent>
-              {states.map((s) => (
-                <SelectItem key={s.isoCode} value={s.isoCode}>
-                  {s.name}
-                </SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
-        </div>
-
-        {/* ŞEHİR SEÇİMİ */}
-        <div className="space-y-2">
-          <Label>City</Label>
-          {showCityInput ? (
-             <Input name="city" placeholder="Enter City" className="bg-white" required />
-          ) : (
-            <>
-                <Select onValueChange={setSelectedCity} value={selectedCity} disabled={!selectedState || cities.length === 0}>
-                    <SelectTrigger className="bg-white">
-                    <SelectValue placeholder="Select City" />
-                    </SelectTrigger>
-                    <SelectContent>
-                    {cities.map((c) => (
-                        <SelectItem key={c.name} value={c.name}>
-                        {c.name}
-                        </SelectItem>
-                    ))}
-                    </SelectContent>
-                </Select>
-                <input type="hidden" name="city" value={selectedCity} />
-            </>
-          )}
-        </div>
+        ) : (
+          <Input
+            value={value.city}
+            onChange={(e) => onChange({ city: e.target.value })}
+            placeholder={labels.cityManualPlaceholder}
+            required={requiredCity}
+          />
+        )}
       </div>
     </div>
   );

@@ -59,12 +59,30 @@
     "stripeUrlMissing": "Липсва Stripe URL.",
     "offlineCreateFailed": "Неуспешно създаване на поръчка.",
     "orderIdMissing": "Не можа да се получи номер на поръчката.",
+
     "savedAddresses": "Запазени адреси",
     "loading": "Зареждане...",
-    "selectSavedAddress": "Изберете адрес",
+    "selectSavedAddress": "Изберете запазен адрес",
     "noSavedAddresses": "Все още няма запазени адреси.",
     "saveAddress": "Запази този адрес в профила ми",
-    "freeShipping": "Безплатна доставка при поръчки над 500 €"
+    "freeShipping": "Безплатна доставка при поръчки над 500 €",
+
+    "countryLabel": "Държава",
+    "stateLabel": "Област / Регион",
+    "cityLabel": "Град",
+    "selectCountry": "Изберете държава",
+    "selectState": "Изберете област/регион",
+    "selectCity": "Изберете град",
+    "cityManualPlaceholder": "Въведете вашия град",
+
+    "invoiceTitle": "Данни за фактура",
+    "invoiceType": "Тип фактура",
+    "selectInvoiceType": "Изберете тип фактура",
+    "invoiceIndividual": "Физическо лице",
+    "invoiceCorporate": "Фирма",
+    "companyName": "Име на фирмата",
+    "taxId": "Данъчен/VAT номер",
+    "taxOffice": "Данъчна служба"
   },
   "Cart": {
     "title": "Количка",
@@ -129,7 +147,12 @@
     "addrZipLabel": "Пощенски код",
     "addrZipPh": "1000",
     "addrCountryLabel": "Държава",
-    "addrCountryPh": "България"
+    "addrCountryPh": "България",
+    "firstName": "Име",
+    "lastName": "Фамилия",
+    "phone": "Телефон",
+    "address": "Адрес",
+    "saveAddress": "Запази адреса"
   },
   "Admin": {
     "panelTitle": "Админ панел",

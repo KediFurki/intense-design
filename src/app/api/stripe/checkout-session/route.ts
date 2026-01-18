@@ -61,6 +61,8 @@ export async function POST(req: Request) {
       await createOrderWithReservation({
         customer: {
           userId: sessionAuth?.user?.id ?? null,
+          firstName: parsed.customer.firstName,
+          lastName: parsed.customer.lastName,
           customerName,
           customerEmail: parsed.customer.email,
           customerPhone: parsed.customer.phone,

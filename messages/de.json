@@ -59,12 +59,30 @@
     "stripeUrlMissing": "Stripe-URL fehlt.",
     "offlineCreateFailed": "Bestellung konnte nicht erstellt werden.",
     "orderIdMissing": "Bestellnummer konnte nicht abgerufen werden.",
+
     "savedAddresses": "Gespeicherte Adressen",
     "loading": "Wird geladen...",
-    "selectSavedAddress": "Adresse auswählen",
+    "selectSavedAddress": "Gespeicherte Adresse auswählen",
     "noSavedAddresses": "Noch keine gespeicherten Adressen.",
     "saveAddress": "Diese Adresse in meinem Profil speichern",
-    "freeShipping": "Kostenloser Versand bei Bestellungen über 500 €"
+    "freeShipping": "Kostenloser Versand bei Bestellungen über 500 €",
+
+    "countryLabel": "Land",
+    "stateLabel": "Bundesland / Region",
+    "cityLabel": "Stadt",
+    "selectCountry": "Land auswählen",
+    "selectState": "Bundesland/Region auswählen",
+    "selectCity": "Stadt auswählen",
+    "cityManualPlaceholder": "Geben Sie Ihre Stadt ein",
+
+    "invoiceTitle": "Rechnungsdetails",
+    "invoiceType": "Rechnungstyp",
+    "selectInvoiceType": "Rechnungstyp auswählen",
+    "invoiceIndividual": "Privatperson",
+    "invoiceCorporate": "Unternehmen",
+    "companyName": "Firmenname",
+    "taxId": "Steuer-/USt-IdNr.",
+    "taxOffice": "Finanzamt"
   },
   "Cart": {
     "title": "Warenkorb",
@@ -129,7 +147,12 @@
     "addrZipLabel": "Postleitzahl",
     "addrZipPh": "1000",
     "addrCountryLabel": "Land",
-    "addrCountryPh": "Bulgarien"
+    "addrCountryPh": "Bulgarien",
+    "firstName": "Vorname",
+    "lastName": "Nachname",
+    "phone": "Telefon",
+    "address": "Adresse",
+    "saveAddress": "Adresse speichern"
   },
   "Admin": {
     "panelTitle": "Admin-Bereich",

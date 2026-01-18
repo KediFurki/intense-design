@@ -13,6 +13,9 @@ export type CartItemInput = {
 
 export type CustomerInput = {
   userId?: string | null;
+  // Optional: used when saving address to the user's profile
+  firstName?: string | null;
+  lastName?: string | null;
   customerName: string;
   customerEmail: string;
   customerPhone: string;
@@ -124,6 +127,10 @@ export async function createOrderWithReservation(args: CreateOrderArgs) {
         await tx.insert(addresses).values({
           userId: args.customer.userId,
           title: "Checkout Address",
+          firstName: args.customer.firstName ?? null,
+          lastName: args.customer.lastName ?? null,
+          email: args.customer.customerEmail,
+          phone: args.customer.customerPhone,
           address: args.customer.address,
           city: args.customer.city,
           state: args.customer.state || "",

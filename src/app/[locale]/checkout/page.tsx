@@ -20,6 +20,8 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 
+import { AddressSelector } from "@/components/checkout/address-selector";
+
 type PaymentChoice =
   | "stripe_full"
   | "stripe_deposit"
@@ -29,6 +31,10 @@ type PaymentChoice =
 type SavedAddress = {
   id: string;
   title: string;
+  firstName?: string | null;
+  lastName?: string | null;
+  email?: string | null;
+  phone?: string | null;
   address: string;
   city: string;
   state: string;
@@ -129,6 +135,10 @@ export default function CheckoutPage() {
 
     setForm((prev) => ({
       ...prev,
+      firstName: a.firstName || prev.firstName,
+      lastName: a.lastName || prev.lastName,
+      email: a.email || prev.email,
+      phone: a.phone || prev.phone,
       country: a.country,
       state: a.state,
       city: a.city,
@@ -342,37 +352,25 @@ export default function CheckoutPage() {
                         required
                       />
                     </div>
+                  </div>
 
-                    {/* Address fields */}
-                    <div>
-                      <Label>{t("country")}</Label>
-                      <Input
-                        value={form.country}
-                        onChange={(e) =>
-                          setForm({ ...form, country: e.target.value })
-                        }
-                        required
-                      />
-                    </div>
-                    <div>
-                      <Label>{t("state")}</Label>
-                      <Input
-                        value={form.state}
-                        onChange={(e) =>
-                          setForm({ ...form, state: e.target.value })
-                        }
-                      />
-                    </div>
-                    <div>
-                      <Label>{t("city")}</Label>
-                      <Input
-                        value={form.city}
-                        onChange={(e) =>
-                          setForm({ ...form, city: e.target.value })
-                        }
-                        required
-                      />
-                    </div>
+                  {/* Address selector (country -> state -> city) */}
+                  <AddressSelector
+                    value={{ country: form.country, state: form.state, city: form.city }}
+                    onChange={(next) => setForm((prev) => ({ ...prev, ...next }))}
+                    labels={{
+                      country: t("country"),
+                      state: t("state"),
+                      city: t("city"),
+                      selectCountry: t("selectCountry"),
+                      selectState: t("selectState"),
+                      selectCity: t("selectCity"),
+                      cityManualPlaceholder: t("cityManualPlaceholder"),
+                    }}
+                    requiredCity
+                  />
+
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                     <div>
                       <Label>{t("zip")}</Label>
                       <Input
@@ -393,6 +391,62 @@ export default function CheckoutPage() {
                         required
                       />
                     </div>
+                  </div>
+
+                  {/* Company / invoice */}
+                  <div className="space-y-3">
+                    <div className="font-semibold text-slate-900">{t("invoiceTitle")}</div>
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                      <div className="space-y-2">
+                        <Label>{t("invoiceType")}</Label>
+                        <Select
+                          value={form.invoiceType}
+                          onValueChange={(v) =>
+                            setForm((prev) => ({ ...prev, invoiceType: v }))
+                          }
+                        >
+                          <SelectTrigger className="w-full bg-white">
+                            <SelectValue placeholder={t("selectInvoiceType")} />
+                          </SelectTrigger>
+                          <SelectContent>
+                            <SelectItem value="individual">{t("invoiceIndividual")}</SelectItem>
+                            <SelectItem value="corporate">{t("invoiceCorporate")}</SelectItem>
+                          </SelectContent>
+                        </Select>
+                      </div>
+                    </div>
+
+                    {form.invoiceType === "corporate" ? (
+                      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        <div>
+                          <Label>{t("companyName")}</Label>
+                          <Input
+                            value={form.companyName}
+                            onChange={(e) =>
+                              setForm({ ...form, companyName: e.target.value })
+                            }
+                            required
+                          />
+                        </div>
+                        <div>
+                          <Label>{t("taxId")}</Label>
+                          <Input
+                            value={form.taxId}
+                            onChange={(e) => setForm({ ...form, taxId: e.target.value })}
+                            required
+                          />
+                        </div>
+                        <div className="md:col-span-2">
+                          <Label>{t("taxOffice")}</Label>
+                          <Input
+                            value={form.taxOffice}
+                            onChange={(e) =>
+                              setForm({ ...form, taxOffice: e.target.value })
+                            }
+                          />
+                        </div>
+                      </div>
+                    ) : null}
                   </div>
 
                   <div className="flex items-center gap-2">
