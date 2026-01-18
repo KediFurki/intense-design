@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useState } from "react";
 import { useLocale, useTranslations } from "next-intl";
 import { toast } from "sonner";
 import { Plus, Pencil } from "lucide-react";
@@ -20,93 +20,151 @@ import { addAddress, updateAddress } from "@/server/actions/account";
 
 export type AddressFormValues = {
   title: string;
-  address: string;
-  city: string;
-  state: string;
-  zipCode: string;
+  // Contact
+  firstName: string;
+  lastName: string;
+  email: string;
+  phone: string;
+
+  // Location
   country: string;
+  state: string;
+  city: string;
+  address: string;
+  zipCode: string;
 };
 
-function normalize(v: AddressFormValues): AddressFormValues {
-  return {
-    title: v.title ?? "",
-    address: v.address ?? "",
-    city: v.city ?? "",
-    state: v.state ?? "",
-    zipCode: v.zipCode ?? "",
-    country: v.country ?? "",
-  };
+function AddressForm({
+  initial,
+  submitLabel,
+  onSubmit,
+  disabled,
+}: {
+  initial: AddressFormValues;
+  submitLabel: string;
+  onSubmit: (formData: FormData) => Promise<void>;
+  disabled?: boolean;
+}) {
+  const t = useTranslations("Account");
+
+  return (
+    <form action={onSubmit} className="grid gap-4 py-4">
+      {/* Title */}
+      <div className="grid gap-2">
+        <Label>{t("addressTitle")}</Label>
+        <Input name="title" defaultValue={initial.title} required disabled={disabled} />
+      </div>
+
+      {/* Contact */}
+      <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+        <div className="grid gap-2">
+          <Label>{t("firstName")}</Label>
+          <Input name="firstName" defaultValue={initial.firstName} required disabled={disabled} />
+        </div>
+        <div className="grid gap-2">
+          <Label>{t("lastName")}</Label>
+          <Input name="lastName" defaultValue={initial.lastName} required disabled={disabled} />
+        </div>
+      </div>
+
+      <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+        <div className="grid gap-2">
+          <Label>{t("email")}</Label>
+          <Input type="email" name="email" defaultValue={initial.email} required disabled={disabled} />
+        </div>
+        <div className="grid gap-2">
+          <Label>{t("phone")}</Label>
+          <Input name="phone" defaultValue={initial.phone} required disabled={disabled} />
+        </div>
+      </div>
+
+      {/* Location */}
+      <div className="grid gap-2">
+        <Label>{t("address")}</Label>
+        <Input name="address" defaultValue={initial.address} required disabled={disabled} />
+      </div>
+
+      <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+        <div className="grid gap-2">
+          <Label>{t("country")}</Label>
+          <Input name="country" defaultValue={initial.country} required disabled={disabled} />
+        </div>
+        <div className="grid gap-2">
+          <Label>{t("state")}</Label>
+          {/* state optional: keep empty string for countries without provinces */}
+          <Input name="state" defaultValue={initial.state} disabled={disabled} />
+        </div>
+      </div>
+
+      <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+        <div className="grid gap-2">
+          <Label>{t("city")}</Label>
+          <Input name="city" defaultValue={initial.city} required disabled={disabled} />
+        </div>
+        <div className="grid gap-2">
+          <Label>{t("zip")}</Label>
+          <Input name="zipCode" defaultValue={initial.zipCode} required disabled={disabled} />
+        </div>
+      </div>
+
+      <Button type="submit" disabled={disabled}>
+        {submitLabel}
+      </Button>
+    </form>
+  );
 }
 
 export function AddressDialog() {
   const t = useTranslations("Account");
   const locale = useLocale();
-
   const [open, setOpen] = useState(false);
+  const [saving, setSaving] = useState(false);
+
+  const initial: AddressFormValues = {
+    title: "",
+    firstName: "",
+    lastName: "",
+    email: "",
+    phone: "",
+    country: "",
+    state: "",
+    city: "",
+    address: "",
+    zipCode: "",
+  };
 
   return (
     <Dialog open={open} onOpenChange={setOpen}>
       <DialogTrigger asChild>
         <Button variant="outline" className="gap-2">
-          <Plus size={16} /> {t("addAddress")}
+          <Plus size={16} /> {t("addNewAddress")}
         </Button>
       </DialogTrigger>
 
-      <DialogContent className="sm:max-w-[460px]">
+      <DialogContent className="sm:max-w-[520px]">
         <DialogHeader>
-          <DialogTitle>{t("addAddressTitle")}</DialogTitle>
+          <DialogTitle>{t("addNewAddress")}</DialogTitle>
         </DialogHeader>
 
-        <form
-          action={async (formData) => {
-            const res = await addAddress(formData, locale);
-            if (res.success) {
-              toast.success(t("addressAdded"));
-              setOpen(false);
-            } else {
-              toast.error(res.error || t("addressActionFailed"));
+        <AddressForm
+          initial={initial}
+          submitLabel={saving ? t("saving") : t("saveAddress")}
+          disabled={saving}
+          onSubmit={async (formData) => {
+            setSaving(true);
+            try {
+              const res = await addAddress(formData, locale);
+              if (res.success) {
+                toast.success(t("addressAdded"));
+                setOpen(false);
+              } else {
+                toast.error(res.error || t("addressActionFailed"));
+              }
+            } finally {
+              setSaving(false);
             }
           }}
-          className="grid gap-4 py-2"
-        >
-          <div className="grid gap-2">
-            <Label>{t("addrTitleLabel")}</Label>
-            <Input name="title" required placeholder={t("addrTitlePh")} />
-          </div>
-
-          <div className="grid gap-2">
-            <Label>{t("addrAddressLabel")}</Label>
-            <Input name="address" required placeholder={t("addrAddressPh")} />
-          </div>
-
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-            <div className="grid gap-2">
-              <Label>{t("addrCityLabel")}</Label>
-              <Input name="city" required placeholder={t("addrCityPh")} />
-            </div>
-            <div className="grid gap-2">
-              <Label>{t("addrStateLabel")}</Label>
-              <Input name="state" placeholder={t("addrStatePh")} />
-            </div>
-          </div>
-
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-            <div className="grid gap-2">
-              <Label>{t("addrZipLabel")}</Label>
-              <Input name="zipCode" required placeholder={t("addrZipPh")} />
-            </div>
-            <div className="grid gap-2">
-              <Label>{t("addrCountryLabel")}</Label>
-              <Input name="country" required placeholder={t("addrCountryPh")} />
-            </div>
-          </div>
-
-          <div className="pt-1 flex items-center justify-end gap-2">
-            <Button type="submit" className="h-10">
-              {t("save")}
-            </Button>
-          </div>
-        </form>
+        />
       </DialogContent>
     </Dialog>
   );
@@ -121,11 +179,8 @@ export function AddressEditDialog({
 }) {
   const t = useTranslations("Account");
   const locale = useLocale();
-
   const [open, setOpen] = useState(false);
   const [saving, setSaving] = useState(false);
-
-  const initialSafe = useMemo(() => normalize(initial), [initial]);
 
   return (
     <Dialog open={open} onOpenChange={setOpen}>
@@ -135,13 +190,16 @@ export function AddressEditDialog({
         </Button>
       </DialogTrigger>
 
-      <DialogContent className="sm:max-w-[460px]">
+      <DialogContent className="sm:max-w-[520px]">
         <DialogHeader>
           <DialogTitle>{t("editAddressTitle")}</DialogTitle>
         </DialogHeader>
 
-        <form
-          action={async (formData) => {
+        <AddressForm
+          initial={initial}
+          submitLabel={saving ? t("saving") : t("saveChanges")}
+          disabled={saving}
+          onSubmit={async (formData) => {
             setSaving(true);
             try {
               const res = await updateAddress(addressId, formData, locale);
@@ -155,46 +213,7 @@ export function AddressEditDialog({
               setSaving(false);
             }
           }}
-          className="grid gap-4 py-2"
-        >
-          <div className="grid gap-2">
-            <Label>{t("addrTitleLabel")}</Label>
-            <Input name="title" required defaultValue={initialSafe.title} />
-          </div>
-
-          <div className="grid gap-2">
-            <Label>{t("addrAddressLabel")}</Label>
-            <Input name="address" required defaultValue={initialSafe.address} />
-          </div>
-
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-            <div className="grid gap-2">
-              <Label>{t("addrCityLabel")}</Label>
-              <Input name="city" required defaultValue={initialSafe.city} />
-            </div>
-            <div className="grid gap-2">
-              <Label>{t("addrStateLabel")}</Label>
-              <Input name="state" defaultValue={initialSafe.state} />
-            </div>
-          </div>
-
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-            <div className="grid gap-2">
-              <Label>{t("addrZipLabel")}</Label>
-              <Input name="zipCode" required defaultValue={initialSafe.zipCode} />
-            </div>
-            <div className="grid gap-2">
-              <Label>{t("addrCountryLabel")}</Label>
-              <Input name="country" required defaultValue={initialSafe.country} />
-            </div>
-          </div>
-
-          <div className="pt-1 flex items-center justify-end gap-2">
-            <Button type="submit" className="h-10" disabled={saving}>
-              {saving ? t("saving") : t("save")}
-            </Button>
-          </div>
-        </form>
+        />
       </DialogContent>
     </Dialog>
   );

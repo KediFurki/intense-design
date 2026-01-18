@@ -9,16 +9,14 @@ import { AddressEditDialog, type AddressFormValues } from "@/components/account/
 
 import { Button } from "@/components/ui/button";
 import {
-  AlertDialog,
-  AlertDialogAction,
-  AlertDialogCancel,
-  AlertDialogContent,
-  AlertDialogDescription,
-  AlertDialogFooter,
-  AlertDialogHeader,
-  AlertDialogTitle,
-  AlertDialogTrigger,
-} from "@/components/ui/alert-dialog";
+  Dialog,
+  DialogClose,
+  DialogContent,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+  DialogTrigger,
+} from "@/components/ui/dialog";
 
 import { deleteAddress } from "@/server/actions/account";
 
@@ -28,6 +26,10 @@ export function AddressCard({
   addr: {
     id: string;
     title: string;
+    firstName?: string | null;
+    lastName?: string | null;
+    email?: string | null;
+    phone?: string | null;
     address: string;
     city: string;
     state: string;
@@ -42,6 +44,10 @@ export function AddressCard({
 
   const initial: AddressFormValues = {
     title: addr.title,
+    firstName: addr.firstName ?? "",
+    lastName: addr.lastName ?? "",
+    email: addr.email ?? "",
+    phone: addr.phone ?? "",
     address: addr.address,
     city: addr.city,
     state: addr.state ?? "",
@@ -68,6 +74,15 @@ export function AddressCard({
           </div>
 
           <div className="mt-3 text-sm text-slate-700 leading-5">
+            {(addr.firstName || addr.lastName || addr.phone || addr.email) ? (
+              <div className="mb-2 text-sm">
+                <div className="font-medium text-slate-800">
+                  {[addr.firstName, addr.lastName].filter(Boolean).join(" ")}
+                </div>
+                {addr.phone ? <div className="text-slate-600">{addr.phone}</div> : null}
+                {addr.email ? <div className="text-slate-600">{addr.email}</div> : null}
+              </div>
+            ) : null}
             <div>{addr.address}</div>
             <div className="text-slate-600">{cityLine}</div>
             <div className="text-slate-600">{addr.country}</div>
@@ -77,21 +92,26 @@ export function AddressCard({
         <div className="flex shrink-0 items-center gap-2">
           <AddressEditDialog addressId={addr.id} initial={initial} />
 
-          <AlertDialog>
-            <AlertDialogTrigger asChild>
+          <Dialog>
+            <DialogTrigger asChild>
               <Button variant="outline" size="sm" className="gap-2">
                 <Trash2 size={14} /> {t("delete")}
               </Button>
-            </AlertDialogTrigger>
-
-            <AlertDialogContent>
-              <AlertDialogHeader>
-                <AlertDialogTitle>{t("deleteAddressTitle")}</AlertDialogTitle>
-                <AlertDialogDescription>{t("deleteAddressDesc")}</AlertDialogDescription>
-              </AlertDialogHeader>
-              <AlertDialogFooter>
-                <AlertDialogCancel disabled={deleting}>{t("cancel")}</AlertDialogCancel>
-                <AlertDialogAction
+            </DialogTrigger>
+            <DialogContent>
+              <DialogHeader>
+                <DialogTitle>{t("deleteAddressTitle")}</DialogTitle>
+              </DialogHeader>
+              <div className="text-sm text-slate-600">{t("deleteAddressDesc")}</div>
+              <DialogFooter>
+                <DialogClose asChild>
+                  <Button variant="outline" type="button" disabled={deleting}>
+                    {t("cancel")}
+                  </Button>
+                </DialogClose>
+                <Button
+                  type="button"
+                  disabled={deleting}
                   onClick={async () => {
                     setDeleting(true);
                     try {
@@ -102,13 +122,12 @@ export function AddressCard({
                       setDeleting(false);
                     }
                   }}
-                  disabled={deleting}
                 >
                   {deleting ? t("deleting") : t("confirmDelete")}
-                </AlertDialogAction>
-              </AlertDialogFooter>
-            </AlertDialogContent>
-          </AlertDialog>
+                </Button>
+              </DialogFooter>
+            </DialogContent>
+          </Dialog>
         </div>
       </div>
     </div>

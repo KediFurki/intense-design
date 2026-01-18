@@ -185,6 +185,14 @@ export const addresses = pgTable("address", {
     .notNull()
     .references(() => users.id, { onDelete: "cascade" }),
   title: text("title").notNull(),
+
+  // Contact info (stored per address so checkout can prefill)
+  // Nullable to keep backward compatibility with existing rows.
+  firstName: text("first_name"),
+  lastName: text("last_name"),
+  email: text("email"),
+  phone: text("phone"),
+
   address: text("address").notNull(),
   city: text("city").notNull(),
   state: text("state").notNull(),

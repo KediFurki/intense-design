@@ -9,6 +9,13 @@ import { and, eq } from "drizzle-orm";
 
 const addressSchema = z.object({
   title: z.string().min(2),
+
+  // Contact (used in checkout + invoices)
+  firstName: z.string().min(1),
+  lastName: z.string().min(1),
+  email: z.string().email(),
+  phone: z.string().min(6),
+
   address: z.string().min(5),
   city: z.string().min(2),
   state: z.string().optional().default(""),
@@ -29,6 +36,12 @@ function revalidateAccount(locale?: string) {
 function readForm(formData: FormData) {
   return {
     title: String(formData.get("title") || ""),
+
+    firstName: String(formData.get("firstName") || ""),
+    lastName: String(formData.get("lastName") || ""),
+    email: String(formData.get("email") || ""),
+    phone: String(formData.get("phone") || ""),
+
     address: String(formData.get("address") || ""),
     city: String(formData.get("city") || ""),
     state: String(formData.get("state") || ""),

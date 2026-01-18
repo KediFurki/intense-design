@@ -16,6 +16,10 @@ export async function GET() {
     columns: {
       id: true,
       title: true,
+      firstName: true,
+      lastName: true,
+      email: true,
+      phone: true,
       address: true,
       city: true,
       state: true,
