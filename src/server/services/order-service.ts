@@ -34,6 +34,9 @@ export type CreateOrderArgs = {
   paymentStatus: "awaiting_payment" | "paid" | "deposit_paid" | "remaining_due" | "cancelled";
   depositPercent?: number; // 0 or 30
   paymentDueAt?: Date | null;
+
+  // NEW
+  saveAddress?: boolean;
 };
 
 export async function createOrderWithReservation(args: CreateOrderArgs) {
@@ -43,7 +46,7 @@ export async function createOrderWithReservation(args: CreateOrderArgs) {
   const remainingAmount = Math.max(0, totalAmount - depositAmount);
 
   const created = await db.transaction(async (tx) => {
-    // stock check + reserve (decrement) now (prevents oversell)
+    // stock check + reserve
     for (const item of args.items) {
       if (item.variantId) {
         const v = await tx.query.productVariants.findFirst({ where: eq(productVariants.id, item.variantId) });
@@ -101,17 +104,33 @@ export async function createOrderWithReservation(args: CreateOrderArgs) {
       }))
     );
 
-    // Save address to user profile (if logged in)
-    if (args.customer.userId) {
-      await tx.insert(addresses).values({
-        userId: args.customer.userId,
-        title: "Checkout Address",
-        address: args.customer.address,
-        city: args.customer.city,
-        state: args.customer.state || "",
-        zipCode: args.customer.zipCode,
-        country: args.customer.country,
+    // Save address to profile (if logged in + saveAddress true)
+    const shouldSaveAddress = args.saveAddress !== false; // default true
+    if (args.customer.userId && shouldSaveAddress) {
+      // Dedupe: aynı adres zaten kayıtlıysa yeniden ekleme
+      const existing = await tx.query.addresses.findFirst({
+        where: and(
+          eq(addresses.userId, args.customer.userId),
+          eq(addresses.address, args.customer.address),
+          eq(addresses.city, args.customer.city),
+          eq(addresses.state, args.customer.state || ""),
+          eq(addresses.zipCode, args.customer.zipCode),
+          eq(addresses.country, args.customer.country)
+        ),
+        columns: { id: true },
       });
+
+      if (!existing) {
+        await tx.insert(addresses).values({
+          userId: args.customer.userId,
+          title: "Checkout Address",
+          address: args.customer.address,
+          city: args.customer.city,
+          state: args.customer.state || "",
+          zipCode: args.customer.zipCode,
+          country: args.customer.country,
+        });
+      }
     }
 
     return { orderId: newOrder.id, totalAmount, depositAmount, remainingAmount };
@@ -151,25 +170,24 @@ export async function restockAndCancelOrder(orderId: string) {
     return { ok: true };
   });
 }
+
 export async function expireOverdueIbanOrders(now: Date = new Date()): Promise<{ expired: number }> {
-    // 1) Süresi geçen, IBAN bekleyen siparişleri bul
-    const overdue = await db.query.orders.findMany({
-      where: and(
-        eq(orders.paymentMethod, "iban"),
-        eq(orders.paymentStatus, "awaiting_payment"),
-        lt(orders.paymentDueAt, now)
-      ),
-      columns: { id: true },
-    });
-  
-    if (overdue.length === 0) return { expired: 0 };
-  
-    const ids = overdue.map((o) => o.id);
-  
-    // 2) Her siparişi iptal et + stok geri koy
-    for (const id of ids) {
-      await restockAndCancelOrder(id);
-    }
-  
-    return { expired: ids.length };
+  const overdue = await db.query.orders.findMany({
+    where: and(
+      eq(orders.paymentMethod, "iban"),
+      eq(orders.paymentStatus, "awaiting_payment"),
+      lt(orders.paymentDueAt, now)
+    ),
+    columns: { id: true },
+  });
+
+  if (overdue.length === 0) return { expired: 0 };
+
+  const ids = overdue.map((o) => o.id);
+
+  for (const id of ids) {
+    await restockAndCancelOrder(id);
   }
+
+  return { expired: ids.length };
+}

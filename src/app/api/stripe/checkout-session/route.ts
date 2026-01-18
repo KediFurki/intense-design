@@ -9,6 +9,8 @@ import { eq } from "drizzle-orm";
 
 const schema = z.object({
   locale: z.string().min(2).optional().default("en"),
+  saveAddress: z.boolean().optional().default(true),
+
   customer: z.object({
     firstName: z.string().min(1),
     lastName: z.string().min(1),
@@ -24,6 +26,7 @@ const schema = z.object({
     companyName: z.string().optional().nullable(),
     taxOffice: z.string().optional().nullable(),
   }),
+
   items: z
     .array(
       z.object({
@@ -35,6 +38,7 @@ const schema = z.object({
       })
     )
     .min(1),
+
   paymentType: z.enum(["full", "deposit"]),
 });
 
@@ -53,28 +57,30 @@ export async function POST(req: Request) {
     const customerName = `${parsed.customer.firstName} ${parsed.customer.lastName}`.trim();
     const depositPercent = parsed.paymentType === "deposit" ? 30 : 0;
 
-    const { orderId, totalAmount, depositAmount, remainingAmount } = await createOrderWithReservation({
-      customer: {
-        userId: sessionAuth?.user?.id ?? null,
-        customerName,
-        customerEmail: parsed.customer.email,
-        customerPhone: parsed.customer.phone,
-        country: parsed.customer.country,
-        state: parsed.customer.state ?? "",
-        city: parsed.customer.city,
-        address: parsed.customer.address,
-        zipCode: parsed.customer.zipCode,
-        invoiceType: parsed.customer.invoiceType,
-        taxId: parsed.customer.taxId ?? null,
-        companyName: parsed.customer.companyName ?? null,
-        taxOffice: parsed.customer.taxOffice ?? null,
-      },
-      items: parsed.items,
-      paymentMethod: "stripe",
-      paymentStatus: "awaiting_payment",
-      depositPercent,
-      paymentDueAt: null,
-    });
+    const { orderId, totalAmount, depositAmount, remainingAmount } =
+      await createOrderWithReservation({
+        customer: {
+          userId: sessionAuth?.user?.id ?? null,
+          customerName,
+          customerEmail: parsed.customer.email,
+          customerPhone: parsed.customer.phone,
+          country: parsed.customer.country,
+          state: parsed.customer.state ?? "",
+          city: parsed.customer.city,
+          address: parsed.customer.address,
+          zipCode: parsed.customer.zipCode,
+          invoiceType: parsed.customer.invoiceType,
+          taxId: parsed.customer.taxId ?? null,
+          companyName: parsed.customer.companyName ?? null,
+          taxOffice: parsed.customer.taxOffice ?? null,
+        },
+        items: parsed.items,
+        paymentMethod: "stripe",
+        paymentStatus: "awaiting_payment",
+        depositPercent,
+        paymentDueAt: null,
+        saveAddress: parsed.saveAddress,
+      });
 
     const appUrl = process.env.NEXT_PUBLIC_APP_URL || "http://localhost:3000";
     const amountToCharge = parsed.paymentType === "deposit" ? depositAmount : totalAmount;
@@ -87,7 +93,9 @@ export async function POST(req: Request) {
         {
           price_data: {
             currency: "eur",
-            product_data: { name: parsed.paymentType === "deposit" ? "Deposit (30%)" : "Order Payment" },
+            product_data: {
+              name: parsed.paymentType === "deposit" ? "Deposit (30%)" : "Order Payment",
+            },
             unit_amount: amountToCharge,
           },
           quantity: 1,

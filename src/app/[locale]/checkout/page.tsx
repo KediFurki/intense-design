@@ -7,11 +7,11 @@ import { Label } from "@/components/ui/label";
 import { Separator } from "@/components/ui/separator";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { ArrowLeft, CreditCard, Building2, Truck } from "lucide-react";
-import { Link as I18nLink } from "@/lib/i18n/routing";
+import { Link as I18nLink, useRouter } from "@/lib/i18n/routing";
 import Image from "next/image";
-import { useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { toast } from "sonner";
-import { useRouter } from "@/lib/i18n/routing";
+import { useLocale, useTranslations } from "next-intl";
 import {
   Select,
   SelectContent,
@@ -20,7 +20,21 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 
-type PaymentChoice = "stripe_full" | "stripe_deposit" | "iban" | "cash_on_installation";
+type PaymentChoice =
+  | "stripe_full"
+  | "stripe_deposit"
+  | "iban"
+  | "cash_on_installation";
+
+type SavedAddress = {
+  id: string;
+  title: string;
+  address: string;
+  city: string;
+  state: string;
+  zipCode: string;
+  country: string;
+};
 
 function getErrorMessage(err: unknown): string {
   if (err instanceof Error) return err.message;
@@ -28,12 +42,31 @@ function getErrorMessage(err: unknown): string {
   return "Checkout failed.";
 }
 
+function normalizePathWithoutDoubleLocale(path: string, locale: string) {
+  // "/tr/tr/checkout/pending" gibi saçmalıkları önlemek için
+  const double = `/${locale}/${locale}/`;
+  if (path.startsWith(double)) return path.replace(`/${locale}/`, "/");
+  return path;
+}
+
 export default function CheckoutPage() {
+  const t = useTranslations("Checkout");
+  const locale = useLocale();
+
   const { items, removeAll } = useCart();
   const router = useRouter();
 
   const [isLoading, setIsLoading] = useState(false);
-  const [paymentChoice, setPaymentChoice] = useState<PaymentChoice>("stripe_full");
+  const [paymentChoice, setPaymentChoice] =
+    useState<PaymentChoice>("stripe_full");
+
+  // Address selection
+  const [savedAddresses, setSavedAddresses] = useState<SavedAddress[]>([]);
+  const [addressesLoading, setAddressesLoading] = useState(false);
+  const [selectedAddressId, setSelectedAddressId] = useState<string>("");
+
+  // Save address checkbox (default true; saved address seçilince false olur)
+  const [saveAddress, setSaveAddress] = useState(true);
 
   const [form, setForm] = useState({
     firstName: "",
@@ -53,11 +86,65 @@ export default function CheckoutPage() {
 
   const totalPrice = items.reduce((acc, it) => acc + it.price * it.quantity, 0);
 
+  // Saved addresses load (logged-in ise gelir; guest ise 401 -> sessiz geç)
+  useEffect(() => {
+    let mounted = true;
+
+    async function loadAddresses() {
+      setAddressesLoading(true);
+      try {
+        const res = await fetch("/api/account/addresses", { method: "GET" });
+        if (!res.ok) {
+          // guest veya unauthorized => normal
+          return;
+        }
+        const data = (await res.json()) as { addresses?: SavedAddress[] };
+        if (mounted && Array.isArray(data.addresses)) {
+          setSavedAddresses(data.addresses);
+        }
+      } catch {
+        // sessiz
+      } finally {
+        if (mounted) setAddressesLoading(false);
+      }
+    }
+
+    loadAddresses();
+    return () => {
+      mounted = false;
+    };
+  }, []);
+
+  const addressMap = useMemo(() => {
+    const m = new Map<string, SavedAddress>();
+    for (const a of savedAddresses) m.set(a.id, a);
+    return m;
+  }, [savedAddresses]);
+
+  function applySavedAddress(addrId: string) {
+    setSelectedAddressId(addrId);
+
+    const a = addressMap.get(addrId);
+    if (!a) return;
+
+    setForm((prev) => ({
+      ...prev,
+      country: a.country,
+      state: a.state,
+      city: a.city,
+      address: a.address,
+      zipCode: a.zipCode,
+    }));
+
+    // Saved address seçildiyse default olarak yeni adres kaydetmeyi kapat
+    setSaveAddress(false);
+  }
+
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
 
     if (items.length === 0) {
-      toast.error("Cart is empty.");
+      toast.error(t("cartEmpty"));
       return;
     }
 
@@ -73,7 +160,8 @@ export default function CheckoutPage() {
         city: form.city,
         address: form.address,
         zipCode: form.zipCode,
-        invoiceType: (form.invoiceType as "individual" | "corporate") ?? "individual",
+        invoiceType:
+          (form.invoiceType as "individual" | "corporate") ?? "individual",
         companyName: form.companyName || null,
         taxId: form.taxId || null,
         taxOffice: form.taxOffice || null,
@@ -87,11 +175,19 @@ export default function CheckoutPage() {
         quantity: it.quantity,
       }));
 
-      if (paymentChoice === "stripe_full" || paymentChoice === "stripe_deposit") {
+      if (
+        paymentChoice === "stripe_full" ||
+        paymentChoice === "stripe_deposit"
+      ) {
         const res = await fetch("/api/stripe/checkout-session", {
           method: "POST",
-          headers: { "content-type": "application/json" },
+          headers: {
+            "content-type": "application/json",
+            "x-app-locale": locale,
+          },
           body: JSON.stringify({
+            locale,
+            saveAddress,
             customer,
             items: payloadItems,
             paymentType: paymentChoice === "stripe_deposit" ? "deposit" : "full",
@@ -99,8 +195,8 @@ export default function CheckoutPage() {
         });
 
         const data: { url?: string; error?: string } = await res.json();
-        if (!res.ok) throw new Error(data?.error || "Failed to create checkout session.");
-        if (!data.url) throw new Error("Stripe session URL missing.");
+        if (!res.ok) throw new Error(data?.error || t("stripeCreateFailed"));
+        if (!data.url) throw new Error(t("stripeUrlMissing"));
 
         window.location.href = data.url;
         return;
@@ -108,32 +204,52 @@ export default function CheckoutPage() {
 
       const res = await fetch("/api/checkout/offline", {
         method: "POST",
-        headers: { "content-type": "application/json" },
+        headers: {
+          "content-type": "application/json",
+          "x-app-locale": locale,
+        },
         body: JSON.stringify({
+          locale,
+          saveAddress,
           customer,
           items: payloadItems,
           paymentMethod: paymentChoice === "iban" ? "iban" : "cash_on_installation",
         }),
       });
 
-      const data: { orderId?: string; error?: string } = await res.json();
-      if (!res.ok) throw new Error(data?.error || "Failed to create offline order.");
-      if (!data.orderId) throw new Error("Order ID missing.");
+      const data: { orderId?: string; error?: unknown } = await res.json();
+      if (!res.ok) {
+        const msg =
+          typeof data?.error === "string" ? data.error : t("offlineCreateFailed");
+        throw new Error(msg);
+      }
+      if (!data.orderId) throw new Error(t("orderIdMissing"));
 
       removeAll();
-      router.push(`/checkout/pending?oid=${data.orderId}`);
+
+      // locale prefix'i next-intl router ekler; burada locale basma.
+      const target = normalizePathWithoutDoubleLocale(
+        `/checkout/pending?oid=${data.orderId}`,
+        locale
+      );
+      router.push(target);
     } catch (err: unknown) {
       toast.error(getErrorMessage(err));
       setIsLoading(false);
     }
   }
 
+  const showSavedAddressSelect = savedAddresses.length > 0;
+
   return (
     <div className="min-h-screen bg-slate-50">
       <div className="max-w-6xl mx-auto px-4 py-8">
         <div className="mb-6">
-          <I18nLink href="/cart" className="inline-flex items-center gap-2 text-slate-600 hover:text-slate-900">
-            <ArrowLeft size={16} /> Back to Cart
+          <I18nLink
+            href="/cart"
+            className="inline-flex items-center gap-2 text-slate-600 hover:text-slate-900"
+          >
+            <ArrowLeft size={16} /> {t("backToCart")}
           </I18nLink>
         </div>
 
@@ -141,83 +257,205 @@ export default function CheckoutPage() {
           <div className="lg:col-span-2">
             <Card>
               <CardHeader>
-                <CardTitle>Checkout</CardTitle>
+                <CardTitle>{t("title")}</CardTitle>
               </CardHeader>
               <CardContent>
-                <form id="checkout-form" onSubmit={handleSubmit} className="space-y-6">
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                    <div>
-                      <Label>First Name</Label>
-                      <Input value={form.firstName} onChange={(e) => setForm({ ...form, firstName: e.target.value })} required />
+                <form
+                  id="checkout-form"
+                  onSubmit={handleSubmit}
+                  className="space-y-6"
+                >
+                  {/* Saved addresses */}
+                  <div className="space-y-2">
+                    <div className="flex items-center justify-between">
+                      <Label className="text-slate-800">{t("savedAddresses")}</Label>
+                      {addressesLoading ? (
+                        <span className="text-xs text-slate-500">{t("loading")}</span>
+                      ) : null}
                     </div>
-                    <div>
-                      <Label>Last Name</Label>
-                      <Input value={form.lastName} onChange={(e) => setForm({ ...form, lastName: e.target.value })} required />
-                    </div>
-                    <div>
-                      <Label>Email</Label>
-                      <Input type="email" value={form.email} onChange={(e) => setForm({ ...form, email: e.target.value })} required />
-                    </div>
-                    <div>
-                      <Label>Phone</Label>
-                      <Input value={form.phone} onChange={(e) => setForm({ ...form, phone: e.target.value })} required />
-                    </div>
-                    <div>
-                      <Label>Country</Label>
-                      <Input value={form.country} onChange={(e) => setForm({ ...form, country: e.target.value })} required />
-                    </div>
-                    <div>
-                      <Label>State</Label>
-                      <Input value={form.state} onChange={(e) => setForm({ ...form, state: e.target.value })} />
-                    </div>
-                    <div>
-                      <Label>City</Label>
-                      <Input value={form.city} onChange={(e) => setForm({ ...form, city: e.target.value })} required />
-                    </div>
-                    <div>
-                      <Label>Zip Code</Label>
-                      <Input value={form.zipCode} onChange={(e) => setForm({ ...form, zipCode: e.target.value })} required />
-                    </div>
-                    <div className="md:col-span-2">
-                      <Label>Address</Label>
-                      <Input value={form.address} onChange={(e) => setForm({ ...form, address: e.target.value })} required />
-                    </div>
+
+                    {showSavedAddressSelect ? (
+                      <Select
+                        value={selectedAddressId}
+                        onValueChange={(v) => applySavedAddress(v)}
+                      >
+                        <SelectTrigger className="w-full bg-white">
+                          <SelectValue placeholder={t("selectSavedAddress")} />
+                        </SelectTrigger>
+                        <SelectContent>
+                          {savedAddresses.map((a) => (
+                            <SelectItem key={a.id} value={a.id}>
+                              {a.title} — {a.city}, {a.country}
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                    ) : (
+                      <div className="text-sm text-slate-500">
+                        {t("noSavedAddresses")}
+                      </div>
+                    )}
                   </div>
 
                   <Separator />
 
+                  {/* Customer */}
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div>
+                      <Label>{t("firstName")}</Label>
+                      <Input
+                        value={form.firstName}
+                        onChange={(e) =>
+                          setForm({ ...form, firstName: e.target.value })
+                        }
+                        required
+                      />
+                    </div>
+                    <div>
+                      <Label>{t("lastName")}</Label>
+                      <Input
+                        value={form.lastName}
+                        onChange={(e) =>
+                          setForm({ ...form, lastName: e.target.value })
+                        }
+                        required
+                      />
+                    </div>
+                    <div>
+                      <Label>{t("email")}</Label>
+                      <Input
+                        type="email"
+                        value={form.email}
+                        onChange={(e) =>
+                          setForm({ ...form, email: e.target.value })
+                        }
+                        required
+                      />
+                    </div>
+                    <div>
+                      <Label>{t("phone")}</Label>
+                      <Input
+                        value={form.phone}
+                        onChange={(e) =>
+                          setForm({ ...form, phone: e.target.value })
+                        }
+                        required
+                      />
+                    </div>
+
+                    {/* Address fields */}
+                    <div>
+                      <Label>{t("country")}</Label>
+                      <Input
+                        value={form.country}
+                        onChange={(e) =>
+                          setForm({ ...form, country: e.target.value })
+                        }
+                        required
+                      />
+                    </div>
+                    <div>
+                      <Label>{t("state")}</Label>
+                      <Input
+                        value={form.state}
+                        onChange={(e) =>
+                          setForm({ ...form, state: e.target.value })
+                        }
+                      />
+                    </div>
+                    <div>
+                      <Label>{t("city")}</Label>
+                      <Input
+                        value={form.city}
+                        onChange={(e) =>
+                          setForm({ ...form, city: e.target.value })
+                        }
+                        required
+                      />
+                    </div>
+                    <div>
+                      <Label>{t("zip")}</Label>
+                      <Input
+                        value={form.zipCode}
+                        onChange={(e) =>
+                          setForm({ ...form, zipCode: e.target.value })
+                        }
+                        required
+                      />
+                    </div>
+                    <div className="md:col-span-2">
+                      <Label>{t("address")}</Label>
+                      <Input
+                        value={form.address}
+                        onChange={(e) =>
+                          setForm({ ...form, address: e.target.value })
+                        }
+                        required
+                      />
+                    </div>
+                  </div>
+
+                  <div className="flex items-center gap-2">
+                    <input
+                      id="saveAddress"
+                      type="checkbox"
+                      checked={saveAddress}
+                      onChange={(e) => setSaveAddress(e.target.checked)}
+                      className="h-4 w-4"
+                    />
+                    <Label
+                      htmlFor="saveAddress"
+                      className="text-sm text-slate-700"
+                    >
+                      {t("saveAddress")}
+                    </Label>
+                  </div>
+
+                  <Separator />
+
+                  {/* Payment */}
                   <div className="space-y-2">
-                    <Label>Payment Method</Label>
-                    <Select value={paymentChoice} onValueChange={(v) => setPaymentChoice(v as PaymentChoice)}>
+                    <Label>{t("paymentMethod")}</Label>
+                    <Select
+                      value={paymentChoice}
+                      onValueChange={(v) => setPaymentChoice(v as PaymentChoice)}
+                    >
                       <SelectTrigger className="w-full">
-                        <SelectValue placeholder="Select payment method" />
+                        <SelectValue placeholder={t("selectPayment")} />
                       </SelectTrigger>
                       <SelectContent>
-                        <SelectItem value="stripe_full">Card / Apple Pay / Google Pay (Full)</SelectItem>
-                        <SelectItem value="stripe_deposit">Card / Apple Pay / Google Pay (Deposit 30%)</SelectItem>
-                        <SelectItem value="iban">IBAN Bank Transfer (Pay within 3 days)</SelectItem>
-                        <SelectItem value="cash_on_installation">Pay at installation (Remaining due)</SelectItem>
+                        <SelectItem value="stripe_full">
+                          {t("payCardFull")}
+                        </SelectItem>
+                        <SelectItem value="stripe_deposit">
+                          {t("payCardDeposit")}
+                        </SelectItem>
+                        <SelectItem value="iban">{t("payIban")}</SelectItem>
+                        <SelectItem value="cash_on_installation">
+                          {t("payAtInstall")}
+                        </SelectItem>
                       </SelectContent>
                     </Select>
 
                     {paymentChoice === "iban" && (
                       <p className="text-sm text-slate-600 flex items-center gap-2">
                         <Building2 size={14} />
-                        IBAN payment must be completed within <b>3 days</b> to keep the reservation.
+                        {t("ibanHint")}
                       </p>
                     )}
 
                     {paymentChoice === "cash_on_installation" && (
                       <p className="text-sm text-slate-600 flex items-center gap-2">
                         <Truck size={14} />
-                        You will pay the remaining amount at installation (link / IBAN / cash).
+                        {t("installHint")}
                       </p>
                     )}
 
-                    {(paymentChoice === "stripe_full" || paymentChoice === "stripe_deposit") && (
+                    {(paymentChoice === "stripe_full" ||
+                      paymentChoice === "stripe_deposit") && (
                       <p className="text-sm text-slate-600 flex items-center gap-2">
                         <CreditCard size={14} />
-                        Secure payment via Stripe.
+                        {t("stripeHint")}
                       </p>
                     )}
                   </div>
@@ -226,38 +464,66 @@ export default function CheckoutPage() {
             </Card>
           </div>
 
+          {/* Summary */}
           <div>
             <Card>
               <CardHeader>
-                <CardTitle>Order Summary</CardTitle>
+                <CardTitle>{t("summary")}</CardTitle>
               </CardHeader>
               <CardContent className="space-y-4">
                 {items.map((it) => (
-                  <div key={`${it.id}:${it.variantId || "base"}`} className="flex gap-3">
+                  <div
+                    key={`${it.id}:${it.variantId || "base"}`}
+                    className="flex gap-3"
+                  >
                     <div className="relative w-16 h-16 bg-white rounded border overflow-hidden">
-                      {it.image ? <Image src={it.image} alt={it.name} fill className="object-cover" /> : null}
+                      {it.image ? (
+                        <Image
+                          src={it.image}
+                          alt={it.name}
+                          fill
+                          className="object-cover"
+                        />
+                      ) : null}
                     </div>
                     <div className="flex-1">
                       <div className="font-medium">{it.name}</div>
-                      {it.variantName ? <div className="text-xs text-slate-500">{it.variantName}</div> : null}
-                      <div className="text-sm text-slate-600">Qty: {it.quantity}</div>
+                      {it.variantName ? (
+                        <div className="text-xs text-slate-500">
+                          {it.variantName}
+                        </div>
+                      ) : null}
+                      <div className="text-sm text-slate-600">
+                        {t("qty")}: {it.quantity}
+                      </div>
                     </div>
-                    <div className="font-medium">€{((it.price * it.quantity) / 100).toFixed(2)}</div>
+                    <div className="font-medium">
+                      €{((it.price * it.quantity) / 100).toFixed(2)}
+                    </div>
                   </div>
                 ))}
 
                 <Separator />
 
                 <div className="flex items-center justify-between text-lg font-semibold">
-                  <span>Total</span>
+                  <span>{t("total")}</span>
                   <span>€{(totalPrice / 100).toFixed(2)}</span>
                 </div>
 
-                <Button type="submit" form="checkout-form" className="w-full h-12 text-lg" disabled={isLoading}>
-                  {isLoading ? "Processing..." : "Continue"}
+                <Button
+                  type="submit"
+                  form="checkout-form"
+                  className="w-full h-12 text-lg"
+                  disabled={isLoading}
+                >
+                  {isLoading ? t("processing") : t("continue")}
                 </Button>
               </CardContent>
             </Card>
+
+            <div className="text-xs text-slate-500 mt-3">
+              {t("freeShipping")}
+            </div>
           </div>
         </div>
       </div>

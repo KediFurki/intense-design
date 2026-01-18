@@ -74,7 +74,7 @@ export async function POST(req: Request) {
       }
 
       // Email after DB update
-      await sendPaymentUpdatedEmails({ orderId, locale: "en" });
+      await sendPaymentUpdatedEmails({ orderId, locale });
     }
 
     return NextResponse.json({ received: true });

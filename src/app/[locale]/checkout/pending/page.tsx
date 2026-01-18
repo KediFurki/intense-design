@@ -1,21 +1,53 @@
 import { db } from "@/server/db";
 import { orders } from "@/server/db/schema";
 import { eq } from "drizzle-orm";
+import { Link } from "@/lib/i18n/routing";
+import { Button } from "@/components/ui/button";
+import { getTranslations } from "next-intl/server";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Separator } from "@/components/ui/separator";
 
 type PendingSearchParams = { oid?: string };
+type RouteParams = { locale: string };
+
+function formatMoneyEUR(cents: number): string {
+  return new Intl.NumberFormat("en-US", { style: "currency", currency: "EUR" }).format(
+    (cents ?? 0) / 100
+  );
+}
+
+function formatDateTime(locale: string, d: Date): string {
+  return new Intl.DateTimeFormat(locale, {
+    year: "numeric",
+    month: "2-digit",
+    day: "2-digit",
+    hour: "2-digit",
+    minute: "2-digit",
+  }).format(new Date(d));
+}
 
 export default async function CheckoutPendingPage({
+  params,
   searchParams,
 }: {
+  params: Promise<RouteParams> | RouteParams;
   searchParams: Promise<PendingSearchParams> | PendingSearchParams;
 }) {
+  const { locale } = await Promise.resolve(params);
   const sp = await Promise.resolve(searchParams);
   const oid = sp?.oid;
+
+  const t = await getTranslations("CheckoutPending");
 
   if (!oid) {
     return (
       <div className="min-h-screen bg-slate-50 flex items-center justify-center p-6">
-        <div className="max-w-lg w-full bg-white border rounded-lg p-6">Missing order id.</div>
+        <Card className="max-w-lg w-full">
+          <CardHeader>
+            <CardTitle>{t("title")}</CardTitle>
+          </CardHeader>
+          <CardContent className="text-slate-700">{t("missingOrderId")}</CardContent>
+        </Card>
       </div>
     );
   }
@@ -28,14 +60,18 @@ export default async function CheckoutPendingPage({
       paymentDueAt: true,
       totalAmount: true,
       remainingAmount: true,
-      depositPercent: true,
     },
   });
 
   if (!order) {
     return (
       <div className="min-h-screen bg-slate-50 flex items-center justify-center p-6">
-        <div className="max-w-lg w-full bg-white border rounded-lg p-6">Order not found.</div>
+        <Card className="max-w-lg w-full">
+          <CardHeader>
+            <CardTitle>{t("title")}</CardTitle>
+          </CardHeader>
+          <CardContent className="text-slate-700">{t("orderNotFound")}</CardContent>
+        </Card>
       </div>
     );
   }
@@ -44,50 +80,73 @@ export default async function CheckoutPendingPage({
   const beneficiary = process.env.NEXT_PUBLIC_COMPANY_BENEFICIARY || "Intense Design";
 
   return (
-    <div className="min-h-screen bg-slate-50 flex items-center justify-center p-6">
-      <div className="max-w-xl w-full bg-white border rounded-lg p-6 space-y-3">
-        <h1 className="text-2xl font-semibold">Order Created</h1>
+    <div className="min-h-screen bg-slate-50">
+      <div className="max-w-2xl mx-auto px-4 py-10">
+        <Card className="rounded-2xl shadow-sm">
+          <CardHeader>
+            <CardTitle className="text-2xl">{t("title")}</CardTitle>
+          </CardHeader>
 
-        <p className="text-slate-600">
-          Order ID: <b>{order.id}</b>
-        </p>
+          <CardContent className="space-y-5">
+            <div className="text-slate-700">
+              {t("orderId")} <b>{order.id}</b>
+            </div>
 
-        {order.paymentMethod === "iban" ? (
-          <>
-            <p className="text-slate-600">
-              Please complete the bank transfer within <b>3 days</b> to keep the reservation.
-            </p>
+            <Separator />
 
-            <div className="bg-slate-50 border rounded p-3 text-sm space-y-1">
-              <div>
-                <b>Beneficiary:</b> {beneficiary}
-              </div>
-              <div>
-                <b>IBAN:</b> {iban}
-              </div>
-              <div>
-                <b>Reference:</b> INTENSE-{order.id}
-              </div>
-              <div>
-                <b>Amount:</b> €{((order.totalAmount ?? 0) / 100).toFixed(2)}
-              </div>
-              {order.paymentDueAt ? (
-                <div>
-                  <b>Due:</b> {new Date(order.paymentDueAt).toLocaleString()}
+            {order.paymentMethod === "iban" ? (
+              <>
+                <p className="text-slate-600">{t("ibanIntro")}</p>
+
+                <div className="bg-slate-50 border rounded-xl p-4 text-sm space-y-1">
+                  <div><b>{t("beneficiary")}:</b> {beneficiary}</div>
+                  <div><b>{t("iban")}:</b> {iban}</div>
+                  <div><b>{t("reference")}:</b> INTENSE-{order.id}</div>
+                  <div><b>{t("amount")}:</b> {formatMoneyEUR(order.totalAmount ?? 0)}</div>
+                  {order.paymentDueAt ? (
+                    <div><b>{t("due")}:</b> {formatDateTime(locale, order.paymentDueAt)}</div>
+                  ) : null}
                 </div>
-              ) : null}
+              </>
+            ) : (
+              <>
+                <p className="text-slate-600">{t("installIntro")}</p>
+                <div className="bg-slate-50 border rounded-xl p-4 text-sm">
+                  <div>
+                    <b>{t("remaining")}:</b> {formatMoneyEUR(order.remainingAmount ?? 0)}
+                  </div>
+                </div>
+              </>
+            )}
+
+            <Separator />
+
+            {/* BUTONLAR: temiz, tek satırda taşmayan */}
+            <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+              <Button asChild className="w-full h-11">
+                <Link locale={locale} href={`/account/orders/${order.id}`}>
+                  {t("viewDetails")}
+                </Link>
+              </Button>
+
+              <Button asChild variant="outline" className="w-full h-11">
+                <Link locale={locale} href="/account">
+                  {t("myOrders")}
+                </Link>
+              </Button>
+
+              <Button asChild variant="secondary" className="w-full h-11">
+                <Link locale={locale} href="/">
+                  {t("continueShopping")}
+                </Link>
+              </Button>
             </div>
-          </>
-        ) : (
-          <>
-            <p className="text-slate-600">You will pay the remaining amount at installation (link / IBAN / cash).</p>
-            <div className="bg-slate-50 border rounded p-3 text-sm">
-              <div>
-                <b>Remaining Amount:</b> €{((order.remainingAmount ?? 0) / 100).toFixed(2)}
-              </div>
-            </div>
-          </>
-        )}
+
+            <p className="text-xs text-slate-500">
+              {t("autoRedirectHint")}
+            </p>
+          </CardContent>
+        </Card>
       </div>
     </div>
   );

@@ -4,13 +4,20 @@ import { db } from "@/server/db";
 import { orders, users } from "@/server/db/schema";
 import { eq, desc } from "drizzle-orm";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
+import {
+  Card,
+  CardContent,
+  CardHeader,
+  CardTitle,
+  CardDescription,
+} from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Button } from "@/components/ui/button";
 import { Package, MapPin, User, Heart } from "lucide-react";
 import { AddressDialog } from "@/components/account/address-dialog";
+import { AddressCard } from "@/components/account/address-card";
 import { ProductCard } from "@/components/shop/product-card";
 import { getTranslations } from "next-intl/server";
 import { getLocaleValue, type LocalizedText } from "@/lib/i18n/get-locale-value";
@@ -42,7 +49,7 @@ export default async function AccountPage({
       favorites: {
         with: {
           product: {
-            with: { category: true }, // ProductCard için categoryName lazım
+            with: { category: true },
           },
         },
       },
@@ -99,7 +106,9 @@ export default async function AccountPage({
         <TabsContent value="orders" className="space-y-4">
           {userProfile.orders.length === 0 ? (
             <Card>
-              <CardContent className="py-10 text-center text-muted-foreground">{t("noOrders")}</CardContent>
+              <CardContent className="py-10 text-center text-muted-foreground">
+                {t("noOrders")}
+              </CardContent>
             </Card>
           ) : (
             userProfile.orders.map((order) => (
@@ -110,28 +119,34 @@ export default async function AccountPage({
                       <p className="font-semibold text-sm">
                         {t("orderPrefix")} {order.id.slice(0, 8)}
                       </p>
-                      <p className="text-xs text-muted-foreground">{order.createdAt?.toLocaleDateString()}</p>
+                      <p className="text-xs text-muted-foreground">
+                        {order.createdAt?.toLocaleDateString()}
+                      </p>
                     </div>
                     <div className="text-right">
                       <Badge className="capitalize mb-1">{order.status}</Badge>
-                      <p className="font-bold">€{(order.totalAmount / 100).toFixed(2)}</p>
+                      <p className="font-bold">
+                        €{(order.totalAmount / 100).toFixed(2)}
+                      </p>
                     </div>
                   </div>
                 </CardHeader>
 
                 <CardContent className="p-4 space-y-2">
                   {order.items.map((item) => {
-                    const productName =
-                      item.product?.name
-                        ? getLocaleValue(item.product.name as LocalizedText, locale)
-                        : t("unknownProduct");
+                    const productName = item.product?.name
+                      ? getLocaleValue(item.product.name as LocalizedText, locale)
+                      : t("unknownProduct");
 
                     return (
                       <div key={item.id} className="flex justify-between text-sm">
                         <span>
-                          {productName} <span className="text-slate-400">x{item.quantity}</span>
+                          {productName}{" "}
+                          <span className="text-slate-400">x{item.quantity}</span>
                         </span>
-                        <span>€{((item.price * item.quantity) / 100).toFixed(2)}</span>
+                        <span>
+                          €{((item.price * item.quantity) / 100).toFixed(2)}
+                        </span>
                       </div>
                     );
                   })}
@@ -175,23 +190,37 @@ export default async function AccountPage({
         {/* ADDRESSES */}
         <TabsContent value="addresses">
           <Card>
-            <CardHeader>
-              <CardTitle>{t("savedAddresses")}</CardTitle>
-              <CardDescription>{t("addressesDesc")}</CardDescription>
-            </CardHeader>
-            <CardContent>
-              <div className="grid gap-4 md:grid-cols-2 mb-4">
-                {userProfile.addresses.map((addr) => (
-                  <div key={addr.id} className="border p-4 rounded-lg relative bg-slate-50">
-                    <h4 className="font-semibold">{addr.title}</h4>
-                    <p className="text-sm text-slate-600 mt-1">{addr.address}</p>
-                    <p className="text-sm text-slate-600">
-                      {addr.zipCode} {addr.city}, {addr.country}
-                    </p>
-                  </div>
-                ))}
+            <CardHeader className="flex flex-col md:flex-row md:items-center md:justify-between gap-3">
+              <div>
+                <CardTitle>{t("savedAddresses")}</CardTitle>
+                <CardDescription>{t("addressesDesc")}</CardDescription>
               </div>
               <AddressDialog />
+            </CardHeader>
+
+            <CardContent>
+              {userProfile.addresses.length === 0 ? (
+                <div className="text-center py-10 text-slate-500 border-2 border-dashed rounded-xl">
+                  {t("noAddresses")}
+                </div>
+              ) : (
+                <div className="grid gap-4 md:grid-cols-2">
+                  {userProfile.addresses.map((addr) => (
+                    <AddressCard
+                      key={addr.id}
+                      addr={{
+                        id: addr.id,
+                        title: addr.title,
+                        address: addr.address,
+                        city: addr.city,
+                        state: addr.state,
+                        zipCode: addr.zipCode,
+                        country: addr.country,
+                      }}
+                    />
+                  ))}
+                </div>
+              )}
             </CardContent>
           </Card>
         </TabsContent>

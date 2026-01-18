@@ -2,10 +2,11 @@ import { NextResponse } from "next/server";
 import { z } from "zod";
 import { auth } from "@/auth";
 import { createOrderWithReservation } from "@/server/services/order-service";
+import { sendOrderCreatedEmails } from "@/server/services/order-email-service";
 
 const schema = z.object({
-  // locale artık zorunlu değil
   locale: z.string().min(2).optional(),
+  saveAddress: z.boolean().optional().default(true),
 
   customer: z.object({
     firstName: z.string().min(1),
@@ -17,6 +18,7 @@ const schema = z.object({
     city: z.string().min(1),
     address: z.string().min(1),
     zipCode: z.string().min(1),
+
     invoiceType: z.enum(["individual", "corporate"]).default("individual"),
     taxId: z.string().optional().nullable(),
     companyName: z.string().optional().nullable(),
@@ -38,35 +40,37 @@ const schema = z.object({
   paymentMethod: z.enum(["iban", "cash_on_installation"]),
 });
 
+function inferLocale(req: Request): string {
+  const headerLocale = req.headers.get("x-app-locale");
+  if (headerLocale && headerLocale.trim().length >= 2) return headerLocale.trim();
+
+  const al = req.headers.get("accept-language");
+  if (al) {
+    const first = al.split(",")[0]?.trim();
+    const lang = first?.split("-")[0]?.trim();
+    if (lang && lang.length >= 2) return lang;
+  }
+
+  return "en";
+}
+
 function toMessage(err: unknown): string {
   if (err instanceof Error) return err.message;
   if (typeof err === "string") return err;
   return "Failed";
 }
 
-function inferLocale(req: Request): string {
-  // 1) custom header (istersen client’ta gönderirsin)
-  const headerLocale = req.headers.get("x-app-locale");
-  if (headerLocale && headerLocale.trim().length >= 2) return headerLocale.trim();
-
-  // 2) accept-language -> "tr-TR,tr;q=0.9,en;q=0.8" gibi gelir
-  const al = req.headers.get("accept-language");
-  if (al) {
-    const first = al.split(",")[0]?.trim(); // tr-TR
-    const lang = first?.split("-")[0]?.trim(); // tr
-    if (lang && lang.length >= 2) return lang;
-  }
-
-  // 3) en güvenlisi default
-  return "en";
-}
-
 export async function POST(req: Request) {
   try {
     const sessionAuth = await auth();
-    const body = await req.json();
-    const parsed = schema.parse(body);
 
+    const bodyUnknown: unknown = await req.json();
+    const parsedResult = schema.safeParse(bodyUnknown);
+    if (!parsedResult.success) {
+      return NextResponse.json({ error: parsedResult.error.flatten() }, { status: 400 });
+    }
+
+    const parsed = parsedResult.data;
     const locale = parsed.locale ?? inferLocale(req);
 
     const customerName = `${parsed.customer.firstName} ${parsed.customer.lastName}`.trim();
@@ -98,14 +102,23 @@ export async function POST(req: Request) {
       paymentStatus,
       depositPercent: 0,
       paymentDueAt,
+      saveAddress: parsed.saveAddress,
     });
+
+    try {
+      await sendOrderCreatedEmails({
+        orderId: created.orderId,
+        locale,
+      });
+    } catch (mailErr: unknown) {
+      console.error("[offline-checkout] email_failed", toMessage(mailErr));
+    }
 
     return NextResponse.json({
       orderId: created.orderId,
       paymentMethod: parsed.paymentMethod,
       paymentStatus,
       paymentDueAt: paymentDueAt ? paymentDueAt.toISOString() : null,
-      locale,
     });
   } catch (e: unknown) {
     return NextResponse.json({ error: toMessage(e) }, { status: 400 });

@@ -1,6 +1,6 @@
 import { db } from "@/server/db";
 import { orders, orderItems, products } from "@/server/db/schema";
-import { eq } from "drizzle-orm";
+import { eq, inArray } from "drizzle-orm";
 import { sendEmail, getAdminEmail, getFromEmail } from "@/server/email/mailer";
 import { getLocaleValue, type LocalizedText } from "@/lib/i18n/get-locale-value";
 
@@ -56,7 +56,16 @@ function statusLabel(status: string): string {
   return status;
 }
 
+type EnrichedItem = {
+  productName: string;
+  variantLabel: string;
+  price: number;
+  quantity: number;
+};
+
 async function loadOrderSummary(orderId: string, locale: string) {
+  const safeLocale = locale?.trim() ? locale.trim() : "en";
+
   const order = await db.query.orders.findFirst({
     where: eq(orders.id, orderId),
     columns: {
@@ -86,29 +95,39 @@ async function loadOrderSummary(orderId: string, locale: string) {
     columns: { productId: true, variantName: true, price: true, quantity: true },
   });
 
-  const enriched = [];
-  for (const it of items) {
-    const p = await db.query.products.findFirst({
-      where: eq(products.id, it.productId),
-      columns: { name: true },
-    });
+  // N+1 yerine toplu çek
+  const productIds = Array.from(new Set(items.map((i) => i.productId)));
+  const productRows =
+    productIds.length === 0
+      ? []
+      : await db
+          .select({ id: products.id, name: products.name })
+          .from(products)
+          .where(inArray(products.id, productIds));
 
-    const productName = p?.name ? getLocaleValue(p.name as LocalizedText, locale) : it.productId;
+  const nameById = new Map<string, LocalizedText | null>();
+  for (const p of productRows) {
+    nameById.set(p.id, (p.name ?? null) as unknown as LocalizedText | null);
+  }
 
-    enriched.push({
+  const enriched: EnrichedItem[] = items.map((it) => {
+    const lt = nameById.get(it.productId) ?? null;
+    const productName = lt ? getLocaleValue(lt, safeLocale) : it.productId;
+
+    return {
       productName,
       variantLabel: it.variantName || "",
       price: it.price,
       quantity: it.quantity,
-    });
-  }
+    };
+  });
 
   const addressLine = `${order.address}, ${order.zipCode} ${order.city}${order.state ? `, ${order.state}` : ""}, ${order.country}`;
 
-  return { order, enriched, addressLine };
+  return { order, enriched, addressLine, locale: safeLocale };
 }
 
-function itemsTable(enriched: Array<{ productName: string; variantLabel: string; price: number; quantity: number }>) {
+function itemsTable(enriched: EnrichedItem[]) {
   const rows = enriched
     .map(
       (x) => `
@@ -139,6 +158,25 @@ function itemsTable(enriched: Array<{ productName: string; variantLabel: string;
       </tbody>
     </table>
   `;
+}
+
+async function safeSend(args: {
+  to: string;
+  subject: string;
+  html: string;
+  replyTo?: string;
+  tag: string;
+}) {
+  const res = await sendEmail({
+    to: args.to,
+    subject: args.subject,
+    html: args.html,
+    replyTo: args.replyTo,
+  });
+
+  if (!res.ok) {
+    console.error(`[email:${args.tag}] failed`, res.error);
+  }
 }
 
 export async function sendOrderCreatedEmails(args: { orderId: string; locale: string }): Promise<void> {
@@ -176,7 +214,7 @@ export async function sendOrderCreatedEmails(args: { orderId: string; locale: st
         <div style="margin-top:14px;padding:14px;border:1px solid #e2e8f0;border-radius:12px;background:#f8fafc;">
           <div style="font-weight:800;color:#0f172a;margin-bottom:8px;">Pay at Installation</div>
           <div style="color:#334155;font-size:13px;line-height:1.6;">
-            Remaining will be paid during installation.
+            Remaining will be paid during installation (link / IBAN / cash).
           </div>
           <div style="margin-top:10px;font-size:13px;color:#0f172a;">
             <div><b>Remaining:</b> ${eur(order.remainingAmount)}</div>
@@ -203,25 +241,22 @@ export async function sendOrderCreatedEmails(args: { orderId: string; locale: st
     ${paymentBlock}
   `;
 
-  await sendEmail({
+  await safeSend({
     to: order.customerEmail,
     subject: `Order received: ${order.id}`,
     html: wrapEmail("Order received", body),
+    tag: "order_created_customer",
   });
 
-  await sendEmail({
+  await safeSend({
     to: getAdminEmail(),
     subject: `New order: ${order.id}`,
     html: wrapEmail("New order created", body),
     replyTo: order.customerEmail,
+    tag: "order_created_admin",
   });
 }
 
-/**
- * Webhook sonrası ödeme durum değişince bu mail gider.
- * - full payment: paid
- * - deposit: deposit_paid
- */
 export async function sendPaymentUpdatedEmails(args: { orderId: string; locale: string }): Promise<void> {
   const { orderId, locale } = args;
 
@@ -250,16 +285,18 @@ export async function sendPaymentUpdatedEmails(args: { orderId: string; locale: 
     ${itemsTable(enriched)}
   `;
 
-  await sendEmail({
+  await safeSend({
     to: order.customerEmail,
     subject: `${title}: ${order.id}`,
     html: wrapEmail(title, body),
+    tag: "payment_updated_customer",
   });
 
-  await sendEmail({
+  await safeSend({
     to: getAdminEmail(),
     subject: `${title}: ${order.id}`,
     html: wrapEmail(title, body),
     replyTo: order.customerEmail,
+    tag: "payment_updated_admin",
   });
 }

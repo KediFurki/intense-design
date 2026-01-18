@@ -28,7 +28,6 @@ export default async function RootLayout({
   children: React.ReactNode;
   params: Promise<{ locale: string }> | { locale: string };
 }) {
-  // Next 16 / Turbopack bazı durumlarda params'ı Promise verir
   const resolvedParams = await Promise.resolve(params);
   const locale = resolvedParams.locale;
 
@@ -37,9 +36,9 @@ export default async function RootLayout({
   const messages = await getMessages();
 
   return (
-    <html lang={locale}>
-      <body className={inter.className}>
-        <NextIntlClientProvider messages={messages}>
+    <html lang={locale} suppressHydrationWarning>
+      <body className={inter.className} suppressHydrationWarning>
+        <NextIntlClientProvider locale={locale} messages={messages}>
           <Header locale={locale} />
           <main>{children}</main>
           <Toaster />

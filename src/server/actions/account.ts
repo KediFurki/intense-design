@@ -5,9 +5,10 @@ import { db } from "@/server/db";
 import { addresses } from "@/server/db/schema";
 import { z } from "zod";
 import { revalidatePath } from "next/cache";
+import { and, eq } from "drizzle-orm";
 
 const addressSchema = z.object({
-  title: z.string().min(1),
+  title: z.string().min(2),
   address: z.string().min(5),
   city: z.string().min(2),
   state: z.string().min(2),
@@ -15,33 +16,81 @@ const addressSchema = z.object({
   country: z.string().min(2),
 });
 
-export async function addAddress(formData: FormData) {
-  const session = await auth();
-  if (!session?.user) return { success: false, error: "Unauthorized" };
+type ActionResult = { success: true } | { success: false; error: string };
 
-  const rawData = {
-    title: formData.get("title"),
-    address: formData.get("address"),
-    city: formData.get("city"),
-    state: formData.get("state"),
-    zipCode: formData.get("zipCode"),
-    country: formData.get("country"),
+function revalidateAccount(locale?: string) {
+  if (locale && locale.trim().length >= 2) {
+    revalidatePath(`/${locale}/account`);
+    return;
+  }
+  revalidatePath("/account");
+}
+
+export async function addAddress(formData: FormData, locale?: string): Promise<ActionResult> {
+  const session = await auth();
+  if (!session?.user?.id) return { success: false, error: "UNAUTHORIZED" };
+
+  const raw = {
+    title: String(formData.get("title") || ""),
+    address: String(formData.get("address") || ""),
+    city: String(formData.get("city") || ""),
+    state: String(formData.get("state") || ""),
+    zipCode: String(formData.get("zipCode") || ""),
+    country: String(formData.get("country") || ""),
   };
 
-  const validated = addressSchema.safeParse(rawData);
+  const validated = addressSchema.safeParse(raw);
+  if (!validated.success) return { success: false, error: "INVALID_INPUT" };
 
-  if (!validated.success) {
-    return { success: false, error: "Invalid data" };
-  }
+  await db.insert(addresses).values({
+    userId: session.user.id,
+    ...validated.data,
+  });
 
-  try {
-    await db.insert(addresses).values({
-      userId: session.user.id,
-      ...validated.data,
-    });
-    revalidatePath("/account");
-    return { success: true };
-  } catch (error) {
-    return { success: false, error: "Database error" };
-  }
+  revalidateAccount(locale);
+  return { success: true };
+}
+
+export async function updateAddress(
+  id: string,
+  formData: FormData,
+  locale?: string
+): Promise<ActionResult> {
+  const session = await auth();
+  if (!session?.user?.id) return { success: false, error: "UNAUTHORIZED" };
+
+  const raw = {
+    title: String(formData.get("title") || ""),
+    address: String(formData.get("address") || ""),
+    city: String(formData.get("city") || ""),
+    state: String(formData.get("state") || ""),
+    zipCode: String(formData.get("zipCode") || ""),
+    country: String(formData.get("country") || ""),
+  };
+
+  const validated = addressSchema.safeParse(raw);
+  if (!validated.success) return { success: false, error: "INVALID_INPUT" };
+
+  const updated = await db
+    .update(addresses)
+    .set(validated.data)
+    .where(and(eq(addresses.id, id), eq(addresses.userId, session.user.id)));
+
+  // drizzle update return tipi driver’a göre değişebilir; burada sadece revalidate ediyoruz
+  void updated;
+
+  revalidateAccount(locale);
+  return { success: true };
+}
+
+export async function deleteAddress(id: string, locale?: string): Promise<ActionResult> {
+  const session = await auth();
+  if (!session?.user?.id) return { success: false, error: "UNAUTHORIZED" };
+
+  await db
+    .delete(addresses)
+    .where(and(eq(addresses.id, id), eq(addresses.userId, session.user.id)));
+
+  revalidateAccount(locale);
+  return { success: true };
 }
