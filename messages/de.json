@@ -217,6 +217,24 @@
     "continueShopping": "Weiter einkaufen",
     "autoRedirectHint": "Wenn Sie auf dieser Seite bleiben, können Sie über die obigen Buttons zu Ihren Bestelldetails wechseln."
   },
+    "CheckoutSuccess": {
+      "title": "Zahlung erfolgreich",
+      "desc": "Ihre Zahlung ist eingegangen. Wir kontaktieren Sie bezüglich Produktion und Montage.",
+      "orderId": "Bestellnummer:",
+      "orderIdMissing": "Auf dieser Seite konnte keine Bestellnummer ermittelt werden.",
+      "viewDetails": "Bestelldetails anzeigen",
+      "myOrders": "Meine Bestellungen",
+      "continueShopping": "Weiter einkaufen",
+      "hint": "Ihre Bestellung finden Sie jederzeit unter Mein Konto → Bestellungen."
+    },
+    "CheckoutCancel": {
+      "title": "Zahlung abgebrochen",
+      "desc": "Die Zahlung wurde abgebrochen. Sie können es jederzeit erneut versuchen.",
+      "orderId": "Bestellnummer:",
+      "returnCheckout": "Zur Kasse zurückkehren",
+      "backHome": "Zur Startseite",
+      "hint": "Falls das Problem weiterhin besteht, versuchen Sie eine andere Zahlungsmethode oder kontaktieren Sie den Support."
+    },
   "OrderDetails": {
     "title": "Bestelldetails",
     "orderId": "Bestell-ID:",

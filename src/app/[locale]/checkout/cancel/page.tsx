@@ -8,8 +8,15 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Separator } from "@/components/ui/separator";
 import { Badge } from "@/components/ui/badge";
 
-type CancelSearchParams = { oid?: string };
 type RouteParams = { locale: string };
+type CancelSearchParams = { oid?: string };
+
+type OrderMiniRow = {
+  id: string;
+  status: string | null;
+  paymentMethod: "stripe" | "iban" | "cash_on_installation" | null;
+  paymentStatus: "awaiting_payment" | "paid" | "deposit_paid" | "remaining_due" | "cancelled" | null;
+};
 
 export default async function CheckoutCancelPage({
   params,
@@ -24,8 +31,8 @@ export default async function CheckoutCancelPage({
 
   const t = await getTranslations("CheckoutCancel");
 
-  const order = oid
-    ? await db.query.orders.findFirst({
+  const order: OrderMiniRow | null = oid
+    ? (((await db.query.orders.findFirst({
         where: eq(orders.id, oid),
         columns: {
           id: true,
@@ -33,7 +40,7 @@ export default async function CheckoutCancelPage({
           paymentMethod: true,
           paymentStatus: true,
         },
-      })
+      })) as OrderMiniRow | undefined) ?? null)
     : null;
 
   return (
@@ -55,12 +62,12 @@ export default async function CheckoutCancelPage({
 
                 {order ? (
                   <div className="flex flex-wrap items-center gap-2">
-                    <Badge className="capitalize">{String(order.status)}</Badge>
+                    <Badge className="capitalize">{String(order.status ?? "")}</Badge>
                     <Badge variant="outline" className="capitalize">
-                      {String(order.paymentStatus)}
+                      {String(order.paymentStatus ?? "")}
                     </Badge>
                     <Badge variant="secondary" className="capitalize">
-                      {String(order.paymentMethod)}
+                      {String(order.paymentMethod ?? "")}
                     </Badge>
                   </div>
                 ) : (

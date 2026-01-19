@@ -217,6 +217,24 @@
     "continueShopping": "Continue shopping",
     "autoRedirectHint": "If you stay on this page, you can proceed to your order details from the buttons above."
   },
+    "CheckoutSuccess": {
+      "title": "Payment successful",
+      "desc": "Your payment has been received. We will contact you for production and installation details.",
+      "orderId": "Order ID:",
+      "orderIdMissing": "Order number could not be detected on this page.",
+      "viewDetails": "View order details",
+      "myOrders": "My Orders",
+      "continueShopping": "Continue shopping",
+      "hint": "You can always find your order under My Account → Orders."
+    },
+    "CheckoutCancel": {
+      "title": "Payment cancelled",
+      "desc": "The payment was cancelled. You can try again whenever you're ready.",
+      "orderId": "Order ID:",
+      "returnCheckout": "Return to checkout",
+      "backHome": "Back to home",
+      "hint": "If the issue persists, try a different payment method or contact support."
+    },
   "OrderDetails": {
     "title": "Order Details",
     "orderId": "Order ID:",

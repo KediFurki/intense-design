@@ -217,6 +217,24 @@
     "continueShopping": "Alışverişe devam et",
     "autoRedirectHint": "Bu sayfada kalırsanız, yukarıdaki butonlardan sipariş detaylarınıza geçebilirsiniz."
   },
+    "CheckoutSuccess": {
+      "title": "Ödeme başarılı",
+      "desc": "Ödemeniz alınmıştır. Üretim ve kurulum detayları için sizinle iletişime geçeceğiz.",
+      "orderId": "Sipariş No:",
+      "orderIdMissing": "Bu sayfada sipariş numarası tespit edilemedi.",
+      "viewDetails": "Sipariş detaylarını görüntüle",
+      "myOrders": "Siparişlerim",
+      "continueShopping": "Alışverişe devam et",
+      "hint": "Siparişlerinizi her zaman Hesabım → Siparişlerim bölümünden görüntüleyebilirsiniz."
+    },
+    "CheckoutCancel": {
+      "title": "Ödeme iptal edildi",
+      "desc": "Ödeme iptal edildi. Hazır olduğunuzda tekrar deneyebilirsiniz.",
+      "orderId": "Sipariş No:",
+      "returnCheckout": "Ödemeye geri dön",
+      "backHome": "Ana sayfaya dön",
+      "hint": "Sorun devam ederse farklı bir ödeme yöntemi deneyin veya destek ile iletişime geçin."
+    },
   "OrderDetails": {
     "title": "Sipariş Detayları",
     "orderId": "Sipariş No:",

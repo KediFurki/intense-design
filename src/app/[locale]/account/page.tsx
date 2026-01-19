@@ -2,7 +2,11 @@ import { auth } from "@/auth";
 import { redirect } from "@/lib/i18n/routing";
 import { db } from "@/server/db";
 import { orders, users, addresses } from "@/server/db/schema";
-import { getOrderStatusBadges, getOrderStatusHint } from "@/lib/orders/status-ui";
+import {
+  getOrderStatusBadges,
+  getOrderStatusHint,
+  type OrderStatusTranslator,
+} from "@/lib/orders/status-ui";
 import { normalizeOrderUiInput } from "@/lib/orders/normalize-order-ui";
 import { eq, desc } from "drizzle-orm";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
@@ -33,6 +37,16 @@ function formatMoneyEUR(cents: number): string {
   }).format((cents ?? 0) / 100);
 }
 
+function formatDateTime(locale: string, d: Date): string {
+  return new Intl.DateTimeFormat(locale, {
+    year: "numeric",
+    month: "2-digit",
+    day: "2-digit",
+    hour: "2-digit",
+    minute: "2-digit",
+  }).format(new Date(d));
+}
+
 export default async function AccountPage({
   params,
 }: {
@@ -41,16 +55,18 @@ export default async function AccountPage({
   const { locale } = await Promise.resolve(params);
 
   const session = await auth();
-
-  if (!session || !session.user) {
+  if (!session?.user) {
     redirect({ href: "/login", locale });
     return null;
   }
 
+  if (!session.user.id) return null;
+
   const t = await getTranslations("Account");
   const orderStatusT = await getTranslations("OrderStatus");
 
-  if (!session.user.id) return null;
+  const tOrderStatus: OrderStatusTranslator = (key, values) =>
+    orderStatusT(key, values);
 
   const userProfile = await db.query.users.findFirst({
     where: eq(users.id, session.user.id),
@@ -149,14 +165,16 @@ export default async function AccountPage({
                 depositPercent: order.depositPercent,
               });
 
-              const badges = getOrderStatusBadges(ui, (k, values) =>
-                orderStatusT(k, values as Record<string, string | number>)
+              const badges = getOrderStatusBadges(
+                ui,
+                tOrderStatus,
+                (d) => formatDateTime(locale, d)
               );
 
               const hint = getOrderStatusHint(
                 ui,
-                (k, values) => orderStatusT(k, values as Record<string, string | number>),
-                (d) => d.toLocaleString(locale),
+                tOrderStatus,
+                (d) => formatDateTime(locale, d),
                 (cents) => formatMoneyEUR(cents)
               );
 
@@ -177,9 +195,9 @@ export default async function AccountPage({
 
                       <div className="text-right space-y-1">
                         <div className="flex flex-wrap justify-end gap-2">
-                          {badges.map((b, idx) => (
+                          {badges.map((b) => (
                             <Badge
-                              key={idx}
+                              key={`${b.variant}:${b.label}`}
                               variant={b.variant}
                               className="whitespace-nowrap"
                             >

@@ -11,7 +11,11 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Separator } from "@/components/ui/separator";
 
-import { getOrderStatusBadges, getOrderStatusHint } from "@/lib/orders/status-ui";
+import {
+  getOrderStatusBadges,
+  getOrderStatusHint,
+  type OrderStatusTranslator,
+} from "@/lib/orders/status-ui";
 import { normalizeOrderUiInput } from "@/lib/orders/normalize-order-ui";
 
 type RouteParams = { locale: string; id: string };
@@ -56,6 +60,9 @@ export default async function OrderDetailsPage({
   const t = await getTranslations("OrderDetails");
   const orderStatusT = await getTranslations("OrderStatus");
 
+  const tOrderStatus: OrderStatusTranslator = (key, values) =>
+    orderStatusT(key, values);
+
   const order = await db.query.orders.findFirst({
     where: eq(orders.id, id),
     columns: {
@@ -99,13 +106,15 @@ export default async function OrderDetailsPage({
     depositPercent: order.depositPercent,
   });
 
-  const badges = getOrderStatusBadges(ui, (k, values) =>
-    orderStatusT(k, values as Record<string, string | number>)
+  const badges = getOrderStatusBadges(
+    ui,
+    tOrderStatus,
+    (d) => formatDateTime(locale, d)
   );
 
   const hint = getOrderStatusHint(
     ui,
-    (k, values) => orderStatusT(k, values as Record<string, string | number>),
+    tOrderStatus,
     (d) => formatDateTime(locale, d),
     (cents) => formatMoneyEUR(cents)
   );
@@ -133,7 +142,7 @@ export default async function OrderDetailsPage({
 
   const nameById = new Map<string, LocalizedText | null>();
   for (const p of productRows) {
-    // Drizzle JSON tipini burada "LocalizedText" olarak kullanıyoruz (any yok).
+    // Drizzle JSON tipini burada LocalizedText olarak kullanıyoruz (any yok).
     nameById.set(p.id, (p.name ?? null) as unknown as LocalizedText | null);
   }
 
@@ -165,10 +174,11 @@ export default async function OrderDetailsPage({
         <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-4">
           <div className="space-y-1">
             <h1 className="text-3xl font-bold text-slate-900">{t("title")}</h1>
+
             <div className="text-slate-600 text-sm">
-              {t("orderId")}{" "}
-              <span className="font-semibold">{order.id}</span>
+              {t("orderId")} <span className="font-semibold">{order.id}</span>
             </div>
+
             {order.createdAt ? (
               <div className="text-slate-500 text-xs">
                 {t("createdAt")} {formatDateTime(locale, order.createdAt)}
@@ -176,9 +186,9 @@ export default async function OrderDetailsPage({
             ) : null}
 
             <div className="flex flex-wrap items-center gap-2 pt-2">
-              {badges.map((b, idx) => (
+              {badges.map((b) => (
                 <Badge
-                  key={idx}
+                  key={`${b.variant}:${b.label}`}
                   variant={b.variant}
                   className="whitespace-nowrap"
                 >
@@ -218,9 +228,7 @@ export default async function OrderDetailsPage({
         <div className="grid md:grid-cols-2 gap-4">
           <Card>
             <CardHeader className="pb-2">
-              <CardTitle className="text-base">
-                {t("deliveryAddress")}
-              </CardTitle>
+              <CardTitle className="text-base">{t("deliveryAddress")}</CardTitle>
             </CardHeader>
             <CardContent className="text-sm text-slate-700">
               <div className="font-medium">{addressLine}</div>
@@ -301,8 +309,7 @@ export default async function OrderDetailsPage({
                 </div>
                 {order.paymentDueAt ? (
                   <div>
-                    <b>{t("due")}:</b>{" "}
-                    {formatDateTime(locale, order.paymentDueAt)}
+                    <b>{t("due")}:</b> {formatDateTime(locale, order.paymentDueAt)}
                   </div>
                 ) : null}
               </div>
@@ -312,8 +319,7 @@ export default async function OrderDetailsPage({
                   {t("installBlockTitle")}
                 </div>
                 <div>
-                  <b>{t("remaining")}:</b>{" "}
-                  {formatMoneyEUR(order.remainingAmount)}
+                  <b>{t("remaining")}:</b> {formatMoneyEUR(order.remainingAmount ?? 0)}
                 </div>
               </div>
             ) : null}

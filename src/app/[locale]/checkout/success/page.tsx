@@ -8,11 +8,21 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Separator } from "@/components/ui/separator";
 import { Badge } from "@/components/ui/badge";
 
-type SuccessSearchParams = { oid?: string };
 type RouteParams = { locale: string };
+type SuccessSearchParams = { oid?: string };
 
-function formatMoneyEUR(cents: number): string {
-  return new Intl.NumberFormat("en-US", { style: "currency", currency: "EUR" }).format(
+type OrderRow = {
+  id: string;
+  status: string | null;
+  paymentMethod: "stripe" | "iban" | "cash_on_installation" | null;
+  paymentStatus: "awaiting_payment" | "paid" | "deposit_paid" | "remaining_due" | "cancelled" | null;
+  totalAmount: number | null;
+  depositPercent: number | null;
+  remainingAmount: number | null;
+};
+
+function formatMoneyEUR(locale: string, cents: number): string {
+  return new Intl.NumberFormat(locale, { style: "currency", currency: "EUR" }).format(
     (cents ?? 0) / 100
   );
 }
@@ -43,7 +53,7 @@ export default async function CheckoutSuccessPage({
     );
   }
 
-  const order = await db.query.orders.findFirst({
+  const order = (await db.query.orders.findFirst({
     where: eq(orders.id, oid),
     columns: {
       id: true,
@@ -54,7 +64,7 @@ export default async function CheckoutSuccessPage({
       depositPercent: true,
       remainingAmount: true,
     },
-  });
+  })) as OrderRow | undefined;
 
   if (!order) {
     return (
@@ -69,10 +79,8 @@ export default async function CheckoutSuccessPage({
     );
   }
 
-  const paidLabel =
-    order.paymentMethod === "stripe" && order.depositPercent && order.depositPercent > 0
-      ? t("depositPaid")
-      : t("paid");
+  const hasDeposit = order.paymentMethod === "stripe" && (order.depositPercent ?? 0) > 0;
+  const paidLabel = hasDeposit ? t("depositPaid") : t("paid");
 
   return (
     <div className="min-h-screen bg-slate-50">
@@ -83,14 +91,16 @@ export default async function CheckoutSuccessPage({
           </CardHeader>
 
           <CardContent className="space-y-5">
-            <div className="text-slate-700">
-              {t("successIntro")}
-            </div>
+            <div className="text-slate-700">{t("successIntro")}</div>
 
             <div className="flex flex-wrap items-center gap-2">
-              <Badge className="capitalize">{String(order.status)}</Badge>
-              <Badge variant="outline" className="capitalize">{String(order.paymentStatus)}</Badge>
-              <Badge variant="secondary" className="capitalize">{String(order.paymentMethod)}</Badge>
+              <Badge className="capitalize">{String(order.status ?? "")}</Badge>
+              <Badge variant="outline" className="capitalize">
+                {String(order.paymentStatus ?? "")}
+              </Badge>
+              <Badge variant="secondary" className="capitalize">
+                {String(order.paymentMethod ?? "")}
+              </Badge>
             </div>
 
             <div className="text-slate-700">
@@ -99,13 +109,13 @@ export default async function CheckoutSuccessPage({
 
             <Separator />
 
-            <div className="bg-slate-50 border rounded-xl p-4 text-sm space-y-1">
+            <div className="bg-slate-50 border rounded-xl p-4 text-sm space-y-2">
               <div className="flex items-center justify-between">
                 <span className="text-slate-600">{t("total")}</span>
-                <b>{formatMoneyEUR(order.totalAmount ?? 0)}</b>
+                <b>{formatMoneyEUR(locale, order.totalAmount ?? 0)}</b>
               </div>
 
-              {order.paymentMethod === "stripe" && order.depositPercent && order.depositPercent > 0 ? (
+              {hasDeposit ? (
                 <>
                   <div className="flex items-center justify-between">
                     <span className="text-slate-600">{t("paidNow")}</span>
@@ -113,7 +123,7 @@ export default async function CheckoutSuccessPage({
                   </div>
                   <div className="flex items-center justify-between">
                     <span className="text-slate-600">{t("remaining")}</span>
-                    <b>{formatMoneyEUR(order.remainingAmount ?? 0)}</b>
+                    <b>{formatMoneyEUR(locale, order.remainingAmount ?? 0)}</b>
                   </div>
                 </>
               ) : null}
@@ -141,9 +151,7 @@ export default async function CheckoutSuccessPage({
               </Button>
             </div>
 
-            <p className="text-xs text-slate-500">
-              {t("nextStepsHint")}
-            </p>
+            <p className="text-xs text-slate-500">{t("nextStepsHint")}</p>
           </CardContent>
         </Card>
       </div>
