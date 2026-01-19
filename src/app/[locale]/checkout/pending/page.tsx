@@ -6,14 +6,18 @@ import { Button } from "@/components/ui/button";
 import { getTranslations } from "next-intl/server";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Separator } from "@/components/ui/separator";
+import { Badge } from "@/components/ui/badge";
+import { getOrderStatusBadges, getOrderStatusHint } from "@/lib/orders/status-ui";
+import { normalizeOrderUiInput } from "@/lib/orders/normalize-order-ui";
 
 type PendingSearchParams = { oid?: string };
 type RouteParams = { locale: string };
 
 function formatMoneyEUR(cents: number): string {
-  return new Intl.NumberFormat("en-US", { style: "currency", currency: "EUR" }).format(
-    (cents ?? 0) / 100
-  );
+  return new Intl.NumberFormat("en-US", {
+    style: "currency",
+    currency: "EUR",
+  }).format((cents ?? 0) / 100);
 }
 
 function formatDateTime(locale: string, d: Date): string {
@@ -38,6 +42,7 @@ export default async function CheckoutPendingPage({
   const oid = sp?.oid;
 
   const t = await getTranslations("CheckoutPending");
+  const orderStatusT = await getTranslations("OrderStatus");
 
   if (!oid) {
     return (
@@ -56,10 +61,13 @@ export default async function CheckoutPendingPage({
     where: eq(orders.id, oid),
     columns: {
       id: true,
+      status: true,
       paymentMethod: true,
+      paymentStatus: true,
       paymentDueAt: true,
       totalAmount: true,
       remainingAmount: true,
+      depositPercent: true,
     },
   });
 
@@ -76,8 +84,29 @@ export default async function CheckoutPendingPage({
     );
   }
 
+  const ui = normalizeOrderUiInput({
+    status: order.status,
+    paymentStatus: order.paymentStatus,
+    paymentMethod: order.paymentMethod,
+    paymentDueAt: order.paymentDueAt,
+    remainingAmount: order.remainingAmount,
+    depositPercent: order.depositPercent,
+  });
+
+  const badges = getOrderStatusBadges(ui, (k, values) =>
+    orderStatusT(k, values as Record<string, string | number>)
+  );
+
+  const hint = getOrderStatusHint(
+    ui,
+    (k, values) => orderStatusT(k, values as Record<string, string | number>),
+    (d) => formatDateTime(locale, d),
+    (cents) => formatMoneyEUR(cents)
+  );
+
   const iban = process.env.NEXT_PUBLIC_COMPANY_IBAN || "IBAN_NOT_SET";
-  const beneficiary = process.env.NEXT_PUBLIC_COMPANY_BENEFICIARY || "Intense Design";
+  const beneficiary =
+    process.env.NEXT_PUBLIC_COMPANY_BENEFICIARY || "Intense Design";
 
   return (
     <div className="min-h-screen bg-slate-50">
@@ -88,23 +117,45 @@ export default async function CheckoutPendingPage({
           </CardHeader>
 
           <CardContent className="space-y-5">
-            <div className="text-slate-700">
-              {t("orderId")} <b>{order.id}</b>
+            <div className="flex flex-wrap items-center justify-between gap-3">
+              <div className="text-slate-700">
+                {t("orderId")} <b>{order.id}</b>
+              </div>
+
+              <div className="flex flex-wrap gap-2">
+                {badges.map((b, idx) => (
+                  <Badge key={idx} variant={b.variant} className="whitespace-nowrap">
+                    {b.label}
+                  </Badge>
+                ))}
+              </div>
             </div>
+
+            {hint ? <div className="text-xs text-slate-500">{hint}</div> : null}
 
             <Separator />
 
-            {order.paymentMethod === "iban" ? (
+            {String(ui.paymentMethod) === "iban" ? (
               <>
                 <p className="text-slate-600">{t("ibanIntro")}</p>
 
                 <div className="bg-slate-50 border rounded-xl p-4 text-sm space-y-1">
-                  <div><b>{t("beneficiary")}:</b> {beneficiary}</div>
-                  <div><b>{t("iban")}:</b> {iban}</div>
-                  <div><b>{t("reference")}:</b> INTENSE-{order.id}</div>
-                  <div><b>{t("amount")}:</b> {formatMoneyEUR(order.totalAmount ?? 0)}</div>
-                  {order.paymentDueAt ? (
-                    <div><b>{t("due")}:</b> {formatDateTime(locale, order.paymentDueAt)}</div>
+                  <div>
+                    <b>{t("beneficiary")}:</b> {beneficiary}
+                  </div>
+                  <div>
+                    <b>{t("iban")}:</b> {iban}
+                  </div>
+                  <div>
+                    <b>{t("reference")}:</b> INTENSE-{order.id}
+                  </div>
+                  <div>
+                    <b>{t("amount")}:</b> {formatMoneyEUR(order.totalAmount ?? 0)}
+                  </div>
+                  {ui.paymentDueAt ? (
+                    <div>
+                      <b>{t("due")}:</b> {formatDateTime(locale, ui.paymentDueAt)}
+                    </div>
                   ) : null}
                 </div>
               </>
@@ -113,7 +164,8 @@ export default async function CheckoutPendingPage({
                 <p className="text-slate-600">{t("installIntro")}</p>
                 <div className="bg-slate-50 border rounded-xl p-4 text-sm">
                   <div>
-                    <b>{t("remaining")}:</b> {formatMoneyEUR(order.remainingAmount ?? 0)}
+                    <b>{t("remaining")}:</b>{" "}
+                    {formatMoneyEUR(order.remainingAmount ?? 0)}
                   </div>
                 </div>
               </>
@@ -121,7 +173,6 @@ export default async function CheckoutPendingPage({
 
             <Separator />
 
-            {/* BUTONLAR: temiz, tek satırda taşmayan */}
             <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
               <Button asChild className="w-full h-11">
                 <Link locale={locale} href={`/account/orders/${order.id}`}>
@@ -142,9 +193,7 @@ export default async function CheckoutPendingPage({
               </Button>
             </div>
 
-            <p className="text-xs text-slate-500">
-              {t("autoRedirectHint")}
-            </p>
+            <p className="text-xs text-slate-500">{t("autoRedirectHint")}</p>
           </CardContent>
         </Card>
       </div>

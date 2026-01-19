@@ -2,6 +2,8 @@ import { auth } from "@/auth";
 import { redirect } from "@/lib/i18n/routing";
 import { db } from "@/server/db";
 import { orders, users, addresses } from "@/server/db/schema";
+import { getOrderStatusBadges, getOrderStatusHint } from "@/lib/orders/status-ui";
+import { normalizeOrderUiInput } from "@/lib/orders/normalize-order-ui";
 import { eq, desc } from "drizzle-orm";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import {
@@ -24,6 +26,13 @@ import { getLocaleValue, type LocalizedText } from "@/lib/i18n/get-locale-value"
 
 type RouteParams = { locale: string };
 
+function formatMoneyEUR(cents: number): string {
+  return new Intl.NumberFormat("en-US", {
+    style: "currency",
+    currency: "EUR",
+  }).format((cents ?? 0) / 100);
+}
+
 export default async function AccountPage({
   params,
 }: {
@@ -39,6 +48,7 @@ export default async function AccountPage({
   }
 
   const t = await getTranslations("Account");
+  const orderStatusT = await getTranslations("OrderStatus");
 
   if (!session.user.id) return null;
 
@@ -79,6 +89,10 @@ export default async function AccountPage({
       state: true,
       zipCode: true,
       country: true,
+      firstName: true,
+      lastName: true,
+      email: true,
+      phone: true,
     },
   });
 
@@ -125,56 +139,90 @@ export default async function AccountPage({
               </CardContent>
             </Card>
           ) : (
-            userProfile.orders.map((order) => (
-              <Card key={order.id}>
-                <CardHeader className="bg-slate-50/50 border-b py-4">
-                  <div className="flex justify-between items-center">
-                    <div className="space-y-1">
-                      <p className="font-semibold text-sm">
-                        {t("orderPrefix")} {order.id.slice(0, 8)}
-                      </p>
-                      <p className="text-xs text-muted-foreground">
-                        {order.createdAt?.toLocaleDateString()}
-                      </p>
-                    </div>
-                    <div className="text-right">
-                      <Badge className="capitalize mb-1">{order.status}</Badge>
-                      <p className="font-bold">
-                        €{(order.totalAmount / 100).toFixed(2)}
-                      </p>
-                    </div>
-                  </div>
-                </CardHeader>
+            userProfile.orders.map((order) => {
+              const ui = normalizeOrderUiInput({
+                status: order.status,
+                paymentStatus: order.paymentStatus,
+                paymentMethod: order.paymentMethod,
+                paymentDueAt: order.paymentDueAt,
+                remainingAmount: order.remainingAmount,
+                depositPercent: order.depositPercent,
+              });
 
-                <CardContent className="p-4 space-y-2">
-                  {order.items.map((item) => {
-                    const productName = item.product?.name
-                      ? getLocaleValue(
-                          item.product.name as LocalizedText,
-                          locale
-                        )
-                      : t("unknownProduct");
+              const badges = getOrderStatusBadges(ui, (k, values) =>
+                orderStatusT(k, values as Record<string, string | number>)
+              );
 
-                    return (
-                      <div
-                        key={item.id}
-                        className="flex justify-between text-sm"
-                      >
-                        <span>
-                          {productName}{" "}
-                          <span className="text-slate-400">
-                            x{item.quantity}
-                          </span>
-                        </span>
-                        <span>
-                          €{((item.price * item.quantity) / 100).toFixed(2)}
-                        </span>
+              const hint = getOrderStatusHint(
+                ui,
+                (k, values) => orderStatusT(k, values as Record<string, string | number>),
+                (d) => d.toLocaleString(locale),
+                (cents) => formatMoneyEUR(cents)
+              );
+
+              return (
+                <Card key={order.id}>
+                  <CardHeader className="bg-slate-50/50 border-b py-4">
+                    <div className="flex justify-between items-center gap-4">
+                      <div className="space-y-1">
+                        <p className="font-semibold text-sm">
+                          {t("orderPrefix")} {order.id.slice(0, 8)}
+                        </p>
+                        <p className="text-xs text-muted-foreground">
+                          {order.createdAt
+                            ? new Date(order.createdAt).toLocaleDateString(locale)
+                            : ""}
+                        </p>
                       </div>
-                    );
-                  })}
-                </CardContent>
-              </Card>
-            ))
+
+                      <div className="text-right space-y-1">
+                        <div className="flex flex-wrap justify-end gap-2">
+                          {badges.map((b, idx) => (
+                            <Badge
+                              key={idx}
+                              variant={b.variant}
+                              className="whitespace-nowrap"
+                            >
+                              {b.label}
+                            </Badge>
+                          ))}
+                        </div>
+
+                        <p className="font-bold">
+                          €{(order.totalAmount / 100).toFixed(2)}
+                        </p>
+
+                        {hint ? (
+                          <p className="text-xs text-slate-500 max-w-[260px] text-right">
+                            {hint}
+                          </p>
+                        ) : null}
+                      </div>
+                    </div>
+                  </CardHeader>
+
+                  <CardContent className="p-4 space-y-2">
+                    {order.items.map((item) => {
+                      const productName = item.product?.name
+                        ? getLocaleValue(item.product.name as LocalizedText, locale)
+                        : t("unknownProduct");
+
+                      return (
+                        <div key={item.id} className="flex justify-between text-sm">
+                          <span>
+                            {productName}{" "}
+                            <span className="text-slate-400">x{item.quantity}</span>
+                          </span>
+                          <span>
+                            €{((item.price * item.quantity) / 100).toFixed(2)}
+                          </span>
+                        </div>
+                      );
+                    })}
+                  </CardContent>
+                </Card>
+              );
+            })
           )}
         </TabsContent>
 
@@ -238,6 +286,10 @@ export default async function AccountPage({
                         state: addr.state ?? "",
                         zipCode: addr.zipCode,
                         country: addr.country,
+                        firstName: addr.firstName ?? null,
+                        lastName: addr.lastName ?? null,
+                        email: addr.email ?? null,
+                        phone: addr.phone ?? null,
                       }}
                     />
                   ))}

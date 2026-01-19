@@ -14,9 +14,9 @@ import {
 } from "@/components/ui/select";
 
 export type AddressSelectorValue = {
-  country: string;
-  state: string;
-  city: string;
+  country: string; // country name
+  state: string;   // state/region name
+  city: string;    // city name
 };
 
 type Props = {
@@ -27,41 +27,70 @@ type Props = {
     country: string;
     state: string;
     city: string;
+
     selectCountry: string;
     selectState: string;
     selectCity: string;
+
     cityManualPlaceholder: string;
+
+    // optional, if not provided fallback strings are used
+    stateManualPlaceholder?: string;
+    stateNotAvailableHint?: string;
+    cityNotAvailableHint?: string;
+    cityManualLabel?: string; // "Manual"
   };
 
-  /** State/city selects are optional; city can always be manually typed. */
+  /** City can be required (default true). */
   requiredCity?: boolean;
 };
 
 function findCountryIsoByName(name: string): string {
   const n = name.trim().toLowerCase();
   if (!n) return "";
-  return Country.getAllCountries().find((c) => c.name.toLowerCase() === n)?.isoCode ?? "";
+  return (
+    Country.getAllCountries().find((c) => c.name.toLowerCase() === n)?.isoCode ??
+    ""
+  );
 }
 
 function findStateIsoByName(countryIso: string, stateName: string): string {
   const n = stateName.trim().toLowerCase();
   if (!countryIso || !n) return "";
   return (
-    State.getStatesOfCountry(countryIso).find((s) => s.name.toLowerCase() === n)?.isoCode ?? ""
+    State.getStatesOfCountry(countryIso).find(
+      (s) => s.name.toLowerCase() === n
+    )?.isoCode ?? ""
   );
 }
 
-export function AddressSelector({ value, onChange, labels, requiredCity = true }: Props) {
+export function AddressSelector({
+  value,
+  onChange,
+  labels,
+  requiredCity = true,
+}: Props) {
   const countries = useMemo(() => Country.getAllCountries(), []);
 
-  const [countryIso, setCountryIso] = useState<string>(() => findCountryIsoByName(value.country));
-  const [stateIso, setStateIso] = useState<string>(() => findStateIsoByName(countryIso, value.state));
+  const [countryIso, setCountryIso] = useState<string>(() =>
+    findCountryIsoByName(value.country)
+  );
+  const [stateIso, setStateIso] = useState<string>(() =>
+    findStateIsoByName(countryIso, value.state)
+  );
 
-  // Keep ISO state in sync when parent value changes (e.g., saved address applied)
+  // If cities exist, user can still manually type by toggling this flag.
+  const [cityManualMode, setCityManualMode] = useState(false);
+
+  // Keep ISO state in sync when parent value changes (e.g. saved address applied)
   useEffect(() => {
     const nextCountryIso = findCountryIsoByName(value.country);
     setCountryIso(nextCountryIso);
     setStateIso(findStateIsoByName(nextCountryIso, value.state));
+
+    // If saved address already has city filled, keep manualMode false
+    // unless user later chooses manual explicitly.
+    setCityManualMode(false);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [value.country, value.state]);
 
@@ -75,10 +104,20 @@ export function AddressSelector({ value, onChange, labels, requiredCity = true }
     return City.getCitiesOfState(countryIso, stateIso);
   }, [countryIso, stateIso]);
 
+  const stateHasSelectableList = states.length > 0;
   const cityHasSelectableList = cities.length > 0;
+
+  const stateManualPlaceholder =
+    labels.stateManualPlaceholder ?? labels.selectState;
+  const stateNotAvailableHint =
+    labels.stateNotAvailableHint ?? "State/region list is not available.";
+  const cityNotAvailableHint =
+    labels.cityNotAvailableHint ?? "City list is not available.";
+  const cityManualLabel = labels.cityManualLabel ?? "Manual";
 
   return (
     <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+      {/* COUNTRY */}
       <div className="space-y-2">
         <Label>{labels.country}</Label>
         <Select
@@ -87,6 +126,8 @@ export function AddressSelector({ value, onChange, labels, requiredCity = true }
             const country = countries.find((c) => c.isoCode === iso);
             setCountryIso(iso);
             setStateIso("");
+            setCityManualMode(false);
+
             onChange({
               country: country?.name ?? "",
               state: "",
@@ -107,33 +148,72 @@ export function AddressSelector({ value, onChange, labels, requiredCity = true }
         </Select>
       </div>
 
+      {/* STATE */}
       <div className="space-y-2">
         <Label>{labels.state}</Label>
-        <Select
-          value={stateIso || ""}
-          onValueChange={(iso) => {
-            const st = states.find((s) => s.isoCode === iso);
-            setStateIso(iso);
-            onChange({ state: st?.name ?? "", city: "" });
-          }}
-          disabled={!countryIso || states.length === 0}
-        >
-          <SelectTrigger className="w-full bg-white">
-            <SelectValue placeholder={labels.selectState} />
-          </SelectTrigger>
-          <SelectContent className="max-h-72">
-            {states.map((s) => (
-              <SelectItem key={s.isoCode} value={s.isoCode}>
-                {s.name}
-              </SelectItem>
-            ))}
-          </SelectContent>
-        </Select>
+
+        {stateHasSelectableList ? (
+          <Select
+            value={stateIso || ""}
+            onValueChange={(iso) => {
+              const st = states.find((s) => s.isoCode === iso);
+              setStateIso(iso);
+              setCityManualMode(false);
+              onChange({ state: st?.name ?? "", city: "" });
+            }}
+          >
+            <SelectTrigger className="w-full bg-white">
+              <SelectValue placeholder={labels.selectState} />
+            </SelectTrigger>
+            <SelectContent className="max-h-72">
+              {states.map((s) => (
+                <SelectItem key={s.isoCode} value={s.isoCode}>
+                  {s.name}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+        ) : (
+          <>
+            <Input
+              value={value.state}
+              onChange={(e) => {
+                // If state is manually typed, clear stateIso
+                setStateIso("");
+                setCityManualMode(false);
+                onChange({ state: e.target.value, city: "" });
+              }}
+              placeholder={stateManualPlaceholder}
+              disabled={!countryIso}
+            />
+            {countryIso ? (
+              <p className="text-xs text-slate-500">{stateNotAvailableHint}</p>
+            ) : null}
+          </>
+        )}
       </div>
 
+      {/* CITY */}
       <div className="space-y-2 md:col-span-2">
-        <Label>{labels.city}</Label>
-        {cityHasSelectableList ? (
+        <div className="flex items-center justify-between gap-3">
+          <Label>{labels.city}</Label>
+
+          {/* Manual toggle only makes sense if there is a list */}
+          {cityHasSelectableList ? (
+            <button
+              type="button"
+              onClick={() => {
+                setCityManualMode((v) => !v);
+                onChange({ city: "" });
+              }}
+              className="text-xs text-slate-600 hover:text-slate-900 underline"
+            >
+              {cityManualMode ? labels.selectCity : cityManualLabel}
+            </button>
+          ) : null}
+        </div>
+
+        {cityHasSelectableList && !cityManualMode ? (
           <Select
             value={value.city || ""}
             onValueChange={(name) => onChange({ city: name })}
@@ -143,19 +223,25 @@ export function AddressSelector({ value, onChange, labels, requiredCity = true }
             </SelectTrigger>
             <SelectContent className="max-h-72">
               {cities.map((c) => (
-                <SelectItem key={`${c.name}-${c.latitude}-${c.longitude}`} value={c.name}>
+                <SelectItem key={c.name} value={c.name}>
                   {c.name}
                 </SelectItem>
               ))}
             </SelectContent>
           </Select>
         ) : (
-          <Input
-            value={value.city}
-            onChange={(e) => onChange({ city: e.target.value })}
-            placeholder={labels.cityManualPlaceholder}
-            required={requiredCity}
-          />
+          <>
+            <Input
+              value={value.city}
+              onChange={(e) => onChange({ city: e.target.value })}
+              placeholder={labels.cityManualPlaceholder}
+              required={requiredCity}
+              disabled={!countryIso}
+            />
+            {countryIso && stateIso && !cityHasSelectableList ? (
+              <p className="text-xs text-slate-500">{cityNotAvailableHint}</p>
+            ) : null}
+          </>
         )}
       </div>
     </div>

@@ -11,10 +11,16 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Separator } from "@/components/ui/separator";
 
+import { getOrderStatusBadges, getOrderStatusHint } from "@/lib/orders/status-ui";
+import { normalizeOrderUiInput } from "@/lib/orders/normalize-order-ui";
+
 type RouteParams = { locale: string; id: string };
 
 function formatMoneyEUR(cents: number): string {
-  return new Intl.NumberFormat("en-US", { style: "currency", currency: "EUR" }).format((cents ?? 0) / 100);
+  return new Intl.NumberFormat("en-US", {
+    style: "currency",
+    currency: "EUR",
+  }).format((cents ?? 0) / 100);
 }
 
 function formatDateTime(locale: string, d: Date): string {
@@ -34,20 +40,6 @@ function paymentLabel(method: string, t: (k: string) => string): string {
   return method;
 }
 
-function statusBadgeVariant(status: string): "default" | "secondary" | "outline" | "destructive" {
-  if (status === "delivered") return "secondary";
-  if (status === "cancelled" || status === "expired") return "destructive";
-  if (status === "shipped") return "default";
-  return "outline";
-}
-
-function payStatusBadgeVariant(status: string): "default" | "secondary" | "outline" | "destructive" {
-  if (status === "paid") return "secondary";
-  if (status === "deposit_paid") return "default";
-  if (status === "cancelled") return "destructive";
-  return "outline";
-}
-
 export default async function OrderDetailsPage({
   params,
 }: {
@@ -62,6 +54,7 @@ export default async function OrderDetailsPage({
   }
 
   const t = await getTranslations("OrderDetails");
+  const orderStatusT = await getTranslations("OrderStatus");
 
   const order = await db.query.orders.findFirst({
     where: eq(orders.id, id),
@@ -90,14 +83,42 @@ export default async function OrderDetailsPage({
   if (!order || order.userId !== session.user.id) {
     return (
       <div className="min-h-screen bg-slate-50 flex items-center justify-center p-6">
-        <div className="max-w-lg w-full bg-white border rounded-lg p-6">{t("notFound")}</div>
+        <div className="max-w-lg w-full bg-white border rounded-lg p-6">
+          {t("notFound")}
+        </div>
       </div>
     );
   }
 
+  const ui = normalizeOrderUiInput({
+    status: order.status,
+    paymentStatus: order.paymentStatus,
+    paymentMethod: order.paymentMethod,
+    paymentDueAt: order.paymentDueAt,
+    remainingAmount: order.remainingAmount,
+    depositPercent: order.depositPercent,
+  });
+
+  const badges = getOrderStatusBadges(ui, (k, values) =>
+    orderStatusT(k, values as Record<string, string | number>)
+  );
+
+  const hint = getOrderStatusHint(
+    ui,
+    (k, values) => orderStatusT(k, values as Record<string, string | number>),
+    (d) => formatDateTime(locale, d),
+    (cents) => formatMoneyEUR(cents)
+  );
+
   const items = await db.query.orderItems.findMany({
     where: eq(orderItems.orderId, order.id),
-    columns: { id: true, productId: true, variantName: true, price: true, quantity: true },
+    columns: {
+      id: true,
+      productId: true,
+      variantName: true,
+      price: true,
+      quantity: true,
+    },
   });
 
   // N+1 bitti: ürünleri toplu çekiyoruz
@@ -112,6 +133,7 @@ export default async function OrderDetailsPage({
 
   const nameById = new Map<string, LocalizedText | null>();
   for (const p of productRows) {
+    // Drizzle JSON tipini burada "LocalizedText" olarak kullanıyoruz (any yok).
     nameById.set(p.id, (p.name ?? null) as unknown as LocalizedText | null);
   }
 
@@ -128,10 +150,13 @@ export default async function OrderDetailsPage({
     };
   });
 
-  const beneficiary = process.env.NEXT_PUBLIC_COMPANY_BENEFICIARY || "Intense Design";
+  const beneficiary =
+    process.env.NEXT_PUBLIC_COMPANY_BENEFICIARY || "Intense Design";
   const iban = process.env.NEXT_PUBLIC_COMPANY_IBAN || "IBAN_NOT_SET";
 
-  const addressLine = `${order.address}, ${order.zipCode} ${order.city}${order.state ? `, ${order.state}` : ""}, ${order.country}`;
+  const addressLine = `${order.address}, ${order.zipCode} ${order.city}${
+    order.state ? `, ${order.state}` : ""
+  }, ${order.country}`;
 
   return (
     <div className="min-h-screen bg-slate-50">
@@ -141,7 +166,8 @@ export default async function OrderDetailsPage({
           <div className="space-y-1">
             <h1 className="text-3xl font-bold text-slate-900">{t("title")}</h1>
             <div className="text-slate-600 text-sm">
-              {t("orderId")} <span className="font-semibold">{order.id}</span>
+              {t("orderId")}{" "}
+              <span className="font-semibold">{order.id}</span>
             </div>
             {order.createdAt ? (
               <div className="text-slate-500 text-xs">
@@ -150,14 +176,23 @@ export default async function OrderDetailsPage({
             ) : null}
 
             <div className="flex flex-wrap items-center gap-2 pt-2">
-              <Badge className="capitalize" variant={statusBadgeVariant(String(order.status))}>
-                {String(order.status)}
+              {badges.map((b, idx) => (
+                <Badge
+                  key={idx}
+                  variant={b.variant}
+                  className="whitespace-nowrap"
+                >
+                  {b.label}
+                </Badge>
+              ))}
+              <Badge variant="outline">
+                {paymentLabel(String(order.paymentMethod), t)}
               </Badge>
-              <Badge className="capitalize" variant={payStatusBadgeVariant(String(order.paymentStatus))}>
-                {String(order.paymentStatus)}
-              </Badge>
-              <Badge variant="outline">{paymentLabel(String(order.paymentMethod), t)}</Badge>
             </div>
+
+            {hint ? (
+              <div className="text-xs text-slate-500 pt-1">{hint}</div>
+            ) : null}
           </div>
 
           <div className="grid grid-cols-1 sm:grid-cols-3 gap-2 sm:min-w-[420px]">
@@ -183,7 +218,9 @@ export default async function OrderDetailsPage({
         <div className="grid md:grid-cols-2 gap-4">
           <Card>
             <CardHeader className="pb-2">
-              <CardTitle className="text-base">{t("deliveryAddress")}</CardTitle>
+              <CardTitle className="text-base">
+                {t("deliveryAddress")}
+              </CardTitle>
             </CardHeader>
             <CardContent className="text-sm text-slate-700">
               <div className="font-medium">{addressLine}</div>
@@ -212,9 +249,13 @@ export default async function OrderDetailsPage({
               <div key={x.id} className="rounded-xl border bg-white p-4">
                 <div className="flex items-start justify-between gap-4">
                   <div className="min-w-0">
-                    <div className="font-semibold text-slate-900 truncate">{x.name}</div>
+                    <div className="font-semibold text-slate-900 truncate">
+                      {x.name}
+                    </div>
                     {x.variantName ? (
-                      <div className="text-xs text-slate-500 mt-1">{x.variantName}</div>
+                      <div className="text-xs text-slate-500 mt-1">
+                        {x.variantName}
+                      </div>
                     ) : null}
                     <div className="text-xs text-slate-500 mt-2">
                       {t("qty")} {x.quantity}
@@ -222,8 +263,12 @@ export default async function OrderDetailsPage({
                   </div>
 
                   <div className="text-right shrink-0">
-                    <div className="text-sm text-slate-600">{formatMoneyEUR(x.unitPrice)}</div>
-                    <div className="text-lg font-semibold text-slate-900">{formatMoneyEUR(x.lineTotal)}</div>
+                    <div className="text-sm text-slate-600">
+                      {formatMoneyEUR(x.unitPrice)}
+                    </div>
+                    <div className="text-lg font-semibold text-slate-900">
+                      {formatMoneyEUR(x.lineTotal)}
+                    </div>
                   </div>
                 </div>
               </div>
@@ -239,7 +284,9 @@ export default async function OrderDetailsPage({
             {/* PAYMENT BLOCKS */}
             {String(order.paymentMethod) === "iban" ? (
               <div className="mt-2 rounded-xl border bg-slate-50 p-4 text-sm space-y-1">
-                <div className="font-semibold text-slate-900">{t("ibanBlockTitle")}</div>
+                <div className="font-semibold text-slate-900">
+                  {t("ibanBlockTitle")}
+                </div>
                 <div>
                   <b>{t("beneficiary")}:</b> {beneficiary}
                 </div>
@@ -254,15 +301,19 @@ export default async function OrderDetailsPage({
                 </div>
                 {order.paymentDueAt ? (
                   <div>
-                    <b>{t("due")}:</b> {formatDateTime(locale, order.paymentDueAt)}
+                    <b>{t("due")}:</b>{" "}
+                    {formatDateTime(locale, order.paymentDueAt)}
                   </div>
                 ) : null}
               </div>
             ) : String(order.paymentMethod) === "cash_on_installation" ? (
               <div className="mt-2 rounded-xl border bg-slate-50 p-4 text-sm space-y-1">
-                <div className="font-semibold text-slate-900">{t("installBlockTitle")}</div>
+                <div className="font-semibold text-slate-900">
+                  {t("installBlockTitle")}
+                </div>
                 <div>
-                  <b>{t("remaining")}:</b> {formatMoneyEUR(order.remainingAmount)}
+                  <b>{t("remaining")}:</b>{" "}
+                  {formatMoneyEUR(order.remainingAmount)}
                 </div>
               </div>
             ) : null}

@@ -40,6 +40,13 @@
     "city": "City",
     "zip": "Postal code",
     "address": "Address",
+    "countryLabel": "Country",
+    "stateLabel": "State / Region",
+    "cityLabel": "City",
+    "selectCountry": "Select country",
+    "selectState": "Select state",
+    "selectCity": "Select city",
+    "cityManualPlaceholder": "Type your city",
     "paymentMethod": "Payment method",
     "selectPayment": "Select a payment method",
     "payCardFull": "Card / Apple Pay / Google Pay (Full payment)",
@@ -61,24 +68,10 @@
     "orderIdMissing": "Could not retrieve order number.",
     "savedAddresses": "Saved addresses",
     "loading": "Loading...",
-    "selectSavedAddress": "Select an address",
+    "selectSavedAddress": "Select a saved address",
     "noSavedAddresses": "No saved addresses yet.",
     "saveAddress": "Save this address to my profile",
     "freeShipping": "Free shipping on orders over €500",
-
-    "savedAddresses": "Saved addresses",
-    "loading": "Loading...",
-    "selectSavedAddress": "Select a saved address",
-    "noSavedAddresses": "No saved addresses yet.",
-
-    "countryLabel": "Country",
-    "stateLabel": "State / Region",
-    "cityLabel": "City",
-    "selectCountry": "Select country",
-    "selectState": "Select state",
-    "selectCity": "Select city",
-    "cityManualPlaceholder": "Type your city",
-
     "invoiceTitle": "Invoice details",
     "invoiceType": "Invoice type",
     "selectInvoiceType": "Select invoice type",
@@ -113,8 +106,9 @@
     "fullName": "Full Name",
     "email": "Email",
     "saveChanges": "Save Changes",
-
     "addNewAddress": "Add New Address",
+    "address": "Address",
+    "editAddressTitle": "Edit address",
     "editAddress": "Edit Address",
     "addressTitle": "Title (e.g. Home)",
     "addressLine": "Address",
@@ -122,6 +116,10 @@
     "state": "State / Region",
     "zip": "Postal code",
     "country": "Country",
+    "firstName": "First name",
+    "lastName": "Last name",
+    "phone": "Phone",
+    "saveAddress": "Save address",
     "save": "Save",
     "saving": "Saving...",
     "cancel": "Cancel",
@@ -136,10 +134,6 @@
     "addressDeleted": "Address deleted.",
     "addressActionFailed": "Action failed.",
     "noAddresses": "No addresses yet.",
-
-    "addAddress": "Add new address",
-    "addAddressTitle": "Add new address",
-    "editAddressTitle": "Edit address",
     "addrTitleLabel": "Title (e.g. Home)",
     "addrTitlePh": "Home",
     "addrAddressLabel": "Address",
@@ -151,12 +145,7 @@
     "addrZipLabel": "Postal code",
     "addrZipPh": "1000",
     "addrCountryLabel": "Country",
-    "addrCountryPh": "Bulgaria",
-    "firstName": "First name",
-    "lastName": "Last name",
-    "phone": "Phone",
-    "address": "Address",
-    "saveAddress": "Save address"
+    "addrCountryPh": "Bulgaria"
   },
   "Admin": {
     "panelTitle": "Admin Panel",
@@ -252,5 +241,41 @@
     "remaining": "Remaining amount",
     "myOrders": "My orders",
     "continueShopping": "Continue shopping"
+  },
+  "OrderStatus": {
+    "fulfillment": {
+      "pending": "Order received",
+      "processing": "Processing",
+      "shipped": "Shipped",
+      "delivered": "Delivered",
+      "cancelled": "Cancelled",
+      "expired": "Expired"
+    },
+    "payment": {
+      "awaiting": "Payment pending",
+      "awaitingIban": "Awaiting bank transfer",
+      "awaitingIbanDue": "Awaiting bank transfer",
+      "awaitingStripe": "Awaiting card payment",
+      "paid": "Paid",
+      "depositPaid": "Deposit paid (%{percent})",
+      "remainingDue": "Remaining due",
+      "payAtInstall": "Pay at installation",
+      "cancelled": "Payment cancelled"
+    },
+    "method": {
+      "card": "Card",
+      "iban": "Bank transfer",
+      "installment": "At installation"
+    },
+    "hint": {
+      "cancelled": "This order was cancelled.",
+      "expired": "The payment window expired and the order was cancelled.",
+      "iban": "We start processing after the transfer.",
+      "ibanDue": "Payment due by: {due}",
+      "remainingAtInstall": "The remaining amount will be collected at installation.",
+      "remainingAtInstallWithAmount": "Due at installation: {amount}",
+      "depositPaid": "Deposit received. Remaining amount will be collected later.",
+      "depositPaidRemaining": "Deposit received. Remaining: {amount}"
+    }
   }
 }
