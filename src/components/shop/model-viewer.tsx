@@ -19,6 +19,38 @@ interface ModelViewerProps {
   alt: string;
 }
 
-export default function ModelViewer(props: ModelViewerProps) {
-  return <ModelViewerCore {...props} />;
+const bunnyBaseUrl = process.env.NEXT_PUBLIC_BUNNY_URL?.trim().replace(/\/$/, "");
+
+function resolveMediaUrl(url: string): string {
+  const normalizedUrl = url.trim();
+
+  if (!normalizedUrl) {
+    return "";
+  }
+
+  if (
+    normalizedUrl.startsWith("http://") ||
+    normalizedUrl.startsWith("https://") ||
+    normalizedUrl.startsWith("//") ||
+    normalizedUrl.startsWith("data:") ||
+    normalizedUrl.startsWith("blob:")
+  ) {
+    return normalizedUrl;
+  }
+
+  if (!bunnyBaseUrl) {
+    return normalizedUrl.startsWith("/") ? normalizedUrl : `/${normalizedUrl}`;
+  }
+
+  return `${bunnyBaseUrl}/${normalizedUrl.replace(/^\/+/, "")}`;
+}
+
+export default function ModelViewer(props: Readonly<ModelViewerProps>) {
+  return (
+    <ModelViewerCore
+      {...props}
+      src={resolveMediaUrl(props.src)}
+      poster={resolveMediaUrl(props.poster)}
+    />
+  );
 }
