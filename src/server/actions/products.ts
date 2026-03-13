@@ -46,6 +46,7 @@ const productSchema = z.object({
   images: z.string().transform(str => JSON.parse(str)),
   modelUrl: z.string().optional().nullable(),
   maskImage: z.string().optional().nullable(),
+  material: z.string().optional().nullable(),
   width: z.preprocess((val) => Number(val) || null, z.number().nullable()),
   height: z.preprocess((val) => Number(val) || null, z.number().nullable()),
   depth: z.preprocess((val) => Number(val) || null, z.number().nullable()),
@@ -58,7 +59,7 @@ export async function createProduct(formData: FormData) {
   const validated = productSchema.safeParse(rawData);
 
   if (!validated.success) {
-    console.error("Validation Error:", validated.error.flatten());
+    console.error("Validation Error:", validated.error.issues);
     return { success: false, error: "Validation failed" };
   }
   const data = validated.data;
@@ -66,19 +67,20 @@ export async function createProduct(formData: FormData) {
   try {
     const [newProduct] = await db.insert(products).values({
       name: data.names,
-      description: data.descriptions,
-      longDescription: data.longDescriptions,
+      description: data.descriptions || null,
+      longDescription: data.longDescriptions || null,
       slug: data.slug,
       price: data.price * 100,
       stock: data.stock,
       categoryId: data.categoryId,
       type: data.type as ProductType, // Type Casting
-      width: data.width,
-      height: data.height,
-      depth: data.depth,
-      images: data.images,
-      modelUrl: data.modelUrl,
-      maskImage: data.maskImage
+      width: data.width || null,
+      height: data.height || null,
+      depth: data.depth || null,
+      material: data.material || null,
+      images: data.images || [],
+      modelUrl: data.modelUrl || null,
+      maskImage: data.maskImage || null
     }).returning();
 
     if (data.variants.length > 0) {
@@ -109,19 +111,20 @@ export async function updateProduct(id: string, formData: FormData) {
   try {
     await db.update(products).set({
       name: data.names,
-      description: data.descriptions,
-      longDescription: data.longDescriptions,
+      description: data.descriptions || null,
+      longDescription: data.longDescriptions || null,
       slug: data.slug,
       price: data.price * 100,
       stock: data.stock,
       categoryId: data.categoryId,
       type: data.type as ProductType,
-      width: data.width,
-      height: data.height,
-      depth: data.depth,
-      images: data.images,
-      modelUrl: data.modelUrl,
-      maskImage: data.maskImage,
+      width: data.width || null,
+      height: data.height || null,
+      depth: data.depth || null,
+      material: data.material || null,
+      images: data.images || [],
+      modelUrl: data.modelUrl || null,
+      maskImage: data.maskImage || null,
       updatedAt: new Date()
     }).where(eq(products.id, id));
 
@@ -141,6 +144,7 @@ export async function updateProduct(id: string, formData: FormData) {
     revalidatePath("/");
     revalidatePath(`/product/${data.slug}`);
   } catch (error) {
+    console.error("Update Error:", error);
     return { success: false, error: "Update failed" };
   }
   redirect("/admin/products");
