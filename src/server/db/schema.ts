@@ -153,6 +153,7 @@ export const products = pgTable("product", {
   width: integer("width"),
   height: integer("height"),
   depth: integer("depth"),
+  material: text("material"),
 
   images: jsonb("images").$type<string[]>().default([]).notNull(),
   modelUrl: text("modelUrl"),
