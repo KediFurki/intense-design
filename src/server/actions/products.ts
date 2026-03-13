@@ -64,24 +64,30 @@ export async function createProduct(formData: FormData) {
   }
   const data = validated.data;
 
+  if (!data.categoryId) {
+    return { success: false, error: "Category is required" };
+  }
+
+  const productValues = {
+    name: data.names ?? { en: "" },
+    description: data.descriptions ?? null,
+    longDescription: data.longDescriptions ?? null,
+    slug: data.slug ?? "",
+    price: Math.round((data.price ?? 0) * 100),
+    stock: data.stock ?? 0,
+    categoryId: data.categoryId,
+    type: (data.type ?? "furniture") as ProductType,
+    width: data.width ?? null,
+    height: data.height ?? null,
+    depth: data.depth ?? null,
+    material: data.material ?? null,
+    images: data.images ?? [],
+    modelUrl: data.modelUrl ?? null,
+    maskImage: data.maskImage ?? null,
+  };
+
   try {
-    const [newProduct] = await db.insert(products).values({
-      name: data.names,
-      description: data.descriptions || null,
-      longDescription: data.longDescriptions || null,
-      slug: data.slug,
-      price: data.price * 100,
-      stock: data.stock,
-      categoryId: data.categoryId,
-      type: data.type as ProductType, // Type Casting
-      width: data.width || null,
-      height: data.height || null,
-      depth: data.depth || null,
-      material: data.material || null,
-      images: data.images || [],
-      modelUrl: data.modelUrl || null,
-      maskImage: data.maskImage || null
-    }).returning();
+    const [newProduct] = await db.insert(products).values(productValues).returning();
 
     if (data.variants.length > 0) {
       await db.insert(productVariants).values(data.variants.map((v: VariantInput) => ({
@@ -108,25 +114,31 @@ export async function updateProduct(id: string, formData: FormData) {
   if (!validated.success) return { success: false, error: "Validation failed" };
   const data = validated.data;
 
+  if (!data.categoryId) {
+    return { success: false, error: "Category is required" };
+  }
+
+  const productValues = {
+    name: data.names ?? { en: "" },
+    description: data.descriptions ?? null,
+    longDescription: data.longDescriptions ?? null,
+    slug: data.slug ?? "",
+    price: Math.round((data.price ?? 0) * 100),
+    stock: data.stock ?? 0,
+    categoryId: data.categoryId,
+    type: (data.type ?? "furniture") as ProductType,
+    width: data.width ?? null,
+    height: data.height ?? null,
+    depth: data.depth ?? null,
+    material: data.material ?? null,
+    images: data.images ?? [],
+    modelUrl: data.modelUrl ?? null,
+    maskImage: data.maskImage ?? null,
+    updatedAt: new Date(),
+  };
+
   try {
-    await db.update(products).set({
-      name: data.names,
-      description: data.descriptions || null,
-      longDescription: data.longDescriptions || null,
-      slug: data.slug,
-      price: data.price * 100,
-      stock: data.stock,
-      categoryId: data.categoryId,
-      type: data.type as ProductType,
-      width: data.width || null,
-      height: data.height || null,
-      depth: data.depth || null,
-      material: data.material || null,
-      images: data.images || [],
-      modelUrl: data.modelUrl || null,
-      maskImage: data.maskImage || null,
-      updatedAt: new Date()
-    }).where(eq(products.id, id));
+    await db.update(products).set(productValues).where(eq(products.id, id));
 
     await db.delete(productVariants).where(eq(productVariants.productId, id));
 
