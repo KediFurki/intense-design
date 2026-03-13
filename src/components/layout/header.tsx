@@ -24,14 +24,20 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { getTranslations } from "next-intl/server";
-import { getLocaleValue } from "@/lib/i18n/get-locale-value";
+import { getLocaleValue, type LocalizedText } from "@/lib/i18n/get-locale-value";
 
 type HeaderProps = {
   locale: string;
 };
 
+type HeaderCategory = {
+  id: string;
+  slug: string;
+  name: LocalizedText;
+};
+
 function findCategoryHref(
-  categoryList: Array<{ slug: string; name: unknown }>,
+  categoryList: HeaderCategory[],
   locale: string,
   searchTerms: string[],
   fallbackSlug: string,
@@ -48,7 +54,7 @@ function findCategoryHref(
 
 export default async function Header({ locale }: Readonly<HeaderProps>) {
   const session = await auth();
-  const categoryList = await db.select().from(categories);
+  const categoryList = await db.select().from(categories) as HeaderCategory[];
   const t = await getTranslations("Navigation");
 
   const primaryLinks = [
