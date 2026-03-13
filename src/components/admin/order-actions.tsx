@@ -2,6 +2,7 @@
 
 import { deleteOrder, updateOrderStatus } from "@/server/actions/order";
 import { Button } from "@/components/ui/button";
+import type { OrderStatus } from "@/lib/orders/types";
 import { Trash2, Loader2 } from "lucide-react";
 import { useState } from "react";
 import { toast } from "sonner";
@@ -15,10 +16,10 @@ import {
 
 interface OrderActionsProps {
   orderId: string;
-  currentStatus: "pending" | "processing" | "shipped" | "delivered" | "cancelled";
+  currentStatus: OrderStatus;
 }
 
-export function OrderActions({ orderId, currentStatus }: OrderActionsProps) {
+export function OrderActions({ orderId, currentStatus }: Readonly<OrderActionsProps>) {
   const [isLoading, setIsLoading] = useState(false);
 
   const handleDelete = async () => {
@@ -54,6 +55,7 @@ export function OrderActions({ orderId, currentStatus }: OrderActionsProps) {
           <SelectItem value="shipped">Shipped</SelectItem>
           <SelectItem value="delivered">Delivered</SelectItem>
           <SelectItem value="cancelled">Cancelled</SelectItem>
+          <SelectItem value="expired">Expired</SelectItem>
         </SelectContent>
       </Select>
 
