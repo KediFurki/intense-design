@@ -3,13 +3,15 @@
 import { useState } from "react";
 import Image from "next/image";
 import { Badge } from "@/components/ui/badge";
-import { Check, ZoomIn, ChevronRight, X } from "lucide-react";
+import { Check, ZoomIn, ChevronRight, X, MessageCircle } from "lucide-react";
 import AddToCartButton from "@/components/shop/add-to-cart-button";
+import CustomRequestDialog from "@/components/shop/custom-request-dialog";
 import ModelViewer from "@/components/shop/model-viewer";
 import { cn } from "@/lib/utils";
 import { useTranslations, useLocale } from "next-intl";
 import { Dialog, DialogContent, DialogTrigger, DialogTitle, DialogClose } from "@/components/ui/dialog";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Button } from "@/components/ui/button";
 
 interface VariantAttributes {
   color?: string;
@@ -48,7 +50,7 @@ interface ProductDetailsProps {
   variants: Variant[];
 }
 
-export function ProductDetails({ product, variants }: ProductDetailsProps) {
+export function ProductDetails({ product, variants }: Readonly<ProductDetailsProps>) {
   const t = useTranslations("Product");
   const locale = useLocale();
 
@@ -76,11 +78,21 @@ export function ProductDetails({ product, variants }: ProductDetailsProps) {
   const mainImage = displayImages[0];
   const currentPrice = selectedVariant ? selectedVariant.price : product.price;
   const currentStock = selectedVariant ? selectedVariant.stock : product.stock;
+  const localizedProductName = getLocalized(product.name);
+  const whatsappMessage = `I'm interested in ${localizedProductName}`;
+  const whatsappNumber = process.env.NEXT_PUBLIC_WHATSAPP_NUMBER?.replaceAll(/\D/g, "") || "";
+  const whatsappHref = whatsappNumber
+    ? `https://wa.me/${whatsappNumber}?text=${encodeURIComponent(whatsappMessage)}`
+    : undefined;
 
   const renderGridVisualizer = () => {
      const sizeStr = selectedAttrs?.size || ""; 
-     const cols = sizeStr.includes("200") ? 4 : sizeStr.includes("150") ? 3 : 2;
-     const rows = sizeStr.includes("180") ? 3 : sizeStr.includes("100") ? 2 : 2;
+      let cols = 2;
+      if (sizeStr.includes("200")) cols = 4;
+      else if (sizeStr.includes("150")) cols = 3;
+
+      let rows = 2;
+      if (sizeStr.includes("180")) rows = 3;
      
      return (
         <div className="w-full h-full flex items-center justify-center p-8 bg-slate-50">
@@ -91,7 +103,7 @@ export function ProductDetails({ product, variants }: ProductDetailsProps) {
                      height: `${rows * 60}px`
                  }}>
                 {Array.from({ length: cols * rows }).map((_, i) => (
-                    <div key={i} className="border-2 border-white rounded shadow-sm transition-colors duration-300"
+                  <div key={`grid-cell-${cols}-${rows}-${i}`} className="border-2 border-white rounded shadow-sm transition-colors duration-300"
                          style={{ backgroundColor: selectedAttrs?.colorCode || "#ddd" }}
                     />
                 ))}
@@ -171,7 +183,7 @@ export function ProductDetails({ product, variants }: ProductDetailsProps) {
         {variants.length > 0 && (
           <div className="space-y-6 pt-6 border-t border-slate-100">
             <div className="space-y-3">
-                <div className="flex justify-between"><label className="text-sm font-bold text-slate-900">Finish</label><span className="text-xs text-slate-500">{selectedAttrs?.color}</span></div>
+                <div className="flex justify-between"><p className="text-sm font-bold text-slate-900">Finish</p><span className="text-xs text-slate-500">{selectedAttrs?.color}</span></div>
                 <div className="flex flex-wrap gap-3">
                 {variants.map((v) => {
                     const attrs = v.attributes as VariantAttributes;
@@ -189,19 +201,37 @@ export function ProductDetails({ product, variants }: ProductDetailsProps) {
           </div>
         )}
 
-        <AddToCartButton stock={currentStock} text={t('addToCart')}
-            data={{ 
-                id: product.id, 
-                variantId: selectedVariant?.id, 
-                variantName: selectedVariant ? getLocalized(selectedVariant.name) : "Standard", 
-                name: getLocalized(product.name), 
-                slug: product.slug, 
-                price: currentPrice, 
-                image: mainImage || "", 
-                categoryName: product.category ? getLocalized(product.category.name) : "" 
-            }}
-            className="w-full h-14 text-lg bg-slate-900 hover:bg-slate-800 text-white rounded-xl shadow-xl"
-        />
+        <div className="grid gap-3">
+          <AddToCartButton stock={currentStock} text={t('addToCart')}
+              data={{ 
+                  id: product.id, 
+                  variantId: selectedVariant?.id, 
+                  variantName: selectedVariant ? getLocalized(selectedVariant.name) : "Standard", 
+                  name: localizedProductName, 
+                  slug: product.slug, 
+                  price: currentPrice, 
+                  image: mainImage || "", 
+                  categoryName: product.category ? getLocalized(product.category.name) : "" 
+              }}
+              className="w-full h-14 text-lg bg-slate-900 hover:bg-slate-800 text-white rounded-xl shadow-xl"
+          />
+
+          <div className="grid gap-3 sm:grid-cols-2">
+            <Button asChild type="button" variant="outline" className="h-14 rounded-xl border-emerald-200 bg-emerald-50 text-base font-medium text-emerald-700 hover:bg-emerald-100 hover:text-emerald-800">
+              <a href={whatsappHref || "#"} target="_blank" rel="noreferrer" aria-disabled={!whatsappHref} onClick={(event) => {
+                if (!whatsappHref) {
+                  event.preventDefault();
+                }
+              }}>
+                <MessageCircle />
+                Ask on WhatsApp
+              </a>
+            </Button>
+            <div className="[&_button]:w-full [&_button]:justify-center [&_button]:gap-2">
+              <CustomRequestDialog productName={localizedProductName} />
+            </div>
+          </div>
+        </div>
 
         <Tabs defaultValue="desc" className="w-full pt-4">
             <TabsList className="grid w-full grid-cols-2 bg-slate-100 p-1 rounded-xl">
