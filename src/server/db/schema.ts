@@ -172,6 +172,7 @@ export const productVariants = pgTable("product_variant", {
   name: jsonb("name").$type<LocalizedText>().notNull(),
   price: integer("price").notNull(),
   stock: integer("stock").notNull(),
+  images: jsonb("images").$type<string[]>().default([]).notNull(),
 
   attributes: jsonb("attributes").$type<Record<string, unknown>>().default({}).notNull(),
   createdAt: timestamp("created_at").defaultNow(),

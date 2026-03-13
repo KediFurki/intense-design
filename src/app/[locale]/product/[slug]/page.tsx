@@ -14,9 +14,18 @@ export default async function ProductPage({ params }: Readonly<ProductPageProps>
   // Ürünü, kategorisini ve varyasyonlarını çek
   const product = await db.query.products.findFirst({
     where: eq(products.slug, slug),
-    with: { 
-        category: true,
-        variants: true 
+    with: {
+      category: true,
+      variants: {
+        columns: {
+          id: true,
+          name: true,
+          price: true,
+          stock: true,
+          images: true,
+          attributes: true,
+        },
+      },
     },
   });
 
@@ -26,6 +35,10 @@ export default async function ProductPage({ params }: Readonly<ProductPageProps>
   // 1. Veritabanından 'null' gelebilen category'yi 'undefined'a çeviriyoruz.
   // 2. 'variants' verisini ayırıp temiz bir product nesnesi oluşturuyoruz.
   const { variants, category, ...rest } = product;
+  const formattedVariants = variants.map((variant) => ({
+    ...variant,
+    images: variant.images || [],
+  }));
   
   const formattedProduct = {
     ...rest,
@@ -36,7 +49,7 @@ export default async function ProductPage({ params }: Readonly<ProductPageProps>
 
   return (
     <div className="container mx-auto px-4 py-10">
-        <ProductDetails product={formattedProduct} variants={variants} />
+        <ProductDetails product={formattedProduct} variants={formattedVariants} />
     </div>
   );
 }
