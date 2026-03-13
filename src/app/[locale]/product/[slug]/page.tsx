@@ -8,7 +8,7 @@ interface ProductPageProps {
   params: Promise<{ slug: string }>;
 }
 
-export default async function ProductPage({ params }: ProductPageProps) {
+export default async function ProductPage({ params }: Readonly<ProductPageProps>) {
   const { slug } = await params;
 
   // Ürünü, kategorisini ve varyasyonlarını çek
@@ -29,6 +29,7 @@ export default async function ProductPage({ params }: ProductPageProps) {
   
   const formattedProduct = {
     ...rest,
+    material: product.material || null,
     category: category || undefined, // null ise undefined yap
     // variants dizisi zaten aşağıda ayrı prop olarak gönderiliyor
   };
