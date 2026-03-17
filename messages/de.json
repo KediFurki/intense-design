@@ -18,7 +18,11 @@
     "collections": "Kollektionen",
     "openMenu": "Navigationsmenü öffnen",
     "search": "Suche",
-    "favorites": "Favoriten"
+    "favorites": "Favoriten",
+    "searchTitle": "Produkte suchen",
+    "searchDescription": "Durchsuchen Sie die gesamte Kollektion und springen Sie direkt zu passenden Produkten.",
+    "searchPlaceholder": "Produkte suchen...",
+    "searchSubmit": "Suchen"
   },
   "Home": {
     "heroTitle": "Definieren Sie Ihren Raum neu",
@@ -70,12 +74,25 @@
     "shipping": "Lieferzeiten",
     "returns": "Rückgaberecht",
     "assembly": "Montageanleitung",
+    "slogan": "Premium-Produkte für modernes Wohnen.",
     "allRightsReserved": "Alle Rechte vorbehalten.",
     "brandSlogan": "Kurierte Premium-Möbel für Wohnräume, die Wärme, Proportion und leisen Luxus schätzen.",
     "privacyPolicy": "Datenschutzerklärung",
     "cookiePolicy": "Cookie-Richtlinie",
     "privacyChoices": "Ihre Datenschutzoptionen",
     "noticeAtCollection": "Hinweis bei Datenerhebung"
+  },
+  "Category": {
+    "all": "Alle Produkte",
+    "new": "Neuheiten",
+    "home": "Startseite",
+    "productsFound": "{count} Produkte gefunden",
+    "sortBy": "Sortieren nach:",
+    "newest": "Neueste",
+    "priceAsc": "Preis ↑",
+    "priceDesc": "Preis ↓",
+    "noProductsMatching": "Keine Produkte gefunden, die Ihren Filtern entsprechen.",
+    "clearFilters": "Filter zurücksetzen"
   },
   "StaticPages": {
     "brand": "Intense Design",

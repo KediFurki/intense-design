@@ -2,12 +2,21 @@
 
 import { useState } from "react";
 import Image from "next/image";
-import { useTranslations } from "next-intl";
+import { useLocale, useTranslations } from "next-intl";
 import { Button } from "@/components/ui/button";
-import { Link as I18nLink } from "@/lib/i18n/routing";
+import { Link as I18nLink, useRouter } from "@/lib/i18n/routing";
 import { LogOut, ChevronDown, Heart, Menu, Search, User2 } from "lucide-react";
 import CartSheet from "@/components/shop/cart-sheet";
 import LanguageSwitcher from "./language-switcher";
+import { Input } from "@/components/ui/input";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogHeader,
+  DialogTitle,
+  DialogTrigger,
+} from "@/components/ui/dialog";
 import {
   Sheet,
   SheetContent,
@@ -55,8 +64,25 @@ function findCategoryHref(categoryList: HeaderCategory[], searchTerms: string[],
 
 export default function Header({ categoryList, sessionUser, signOutAction }: Readonly<HeaderProps>) {
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
+  const [isSearchOpen, setIsSearchOpen] = useState(false);
+  const [searchQuery, setSearchQuery] = useState("");
+  const locale = useLocale();
+  const router = useRouter();
   const navT = useTranslations("Navigation");
   const headerT = useTranslations("Header");
+
+  function handleSearchSubmit(event: React.FormEvent<HTMLFormElement>) {
+    event.preventDefault();
+
+    const normalized = searchQuery.trim();
+    const destination = normalized
+      ? `/${locale}/category/all?q=${encodeURIComponent(normalized)}`
+      : `/${locale}/category/all`;
+
+    router.push(destination);
+    setIsSearchOpen(false);
+    setSearchQuery("");
+  }
 
   const primaryLinks = [
     { label: navT("home"), href: "/" },
@@ -199,15 +225,41 @@ export default function Header({ categoryList, sessionUser, signOutAction }: Rea
         <div className="flex items-center justify-end gap-1 sm:gap-2 lg:w-[280px]">
           <LanguageSwitcher />
 
-          <Button
-            type="button"
-            variant="ghost"
-            size="icon"
-            className="rounded-full text-[#6f4e37] hover:bg-[#fff4e8] hover:text-[#9a5f2f]"
-            aria-label={headerT("search")}
-          >
-            <Search className="size-4.5" />
-          </Button>
+          <Dialog open={isSearchOpen} onOpenChange={setIsSearchOpen}>
+            <DialogTrigger asChild>
+              <Button
+                type="button"
+                variant="ghost"
+                size="icon"
+                className="rounded-full text-[#6f4e37] hover:bg-[#fff4e8] hover:text-[#9a5f2f]"
+                aria-label={headerT("search")}
+              >
+                <Search className="size-4.5" />
+              </Button>
+            </DialogTrigger>
+            <DialogContent className="overflow-hidden rounded-[1.75rem] border-[#eadfce] bg-[#fffaf3] p-0 shadow-[0_30px_90px_rgba(111,78,55,0.18)] sm:max-w-xl">
+              <DialogHeader className="border-b border-[#efe3d5] px-6 py-5">
+                <DialogTitle className="text-xl font-semibold text-[#4e3629]">
+                  {headerT("searchTitle")}
+                </DialogTitle>
+                <DialogDescription className="text-sm leading-6 text-[#8b6a52]">
+                  {headerT("searchDescription")}
+                </DialogDescription>
+              </DialogHeader>
+              <form onSubmit={handleSearchSubmit} className="space-y-4 px-6 py-6">
+                <Input
+                  autoFocus
+                  value={searchQuery}
+                  onChange={(event) => setSearchQuery(event.target.value)}
+                  placeholder={headerT("searchPlaceholder")}
+                  className="h-12 rounded-xl border-[#eadfce] bg-white text-base text-[#4e3629] placeholder:text-[#b08f74]"
+                />
+                <Button type="submit" className="h-11 w-full rounded-xl bg-[#6f4e37] text-white hover:bg-[#5d412e]">
+                  {headerT("searchSubmit")}
+                </Button>
+              </form>
+            </DialogContent>
+          </Dialog>
 
           <I18nLink href="/account" className="inline-flex">
             <Button

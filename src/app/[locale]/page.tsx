@@ -53,7 +53,7 @@ export default async function Home({
           <p className="mx-auto mb-10 max-w-3xl text-lg leading-8 text-stone-200 md:text-xl">{t("heroSubtitle")}</p>
           <div className="flex flex-col justify-center gap-4 sm:flex-row">
             <Link href="/category/all"><Button size="lg" className="cursor-pointer rounded-full bg-stone-100 px-8 py-6 text-lg text-stone-900 hover:bg-stone-200">{t("shopCollection")}</Button></Link>
-            <Link href="/about"><Button size="lg" variant="outline" className="cursor-pointer rounded-full border-stone-200 bg-transparent px-8 py-6 text-lg text-white hover:bg-stone-100 hover:text-stone-900">{t("experience3D")}</Button></Link>
+            <Link href="/category/all"><Button size="lg" variant="outline" className="cursor-pointer rounded-full border-stone-200 bg-transparent px-8 py-6 text-lg text-white hover:bg-stone-100 hover:text-stone-900">{t("experience3D")}</Button></Link>
           </div>
         </div>
       </section>

@@ -18,7 +18,11 @@
     "collections": "Collections",
     "openMenu": "Open navigation menu",
     "search": "Search",
-    "favorites": "Favorites"
+    "favorites": "Favorites",
+    "searchTitle": "Search Products",
+    "searchDescription": "Search across the full collection and jump directly to matching products.",
+    "searchPlaceholder": "Search products...",
+    "searchSubmit": "Search"
   },
   "Home": {
     "heroTitle": "Redefine Your Space",
@@ -70,12 +74,25 @@
     "shipping": "Shipping Times",
     "returns": "Return Policy",
     "assembly": "Assembly Guide",
+    "slogan": "Premium products for modern living.",
     "allRightsReserved": "All rights reserved.",
     "brandSlogan": "Curated premium furniture for homes that value warmth, proportion, and quiet luxury.",
     "privacyPolicy": "Privacy Policy",
     "cookiePolicy": "Cookie Policy",
     "privacyChoices": "Your Privacy Choices",
     "noticeAtCollection": "Notice at Collection"
+  },
+  "Category": {
+    "all": "All Products",
+    "new": "New Arrivals",
+    "home": "Home",
+    "productsFound": "{count} products found",
+    "sortBy": "Sort by:",
+    "newest": "Newest",
+    "priceAsc": "Price ↑",
+    "priceDesc": "Price ↓",
+    "noProductsMatching": "No products found matching your filters.",
+    "clearFilters": "Clear Filters"
   },
   "StaticPages": {
     "brand": "Intense Design",

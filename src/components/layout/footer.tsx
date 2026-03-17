@@ -17,7 +17,7 @@ export default function Footer() {
               Intense Design
             </Link>
             <p className="text-sm leading-7 text-stone-600 sm:text-[15px]">
-              {t("brandSlogan")}
+              {t("slogan")}
             </p>
           </div>
 

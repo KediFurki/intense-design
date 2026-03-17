@@ -18,7 +18,11 @@
     "collections": "Koleksiyonlar",
     "openMenu": "Gezinme menüsünü aç",
     "search": "Ara",
-    "favorites": "Favoriler"
+    "favorites": "Favoriler",
+    "searchTitle": "Ürün Ara",
+    "searchDescription": "Tüm koleksiyonda arama yapın ve eşleşen ürünlere hızla ulaşın.",
+    "searchPlaceholder": "Ürün ara...",
+    "searchSubmit": "Ara"
   },
   "Home": {
     "heroTitle": "Alanınızı Yeniden Tanımlayın",
@@ -70,12 +74,25 @@
     "shipping": "Teslimat Süreleri",
     "returns": "İade Politikası",
     "assembly": "Kurulum Rehberi",
+    "slogan": "Modern yaşam için premium ürünler.",
     "allRightsReserved": "Tüm hakları saklıdır.",
     "brandSlogan": "Sıcaklık, oran ve sade lüks anlayışını önemseyen yaşam alanları için seçkin mobilyalar.",
     "privacyPolicy": "Gizlilik Politikası",
     "cookiePolicy": "Çerez Politikası",
     "privacyChoices": "Gizlilik Tercihleriniz",
     "noticeAtCollection": "Veri Toplama Bildirimi"
+  },
+  "Category": {
+    "all": "Tüm Ürünler",
+    "new": "Yeni Gelenler",
+    "home": "Ana Sayfa",
+    "productsFound": "{count} ürün bulundu",
+    "sortBy": "Sırala:",
+    "newest": "En Yeniler",
+    "priceAsc": "Fiyat ↑",
+    "priceDesc": "Fiyat ↓",
+    "noProductsMatching": "Filtrelerinize uygun ürün bulunamadı.",
+    "clearFilters": "Filtreleri Temizle"
   },
   "StaticPages": {
     "brand": "Intense Design",
