@@ -1,12 +1,19 @@
 "use client";
 
 import { Button } from "@/components/ui/button";
+import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { useRouter, useSearchParams } from "next/navigation";
 import { useState, useEffect, Suspense, useCallback } from "react";
 import { cn } from "@/lib/utils";
 import { Checkbox } from "@/components/ui/checkbox";
+import { PackageCheck, Search, SlidersHorizontal, Sparkles } from "lucide-react";
+import { useTranslations } from "next-intl";
+
+interface FilterSidebarProps {
+  className?: string;
+}
 
 interface PresetLinkProps {
   label: string;
@@ -22,22 +29,27 @@ function PresetLink({ label, pMin, pMax, isActive, onSelect }: PresetLinkProps) 
       type="button"
       onClick={() => onSelect(pMin, pMax)}
       className={cn(
-        "block text-sm text-left w-full transition-colors py-1.5 px-2 rounded-md",
-        isActive ? "bg-blue-50 text-blue-700 font-semibold" : "text-slate-600 hover:bg-slate-50"
+        "flex w-full items-center justify-between rounded-xl border px-3 py-3 text-left text-sm transition-all",
+        isActive
+          ? "border-[#9a5f2f]/25 bg-[#fff6ec] text-[#8b5e34] shadow-sm"
+          : "border-stone-200 bg-white text-slate-600 hover:border-stone-300 hover:bg-stone-50"
       )}
     >
-      {label}
+      <span className="font-medium">{label}</span>
+      <span className={cn("size-2 rounded-full", isActive ? "bg-[#9a5f2f]" : "bg-stone-300")} />
     </button>
   );
 }
 
-function FilterContent() {
+function FilterContent({ className }: FilterSidebarProps) {
+  const t = useTranslations("Category");
   const router = useRouter();
   const searchParams = useSearchParams();
 
   const currentMin = searchParams.get("min");
   const currentMax = searchParams.get("max");
   const currentInstock = searchParams.get("instock");
+  const currentQuery = searchParams.get("q")?.trim() ?? "";
 
   const [min, setMin] = useState(currentMin || "");
   const [max, setMax] = useState(currentMax || "");
@@ -82,6 +94,15 @@ function FilterContent() {
     router.push(s ? `?${s}` : "?");
   };
 
+  const clearAllFilters = () => {
+    const params = new URLSearchParams(searchParams.toString());
+    params.delete("min");
+    params.delete("max");
+    params.delete("instock");
+    const s = params.toString();
+    router.push(s ? `?${s}` : "?");
+  };
+
   const isLinkActive = (pMin: string, pMax: string) => {
     // link aktifliği sadece URL değerleriyle hesaplanmalı
     const urlMin = currentMin ?? "";
@@ -90,94 +111,145 @@ function FilterContent() {
   };
 
   const isAllPricesActive = !currentMin && !currentMax;
+  const activeFilterCount = [currentMin || currentMax, currentInstock === "true"].filter(Boolean).length;
+  const hasActiveFilters = activeFilterCount > 0;
+  const activePriceLabel = currentMin || currentMax
+    ? `${currentMin || "0"}€ - ${currentMax || t("anyPrice")}`
+    : null;
+  const presets = [
+    { label: t("underAmount", { amount: 200 }), pMin: "0", pMax: "200" },
+    { label: t("betweenAmounts", { min: 200, max: 500 }), pMin: "200", pMax: "500" },
+    { label: t("betweenAmounts", { min: 500, max: 1000 }), pMin: "500", pMax: "1000" },
+    { label: t("aboveAmount", { amount: 1000 }), pMin: "1000", pMax: "1000000" },
+  ];
 
   return (
-    <div className="space-y-8 border p-5 rounded-xl bg-white shadow-sm">
-      {/* 1. PRICE RANGE */}
-      <div>
-        <h3 className="font-bold mb-4 text-slate-900">Price Range</h3>
+    <div className={cn("space-y-6 rounded-[28px] border border-stone-200 bg-white p-5 shadow-[0_24px_60px_-32px_rgba(68,64,60,0.35)]", className)}>
+      <div className="rounded-3xl border border-[#ecdcc7] bg-[linear-gradient(135deg,#fffaf3_0%,#f7efe3_100%)] p-5 text-slate-900">
+        <div className="mb-3 flex items-start justify-between gap-3">
+          <div>
+            <div className="mb-2 inline-flex rounded-full bg-white/80 p-2 text-[#9a5f2f] shadow-sm">
+              <SlidersHorizontal className="size-4" />
+            </div>
+            <h3 className="text-lg font-semibold">{t("filterTitle")}</h3>
+            <p className="mt-1 text-sm text-slate-600">{t("filterDescription")}</p>
+          </div>
+          {hasActiveFilters ? (
+            <Badge className="rounded-full bg-[#9a5f2f] text-white">
+              {t("activeFilterCount", { count: activeFilterCount })}
+            </Badge>
+          ) : null}
+        </div>
 
-        <div className="space-y-1 mb-6">
+        <div className="flex flex-wrap gap-2">
+          {currentQuery ? (
+            <Badge variant="secondary" className="rounded-full border border-white/70 bg-white/80 px-3 py-1 text-slate-700">
+              <Search className="mr-1 size-3.5" />
+              {t("queryChip", { query: currentQuery })}
+            </Badge>
+          ) : null}
+
+          {activePriceLabel ? (
+            <Badge variant="secondary" className="rounded-full border border-white/70 bg-white/80 px-3 py-1 text-slate-700">
+              <Sparkles className="mr-1 size-3.5" />
+              {t("priceChip", { range: activePriceLabel })}
+            </Badge>
+          ) : null}
+
+          {currentInstock === "true" ? (
+            <Badge variant="secondary" className="rounded-full border border-white/70 bg-white/80 px-3 py-1 text-slate-700">
+              <PackageCheck className="mr-1 size-3.5" />
+              {t("inStockOnly")}
+            </Badge>
+          ) : null}
+
+          {!currentQuery && !hasActiveFilters ? (
+            <p className="text-sm text-slate-600">{t("filterIdle")}</p>
+          ) : null}
+        </div>
+      </div>
+
+      <div className="space-y-4">
+        <div className="flex items-center justify-between gap-3">
+          <div>
+            <h4 className="font-semibold text-slate-900">{t("priceRange")}</h4>
+            <p className="text-sm text-slate-500">{t("priceRangeHint")}</p>
+          </div>
+
           <button
             type="button"
             onClick={clearPriceOnly}
             className={cn(
-              "block text-sm text-left w-full py-1.5 px-2 rounded-md",
+              "rounded-full px-3 py-1.5 text-sm transition-colors",
               isAllPricesActive
-                ? "bg-blue-50 text-blue-700 font-semibold"
-                : "text-slate-600 hover:bg-slate-50"
+                ? "bg-[#f3e7d7] text-[#8b5e34]"
+                : "bg-stone-100 text-slate-600 hover:bg-stone-200"
             )}
           >
-            All Prices
+            {t("allPrices")}
           </button>
-
-          <PresetLink
-            label="Under €200"
-            pMin="0"
-            pMax="200"
-            isActive={isLinkActive("0", "200")}
-            onSelect={applyFilter}
-          />
-          <PresetLink
-            label="€200 - €500"
-            pMin="200"
-            pMax="500"
-            isActive={isLinkActive("200", "500")}
-            onSelect={applyFilter}
-          />
-          <PresetLink
-            label="€500 - €1,000"
-            pMin="500"
-            pMax="1000"
-            isActive={isLinkActive("500", "1000")}
-            onSelect={applyFilter}
-          />
-          <PresetLink
-            label="€1,000+"
-            pMin="1000"
-            pMax="1000000"
-            isActive={isLinkActive("1000", "1000000")}
-            onSelect={applyFilter}
-          />
         </div>
 
-        <div className="grid grid-cols-2 gap-2 mb-4">
-          <div className="space-y-1">
-            <Label className="text-xs text-slate-400">Min</Label>
-            <div className="relative">
-              <span className="absolute left-2 top-1.5 text-slate-400 text-xs">€</span>
-              <Input
-                type="number"
-                value={min}
-                onChange={(e) => setMin(e.target.value)}
-                className="pl-5 h-8 text-sm"
-                placeholder="0"
-                min={0}
-              />
-            </div>
+        <div className="grid gap-2 sm:grid-cols-2 lg:grid-cols-1 xl:grid-cols-2">
+          {presets.map((preset) => (
+            <PresetLink
+              key={`${preset.pMin}-${preset.pMax}`}
+              label={preset.label}
+              pMin={preset.pMin}
+              pMax={preset.pMax}
+              isActive={isLinkActive(preset.pMin, preset.pMax)}
+              onSelect={applyFilter}
+            />
+          ))}
+        </div>
+
+        <div className="rounded-2xl border border-stone-200 bg-stone-50/70 p-4">
+          <div className="mb-3">
+            <h5 className="font-medium text-slate-900">{t("customRange")}</h5>
+            <p className="text-sm text-slate-500">{t("customRangeHint")}</p>
           </div>
 
-          <div className="space-y-1">
-            <Label className="text-xs text-slate-400">Max</Label>
-            <div className="relative">
-              <span className="absolute left-2 top-1.5 text-slate-400 text-xs">€</span>
-              <Input
-                type="number"
-                value={max}
-                onChange={(e) => setMax(e.target.value)}
-                className="pl-5 h-8 text-sm"
-                placeholder="Any"
-                min={0}
-              />
+          <div className="grid grid-cols-2 gap-3">
+            <div className="space-y-1">
+              <Label className="text-xs text-slate-400">{t("minPrice")}</Label>
+              <div className="relative">
+                <span className="absolute left-2 top-1.5 text-slate-400 text-xs">€</span>
+                <Input
+                  type="number"
+                  value={min}
+                  onChange={(e) => setMin(e.target.value)}
+                  className="pl-5 h-8 text-sm"
+                  placeholder="0"
+                  min={0}
+                />
+              </div>
+            </div>
+
+            <div className="space-y-1">
+              <Label className="text-xs text-slate-400">{t("maxPrice")}</Label>
+              <div className="relative">
+                <span className="absolute left-2 top-1.5 text-slate-400 text-xs">€</span>
+                <Input
+                  type="number"
+                  value={max}
+                  onChange={(e) => setMax(e.target.value)}
+                  className="pl-5 h-8 text-sm"
+                  placeholder={t("anyPrice")}
+                  min={0}
+                />
+              </div>
             </div>
           </div>
         </div>
       </div>
 
-      {/* 2. AVAILABILITY */}
-      <div>
-        <h3 className="font-bold mb-4 text-slate-900">Availability</h3>
-        <div className="flex items-center space-x-2">
+      <div className="rounded-2xl border border-stone-200 bg-white p-4">
+        <div className="mb-4">
+          <h4 className="font-semibold text-slate-900">{t("availability")}</h4>
+          <p className="text-sm text-slate-500">{t("availabilityHint")}</p>
+        </div>
+
+        <div className="flex items-center space-x-3 rounded-2xl border border-stone-200 bg-stone-50 px-3 py-3">
           <Checkbox
             id="instock"
             checked={instock}
@@ -191,29 +263,42 @@ function FilterContent() {
             htmlFor="instock"
             className={cn(
               "text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70 cursor-pointer",
-              instock ? "text-blue-700" : "text-slate-700"
+              instock ? "text-[#8b5e34]" : "text-slate-700"
             )}
           >
-            In Stock Only
+            {t("inStockOnly")}
           </label>
         </div>
+
+        <p className="mt-3 text-xs text-slate-500">{t("stockReady")}</p>
       </div>
 
-      <Button
-        type="button"
-        onClick={() => applyFilter()}
-        className="w-full cursor-pointer h-10 bg-slate-900 hover:bg-slate-800"
-      >
-        Apply Filter
-      </Button>
+      <div className="grid gap-2 sm:grid-cols-2 lg:grid-cols-1 xl:grid-cols-2">
+        <Button
+          type="button"
+          variant="outline"
+          onClick={clearAllFilters}
+          className="h-11 cursor-pointer rounded-xl border-stone-300 bg-white text-slate-700 hover:bg-stone-50"
+        >
+          {t("clearFilters")}
+        </Button>
+
+        <Button
+          type="button"
+          onClick={() => applyFilter()}
+          className="h-11 cursor-pointer rounded-xl bg-slate-900 hover:bg-slate-800"
+        >
+          {t("applyFilters")}
+        </Button>
+      </div>
     </div>
   );
 }
 
-export function FilterSidebar() {
+export function FilterSidebar({ className }: FilterSidebarProps) {
   return (
     <Suspense fallback={<div className="p-4 border rounded-xl h-64 bg-slate-50 animate-pulse" />}>
-      <FilterContent />
+      <FilterContent className={className} />
     </Suspense>
   );
 }

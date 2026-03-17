@@ -7,8 +7,17 @@ import { auth } from "@/auth";
 import { Link } from "@/lib/i18n/routing";
 import { Button } from "@/components/ui/button";
 import { FilterSidebar } from "@/components/shop/filter-sidebar";
+import {
+  Sheet,
+  SheetContent,
+  SheetDescription,
+  SheetHeader,
+  SheetTitle,
+  SheetTrigger,
+} from "@/components/ui/sheet";
 import { getLocaleValue, type LocalizedText } from "@/lib/i18n/get-locale-value";
 import { getTranslations } from "next-intl/server";
+import { SlidersHorizontal } from "lucide-react";
 
 type RouteParams = { locale: string; slug: string };
 type RouteSearchParams = Record<string, string | undefined>;
@@ -113,6 +122,7 @@ export default async function CategoryPage({
 
   const visibleProducts = filterVisibleProducts(productsList, locale, normalizedQuery);
   const preservedParams = createPreservedParams(sp);
+  const activeFilterCount = [sp.min || sp.max, sp.instock === "true"].filter(Boolean).length;
 
   const clearFiltersHref = rawQuery ? `/category/all?q=${encodeURIComponent(rawQuery)}` : "/category/all";
 
@@ -140,9 +150,28 @@ export default async function CategoryPage({
           <p className="text-slate-500">{t("productsFound", { count: visibleProducts.length })}</p>
         </div>
 
-        <div className="flex items-center gap-2">
+        <div className="flex flex-wrap items-center gap-2">
+          <Sheet>
+            <SheetTrigger asChild>
+              <Button variant="outline" className="h-10 rounded-full border-stone-300 bg-white text-slate-700 hover:bg-stone-50 lg:hidden">
+                <SlidersHorizontal className="mr-2 size-4" />
+                {t("openFilters")}
+                {activeFilterCount > 0 ? ` (${activeFilterCount})` : ""}
+              </Button>
+            </SheetTrigger>
+            <SheetContent side="left" className="w-full max-w-md overflow-y-auto bg-[#fffaf4] p-0">
+              <SheetHeader className="border-b border-stone-200 px-6 py-5 text-left">
+                <SheetTitle>{t("filterTitle")}</SheetTitle>
+                <SheetDescription>{t("filterDescription")}</SheetDescription>
+              </SheetHeader>
+              <div className="p-4">
+                <FilterSidebar />
+              </div>
+            </SheetContent>
+          </Sheet>
+
           <span className="text-sm text-slate-600">{t("sortBy")}</span>
-          <div className="flex gap-2 text-sm font-medium">
+          <div className="flex flex-wrap gap-2 text-sm font-medium">
             <Link
               href={createSortHref(preservedParams, "newest")}
               className={`px-3 py-1 rounded-md transition-colors ${
@@ -181,7 +210,7 @@ export default async function CategoryPage({
 
       <div className="grid grid-cols-1 lg:grid-cols-4 gap-10">
         <div className="hidden lg:block">
-          <FilterSidebar />
+          <FilterSidebar className="sticky top-24" />
         </div>
 
         <div className="lg:col-span-3">
