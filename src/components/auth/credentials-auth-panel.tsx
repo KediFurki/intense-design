@@ -2,7 +2,7 @@
 
 import { startTransition, useState } from "react";
 import { signIn } from "next-auth/react";
-import { useLocale } from "next-intl";
+import { useLocale, useTranslations } from "next-intl";
 import { toast } from "sonner";
 import { Globe, MessagesSquare, KeyRound, Sparkles } from "lucide-react";
 import { useRouter } from "@/lib/i18n/routing";
@@ -34,6 +34,7 @@ const initialRegister: FormState = {
 
 export default function CredentialsAuthPanel() {
   const locale = useLocale();
+  const t = useTranslations("Auth");
   const router = useRouter();
   const [activeTab, setActiveTab] = useState("signin");
   const [signInForm, setSignInForm] = useState<FormState>(initialSignIn);
@@ -65,7 +66,7 @@ export default function CredentialsAuthPanel() {
     setIsSigningIn(false);
 
     if (!result || result.error) {
-      toast.error("Invalid email or password");
+      toast.error(t("invalidCredentials"));
       return;
     }
 
@@ -87,11 +88,11 @@ export default function CredentialsAuthPanel() {
       setIsRegistering(false);
 
       if (!result.success) {
-        toast.error(result.error || "Could not create account");
+        toast.error(result.error || t("createAccountFailed"));
         return;
       }
 
-      toast.success("Account created successfully");
+      toast.success(t("accountCreated"));
       setRegisterForm(initialRegister);
       setSignInForm((current) => ({ ...current, email: registerForm.email.trim().toLowerCase() }));
       setActiveTab("signin");
@@ -112,29 +113,29 @@ export default function CredentialsAuthPanel() {
           </div>
           <div>
             <p className="text-xs font-semibold uppercase tracking-[0.28em] text-[#b07d55]">Intense Design</p>
-            <p className="text-sm text-stone-500">Tailored interiors, crafted for modern living.</p>
+            <p className="text-sm text-stone-500">{t("brandSlogan")}</p>
           </div>
         </div>
 
         <div className="relative px-10 pb-16 pt-8">
           <div className="max-w-xl space-y-6">
             <span className="inline-flex rounded-full border border-[#ead8c2] bg-white/70 px-4 py-2 text-xs font-medium uppercase tracking-[0.24em] text-[#a66a3f] shadow-sm">
-              Autumn / Summer Collection
+              {t("collectionBadge")}
             </span>
             <h1 className="text-5xl font-semibold leading-tight tracking-[-0.04em] text-stone-900">
-              Access a refined furniture experience designed around your projects.
+              {t("heroTitle")}
             </h1>
             <p className="max-w-lg text-base leading-7 text-stone-600">
-              Save favorites, manage premium orders, and collaborate with Intense Design on custom interiors with a calm, elevated client area.
+              {t("heroDescription")}
             </p>
           </div>
         </div>
 
         <div className="relative px-10 pb-10">
           <div className="rounded-[2rem] border border-white/70 bg-white/65 p-7 shadow-[0_24px_80px_rgba(111,78,55,0.08)] backdrop-blur-xl">
-            <p className="text-sm uppercase tracking-[0.2em] text-[#b07d55]">Client Access</p>
+            <p className="text-sm uppercase tracking-[0.2em] text-[#b07d55]">{t("clientAccess")}</p>
             <p className="mt-4 text-lg leading-8 text-stone-700">
-              Thoughtful spaces begin with clear communication, elegant workflows, and trusted access to every detail of the order journey.
+              {t("clientAccessDescription")}
             </p>
           </div>
         </div>
@@ -148,10 +149,10 @@ export default function CredentialsAuthPanel() {
             </div>
             <div className="space-y-2">
               <CardTitle className="text-3xl font-semibold tracking-[-0.03em] text-stone-900">
-                Welcome back
+                {t("welcomeBack")}
               </CardTitle>
               <CardDescription className="text-sm leading-6 text-stone-500">
-                Sign in to manage orders and saved pieces, or create a new account to start planning your next interior project.
+                {t("panelDescription")}
               </CardDescription>
             </div>
           </CardHeader>
@@ -160,41 +161,41 @@ export default function CredentialsAuthPanel() {
             <Tabs value={activeTab} onValueChange={setActiveTab} className="gap-6">
               <TabsList className="grid h-12 w-full grid-cols-2 rounded-full bg-[#f7efe4] p-1">
                 <TabsTrigger value="signin" className="rounded-full text-sm font-medium text-stone-600 data-[state=active]:bg-white data-[state=active]:text-stone-900">
-                  Sign In
+                  {t("signInTab")}
                 </TabsTrigger>
                 <TabsTrigger value="register" className="rounded-full text-sm font-medium text-stone-600 data-[state=active]:bg-white data-[state=active]:text-stone-900">
-                  Create Account
+                  {t("createAccountTab")}
                 </TabsTrigger>
               </TabsList>
 
               <TabsContent value="signin" className="mt-0">
                 <form className="space-y-5" onSubmit={handleCredentialsSignIn}>
                   <div className="space-y-2">
-                    <Label htmlFor="signin-email">Email</Label>
+                    <Label htmlFor="signin-email">{t("email")}</Label>
                     <Input
                       id="signin-email"
                       type="email"
                       value={signInForm.email}
                       onChange={(event) => updateSignInField("email", event.target.value)}
-                      placeholder="you@example.com"
+                      placeholder={t("emailPlaceholder")}
                       className="h-12 rounded-xl border-[#e8dccf] bg-white"
                       required
                     />
                   </div>
                   <div className="space-y-2">
-                    <Label htmlFor="signin-password">Password</Label>
+                    <Label htmlFor="signin-password">{t("password")}</Label>
                     <Input
                       id="signin-password"
                       type="password"
                       value={signInForm.password}
                       onChange={(event) => updateSignInField("password", event.target.value)}
-                      placeholder="Your password"
+                      placeholder={t("passwordPlaceholder")}
                       className="h-12 rounded-xl border-[#e8dccf] bg-white"
                       required
                     />
                   </div>
                   <Button type="submit" className="h-12 w-full rounded-xl bg-[#6f4e37] text-white hover:bg-[#5d412e]" disabled={isSigningIn}>
-                    {isSigningIn ? "Signing in..." : "Sign In"}
+                    {isSigningIn ? t("signingIn") : t("signIn")}
                   </Button>
                 </form>
               </TabsContent>
@@ -202,42 +203,42 @@ export default function CredentialsAuthPanel() {
               <TabsContent value="register" className="mt-0">
                 <form className="space-y-5" onSubmit={handleRegister}>
                   <div className="space-y-2">
-                    <Label htmlFor="register-name">Full Name</Label>
+                    <Label htmlFor="register-name">{t("fullName")}</Label>
                     <Input
                       id="register-name"
                       value={registerForm.name}
                       onChange={(event) => updateRegisterField("name", event.target.value)}
-                      placeholder="Your full name"
+                      placeholder={t("fullNamePlaceholder")}
                       className="h-12 rounded-xl border-[#e8dccf] bg-white"
                       required
                     />
                   </div>
                   <div className="space-y-2">
-                    <Label htmlFor="register-email">Email</Label>
+                    <Label htmlFor="register-email">{t("email")}</Label>
                     <Input
                       id="register-email"
                       type="email"
                       value={registerForm.email}
                       onChange={(event) => updateRegisterField("email", event.target.value)}
-                      placeholder="you@example.com"
+                      placeholder={t("emailPlaceholder")}
                       className="h-12 rounded-xl border-[#e8dccf] bg-white"
                       required
                     />
                   </div>
                   <div className="space-y-2">
-                    <Label htmlFor="register-password">Password</Label>
+                    <Label htmlFor="register-password">{t("password")}</Label>
                     <Input
                       id="register-password"
                       type="password"
                       value={registerForm.password}
                       onChange={(event) => updateRegisterField("password", event.target.value)}
-                      placeholder="At least 6 characters"
+                      placeholder={t("passwordHint")}
                       className="h-12 rounded-xl border-[#e8dccf] bg-white"
                       required
                     />
                   </div>
                   <Button type="submit" className="h-12 w-full rounded-xl bg-[#6f4e37] text-white hover:bg-[#5d412e]" disabled={isRegistering}>
-                    {isRegistering ? "Creating account..." : "Create Account"}
+                    {isRegistering ? t("creatingAccount") : t("createAccount")}
                   </Button>
                 </form>
               </TabsContent>
@@ -247,7 +248,7 @@ export default function CredentialsAuthPanel() {
               <div className="relative">
                 <Separator className="bg-[#efe3d5]" />
                 <span className="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 bg-white px-4 text-xs font-medium uppercase tracking-[0.22em] text-stone-400">
-                  Or continue with
+                  {t("orContinueWith")}
                 </span>
               </div>
 

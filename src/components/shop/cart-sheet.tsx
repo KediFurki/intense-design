@@ -86,7 +86,7 @@ export default function CartSheet() {
                                     {item.variantName}
                                   </p>
                                 )}
-                                <p className="text-xs text-slate-500 mt-0.5">{item.categoryName || "Furniture"}</p>
+                                <p className="text-xs text-slate-500 mt-0.5">{item.categoryName || t('fallbackCategory')}</p>
                             </div>
                             <button 
                                 onClick={() => cart.removeItem(item.id, item.variantId)}
