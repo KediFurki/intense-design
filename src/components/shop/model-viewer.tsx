@@ -17,6 +17,7 @@ interface ModelViewerProps {
   src: string;
   poster: string;
   alt: string;
+  selectedColor?: string;
 }
 
 const bunnyBaseUrl = process.env.NEXT_PUBLIC_BUNNY_URL?.trim().replace(/\/$/, "");
@@ -51,6 +52,7 @@ export default function ModelViewer(props: Readonly<ModelViewerProps>) {
       {...props}
       src={resolveMediaUrl(props.src)}
       poster={resolveMediaUrl(props.poster)}
+      selectedColor={props.selectedColor}
     />
   );
 }

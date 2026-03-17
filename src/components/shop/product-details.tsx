@@ -126,7 +126,7 @@ export function ProductDetails({ product, variants }: Readonly<ProductDetailsPro
         return renderGridVisualizer();
     }
     if (product.modelUrl && !selectedVariant && !isZoomed) {
-        return <ModelViewer src={product.modelUrl} poster={mainImage || ""} alt={`3D model of ${getLocalized(product.name)}`} />;
+      return <ModelViewer src={product.modelUrl} poster={mainImage || ""} alt={`3D model of ${getLocalized(product.name)}`} selectedColor={selectedAttrs?.color || selectedAttrs?.colorCode} />;
     }
     if (mainImage) {
         return (

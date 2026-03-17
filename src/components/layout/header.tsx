@@ -1,11 +1,11 @@
-import { auth, signOut } from "@/auth";
+"use client";
+
+import { useState } from "react";
 import Image from "next/image";
 import { Button } from "@/components/ui/button";
 import { Link as I18nLink } from "@/lib/i18n/routing";
 import { LogOut, ChevronDown, Heart, Menu, Search, User2 } from "lucide-react";
 import CartSheet from "@/components/shop/cart-sheet";
-import { db } from "@/server/db";
-import { categories } from "@/server/db/schema";
 import LanguageSwitcher from "./language-switcher";
 import {
   Sheet,
@@ -23,27 +23,38 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
-import { getTranslations } from "next-intl/server";
-import { getLocaleValue, type LocalizedText } from "@/lib/i18n/get-locale-value";
 
 type HeaderProps = {
   locale: string;
+  categoryList: HeaderCategory[];
+  labels: HeaderLabels;
+  sessionUser: HeaderSessionUser | null;
+  signOutAction: () => Promise<void>;
 };
 
 type HeaderCategory = {
   id: string;
   slug: string;
-  name: LocalizedText;
+  name: string;
 };
 
-function findCategoryHref(
-  categoryList: HeaderCategory[],
-  locale: string,
-  searchTerms: string[],
-  fallbackSlug: string,
-) {
+type HeaderLabels = {
+  home: string;
+  about: string;
+  profile: string;
+  admin: string;
+  logout: string;
+  login: string;
+};
+
+type HeaderSessionUser = {
+  name?: string | null;
+  role?: string | null;
+};
+
+function findCategoryHref(categoryList: HeaderCategory[], searchTerms: string[], fallbackSlug: string) {
   const match = categoryList.find((category) => {
-    const localized = getLocaleValue(category.name, locale).toLowerCase();
+    const localized = category.name.toLowerCase();
     const slug = category.slug.toLowerCase();
 
     return searchTerms.some((term) => localized.includes(term) || slug.includes(term));
@@ -52,33 +63,31 @@ function findCategoryHref(
   return `/category/${match?.slug || fallbackSlug}`;
 }
 
-export default async function Header({ locale }: Readonly<HeaderProps>) {
-  const session = await auth();
-  const categoryList = await db.select().from(categories) as HeaderCategory[];
-  const t = await getTranslations("Navigation");
+export default function Header({ locale, categoryList, labels, sessionUser, signOutAction }: Readonly<HeaderProps>) {
+  const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
 
   const primaryLinks = [
-    { label: t("home"), href: "/" },
+    { label: labels.home, href: "/" },
     {
       label: "Living Room",
-      href: findCategoryHref(categoryList, locale, ["living", "sofa", "lounge", "salon"], "living-room"),
+      href: findCategoryHref(categoryList, ["living", "sofa", "lounge", "salon"], "living-room"),
     },
     {
       label: "Bedroom",
-      href: findCategoryHref(categoryList, locale, ["bedroom", "bed", "sleep"], "bedroom"),
+      href: findCategoryHref(categoryList, ["bedroom", "bed", "sleep"], "bedroom"),
     },
     {
       label: "Dining",
-      href: findCategoryHref(categoryList, locale, ["dining", "table", "yemek"], "dining"),
+      href: findCategoryHref(categoryList, ["dining", "table", "yemek"], "dining"),
     },
-    { label: t("about"), href: "/about" },
+    { label: labels.about, href: "/about" },
   ];
 
   return (
     <header className="sticky top-0 z-50 w-full border-b border-black/5 bg-white/80 backdrop-blur-md supports-backdrop-filter:bg-[#fffaf3]/72">
       <div className="container mx-auto flex h-20 items-center justify-between px-4 sm:px-6 lg:px-8">
         <div className="flex items-center gap-3 md:gap-5 lg:w-[280px]">
-          <Sheet>
+          <Sheet open={isMobileMenuOpen} onOpenChange={setIsMobileMenuOpen}>
             <SheetTrigger asChild>
               <Button
                 type="button"
@@ -106,6 +115,7 @@ export default async function Header({ locale }: Readonly<HeaderProps>) {
                     <I18nLink
                       key={item.label}
                       href={item.href}
+                      onClick={() => setIsMobileMenuOpen(false)}
                       className="flex items-center justify-between rounded-2xl px-4 py-3 text-sm font-medium tracking-wide text-[#4e3629] transition-colors hover:bg-white/80 hover:text-[#9a5f2f]"
                     >
                       <span>{item.label}</span>
@@ -123,37 +133,38 @@ export default async function Header({ locale }: Readonly<HeaderProps>) {
                       <I18nLink
                         key={cat.id}
                         href={`/category/${cat.slug}`}
+                        onClick={() => setIsMobileMenuOpen(false)}
                         className="rounded-full border border-[#eadfce] bg-white/80 px-3 py-2 text-xs font-medium text-[#6f4e37] transition-colors hover:border-[#d1b191] hover:text-[#9a5f2f]"
                       >
-                        {getLocaleValue(cat.name, locale)}
+                        {cat.name}
                       </I18nLink>
                     ))}
                   </div>
                 </div>
 
                 <div className="space-y-3 border-t border-[#eadfce] pt-6">
-                  {session?.user ? (
+                  {sessionUser ? (
                     <>
-                      <I18nLink href="/account" className="flex items-center gap-3 text-sm font-medium text-[#4e3629]">
+                      <I18nLink href="/account" onClick={() => setIsMobileMenuOpen(false)} className="flex items-center gap-3 text-sm font-medium text-[#4e3629]">
                         <User2 className="size-4 text-[#b88a63]" />
-                        {t("profile")}
+                        {labels.profile}
                       </I18nLink>
-                      {session.user.role === "admin" && (
-                        <I18nLink href="/admin" className="flex items-center gap-3 text-sm font-medium text-[#9a5f2f]">
+                      {sessionUser.role === "admin" && (
+                        <I18nLink href="/admin" onClick={() => setIsMobileMenuOpen(false)} className="flex items-center gap-3 text-sm font-medium text-[#9a5f2f]">
                           <User2 className="size-4" />
-                          {t("admin")}
+                          {labels.admin}
                         </I18nLink>
                       )}
-                      <form action={async () => { "use server"; await signOut(); }}>
+                      <form action={signOutAction}>
                         <button type="submit" className="flex items-center gap-3 text-sm font-medium text-red-700">
                           <LogOut className="size-4" />
-                          {t("logout")}
+                          {labels.logout}
                         </button>
                       </form>
                     </>
                   ) : (
-                    <I18nLink href="/login" className="inline-flex rounded-full bg-[#6f4e37] px-5 py-3 text-sm font-medium text-white shadow-sm transition-colors hover:bg-[#5d412e]">
-                      {t("login")}
+                    <I18nLink href="/login" onClick={() => setIsMobileMenuOpen(false)} className="inline-flex rounded-full bg-[#6f4e37] px-5 py-3 text-sm font-medium text-white shadow-sm transition-colors hover:bg-[#5d412e]">
+                      {labels.login}
                     </I18nLink>
                   )}
                 </div>
@@ -212,27 +223,27 @@ export default async function Header({ locale }: Readonly<HeaderProps>) {
 
           <CartSheet />
 
-          {session?.user ? (
+          {sessionUser ? (
             <DropdownMenu>
               <DropdownMenuTrigger asChild>
                 <Button variant="ghost" size="icon" className="hidden rounded-full md:inline-flex">
                   <div className="flex h-9 w-9 items-center justify-center rounded-full bg-gradient-to-br from-[#c8996d] via-[#b37a4c] to-[#6f4e37] text-xs font-semibold text-white shadow-md">
-                    {session.user.name?.charAt(0).toUpperCase()}
+                    {sessionUser.name?.charAt(0).toUpperCase()}
                   </div>
                 </Button>
               </DropdownMenuTrigger>
               <DropdownMenuContent align="end" className="w-56 rounded-2xl border-[#eadfce] bg-white/95 p-2 shadow-xl">
-                <DropdownMenuLabel>{t("profile")}</DropdownMenuLabel>
+                <DropdownMenuLabel>{labels.profile}</DropdownMenuLabel>
                 <DropdownMenuSeparator />
-                <I18nLink href="/account"><DropdownMenuItem className="cursor-pointer rounded-xl">{t("profile")}</DropdownMenuItem></I18nLink>
-                {session.user.role === "admin" && (
-                  <I18nLink href="/admin"><DropdownMenuItem className="cursor-pointer rounded-xl font-semibold text-[#9a5f2f]">{t("admin")}</DropdownMenuItem></I18nLink>
+                <I18nLink href="/account"><DropdownMenuItem className="cursor-pointer rounded-xl">{labels.profile}</DropdownMenuItem></I18nLink>
+                {sessionUser.role === "admin" && (
+                  <I18nLink href="/admin"><DropdownMenuItem className="cursor-pointer rounded-xl font-semibold text-[#9a5f2f]">{labels.admin}</DropdownMenuItem></I18nLink>
                 )}
                 <DropdownMenuSeparator />
-                <form action={async () => { "use server"; await signOut(); }}>
+                <form action={signOutAction}>
                   <button type="submit" className="w-full text-left">
                     <DropdownMenuItem className="cursor-pointer rounded-xl text-red-600">
-                      <LogOut className="mr-2 h-4 w-4" /> {t("logout")}
+                      <LogOut className="mr-2 h-4 w-4" /> {labels.logout}
                     </DropdownMenuItem>
                   </button>
                 </form>
@@ -240,7 +251,7 @@ export default async function Header({ locale }: Readonly<HeaderProps>) {
             </DropdownMenu>
           ) : (
             <I18nLink href="/login" className="hidden md:inline-flex">
-              <Button className="rounded-full bg-[#6f4e37] px-5 text-white shadow-sm hover:bg-[#5d412e]">{t("login")}</Button>
+              <Button className="rounded-full bg-[#6f4e37] px-5 text-white shadow-sm hover:bg-[#5d412e]">{labels.login}</Button>
             </I18nLink>
           )}
         </div>
