@@ -22,7 +22,7 @@ import { deleteAddress } from "@/server/actions/account";
 
 export function AddressCard({
   addr,
-}: {
+}: Readonly<{
   addr: {
     id: string;
     title: string;
@@ -36,7 +36,7 @@ export function AddressCard({
     zipCode: string;
     country: string;
   };
-}) {
+}>) {
   const t = useTranslations("Account");
   const locale = useLocale();
 
@@ -55,46 +55,47 @@ export function AddressCard({
     country: addr.country,
   };
 
-  const cityLine = `${addr.zipCode} ${addr.city}${addr.state ? `, ${addr.state}` : ""}`;
+  const stateSuffix = addr.state ? `, ${addr.state}` : "";
+  const cityLine = `${addr.zipCode} ${addr.city}${stateSuffix}`;
 
   return (
-    <div className="border rounded-xl bg-white shadow-sm">
-      <div className="flex items-start justify-between gap-3 p-4">
+    <div className="rounded-[24px] border border-stone-100 bg-white shadow-sm transition-shadow hover:shadow-md">
+      <div className="flex flex-col gap-4 p-5 sm:flex-row sm:items-start sm:justify-between">
         <div className="min-w-0">
           <div className="flex items-center gap-2">
-            <div className="h-9 w-9 rounded-lg bg-slate-50 border flex items-center justify-center">
-              <MapPin size={16} className="text-slate-700" />
+            <div className="flex h-10 w-10 items-center justify-center rounded-xl border border-[#eadfce] bg-[#faf4ea]">
+              <MapPin size={16} className="text-[#8b5e34]" />
             </div>
             <div className="min-w-0">
-              <div className="font-semibold text-slate-900 truncate">{addr.title}</div>
-              <div className="text-xs text-slate-500 truncate">
+              <div className="truncate font-semibold text-stone-900">{addr.title}</div>
+              <div className="truncate text-xs text-stone-500">
                 {addr.city}, {addr.country}
               </div>
             </div>
           </div>
 
-          <div className="mt-3 text-sm text-slate-700 leading-5">
+          <div className="mt-4 text-sm leading-6 text-stone-600">
             {(addr.firstName || addr.lastName || addr.phone || addr.email) ? (
               <div className="mb-2 text-sm">
-                <div className="font-medium text-slate-800">
+                <div className="font-medium text-stone-900">
                   {[addr.firstName, addr.lastName].filter(Boolean).join(" ")}
                 </div>
-                {addr.phone ? <div className="text-slate-600">{addr.phone}</div> : null}
-                {addr.email ? <div className="text-slate-600">{addr.email}</div> : null}
+                {addr.phone ? <div className="text-stone-600">{addr.phone}</div> : null}
+                {addr.email ? <div className="text-stone-600">{addr.email}</div> : null}
               </div>
             ) : null}
             <div>{addr.address}</div>
-            <div className="text-slate-600">{cityLine}</div>
-            <div className="text-slate-600">{addr.country}</div>
+            <div className="text-stone-600">{cityLine}</div>
+            <div className="text-stone-600">{addr.country}</div>
           </div>
         </div>
 
-        <div className="flex shrink-0 items-center gap-2">
+        <div className="flex shrink-0 items-center gap-2 self-start">
           <AddressEditDialog addressId={addr.id} initial={initial} />
 
           <Dialog>
             <DialogTrigger asChild>
-              <Button variant="outline" size="sm" className="gap-2">
+              <Button variant="outline" size="sm" className="gap-2 rounded-full border-stone-300 bg-white text-stone-700 hover:bg-stone-50">
                 <Trash2 size={14} /> {t("delete")}
               </Button>
             </DialogTrigger>

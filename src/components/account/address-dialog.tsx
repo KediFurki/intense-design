@@ -39,12 +39,12 @@ function AddressForm({
   submitLabel,
   onSubmit,
   disabled,
-}: {
+}: Readonly<{
   initial: AddressFormValues;
   submitLabel: string;
   onSubmit: (formData: FormData) => Promise<void>;
   disabled?: boolean;
-}) {
+}>) {
   const t = useTranslations("Account");
 
   return (
@@ -136,8 +136,8 @@ export function AddressDialog() {
   return (
     <Dialog open={open} onOpenChange={setOpen}>
       <DialogTrigger asChild>
-        <Button variant="outline" className="gap-2">
-          <Plus size={16} /> {t("addNewAddress")}
+        <Button variant="outline" className="gap-2 rounded-full border-stone-300 bg-white text-stone-700 hover:bg-stone-50">
+          <Plus size={16} /> {t("addAddress")}
         </Button>
       </DialogTrigger>
 
@@ -173,10 +173,10 @@ export function AddressDialog() {
 export function AddressEditDialog({
   addressId,
   initial,
-}: {
+}: Readonly<{
   addressId: string;
   initial: AddressFormValues;
-}) {
+}>) {
   const t = useTranslations("Account");
   const locale = useLocale();
   const [open, setOpen] = useState(false);
@@ -185,7 +185,7 @@ export function AddressEditDialog({
   return (
     <Dialog open={open} onOpenChange={setOpen}>
       <DialogTrigger asChild>
-        <Button variant="outline" size="sm" className="gap-2">
+        <Button variant="outline" size="sm" className="gap-2 rounded-full border-stone-300 bg-white text-stone-700 hover:bg-stone-50">
           <Pencil size={14} /> {t("edit")}
         </Button>
       </DialogTrigger>
