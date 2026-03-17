@@ -168,10 +168,58 @@
   varsayılan olarak ayarlamak için bu kısım önemlidir.
 */
 @layer base {
+  html {
+    width: 100%;
+    overflow-x: clip;
+    -webkit-text-size-adjust: 100%;
+    text-size-adjust: 100%;
+  }
+
   * {
     @apply border-border outline-ring/50;
+    box-sizing: border-box;
   }
+
+  html,
+  body {
+    max-width: 100%;
+  }
+
   body {
     @apply bg-background text-foreground;
+    overflow-x: clip;
+    min-width: 320px;
+  }
+
+  img,
+  picture,
+  video,
+  canvas,
+  svg {
+    max-width: 100%;
+  }
+
+  #__next,
+  main {
+    max-width: 100%;
+    overflow-x: clip;
+  }
+
+  @media (max-width: 767px) {
+    input,
+    textarea,
+    select,
+    [data-slot="input"],
+    [data-slot="textarea"],
+    [data-slot="select-trigger"] {
+      font-size: 16px;
+      line-height: 1.4;
+    }
+
+    [data-slot="dialog-content"],
+    [data-slot="sheet-content"],
+    [data-slot="card"] {
+      max-width: calc(100vw - 1rem);
+    }
   }
 }

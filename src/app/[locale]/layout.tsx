@@ -10,10 +10,17 @@ import { categories } from "@/server/db/schema";
 import { NextIntlClientProvider } from "next-intl";
 import { getMessages } from "next-intl/server";
 import { notFound } from "next/navigation";
+import type { Viewport } from "next";
 import { getLocaleValue } from "@/lib/i18n/get-locale-value";
 import { routing } from "@/lib/i18n/routing";
 
 const inter = Inter({ subsets: ["latin"] });
+
+export const viewport: Viewport = {
+  width: "device-width",
+  initialScale: 1,
+  viewportFit: "cover",
+};
 
 type AppLocale = (typeof routing.locales)[number];
 
