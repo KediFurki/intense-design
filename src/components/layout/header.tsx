@@ -103,8 +103,8 @@ export default function Header({ categoryList, sessionUser, signOutAction }: Rea
 
   return (
     <header className="sticky top-0 z-50 w-full border-b border-black/5 bg-white/80 backdrop-blur-md supports-backdrop-filter:bg-[#fffaf3]/72">
-      <div className="container mx-auto flex h-20 items-center justify-between px-4 sm:px-6 lg:px-8">
-        <div className="flex items-center gap-3 md:gap-5 lg:w-[280px]">
+      <div className="container mx-auto flex min-h-16 items-center justify-between gap-3 px-4 py-3 sm:min-h-20 sm:px-6 lg:px-8">
+        <div className="flex min-w-0 flex-1 items-center gap-3 md:gap-5 lg:w-[280px] lg:flex-none">
           <Sheet open={isMobileMenuOpen} onOpenChange={setIsMobileMenuOpen}>
             <SheetTrigger asChild>
               <Button
@@ -161,6 +161,10 @@ export default function Header({ categoryList, sessionUser, signOutAction }: Rea
                 </div>
 
                 <div className="space-y-3 border-t border-[#eadfce] pt-6">
+                  <div className="rounded-2xl border border-[#eadfce] bg-white/80 px-3 py-2 md:hidden">
+                    <LanguageSwitcher />
+                  </div>
+
                   {sessionUser ? (
                     <>
                       <I18nLink href="/account" onClick={() => setIsMobileMenuOpen(false)} className="flex items-center gap-3 text-sm font-medium text-[#4e3629]">
@@ -222,8 +226,10 @@ export default function Header({ categoryList, sessionUser, signOutAction }: Rea
           ))}
         </nav>
 
-        <div className="flex items-center justify-end gap-1 sm:gap-2 lg:w-[280px]">
-          <LanguageSwitcher />
+        <div className="flex shrink-0 items-center justify-end gap-1 sm:gap-2 lg:w-[280px]">
+          <div className="hidden md:block">
+            <LanguageSwitcher />
+          </div>
 
           <Dialog open={isSearchOpen} onOpenChange={setIsSearchOpen}>
             <DialogTrigger asChild>
@@ -261,7 +267,7 @@ export default function Header({ categoryList, sessionUser, signOutAction }: Rea
             </DialogContent>
           </Dialog>
 
-          <I18nLink href="/account" className="inline-flex">
+          <I18nLink href="/account" className="hidden md:inline-flex">
             <Button
               type="button"
               variant="ghost"
