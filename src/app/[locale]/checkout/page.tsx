@@ -2,11 +2,12 @@
 
 import { useCart } from "@/hooks/use-cart";
 import { Button } from "@/components/ui/button";
+import { Checkbox } from "@/components/ui/checkbox";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Separator } from "@/components/ui/separator";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { ArrowLeft, CreditCard, Building2, Truck } from "lucide-react";
+import { ArrowLeft, Building2, CreditCard, Lock, Truck } from "lucide-react";
 import { Link as I18nLink, useRouter } from "@/lib/i18n/routing";
 import Image from "next/image";
 import { useEffect, useMemo, useState } from "react";
@@ -49,10 +50,16 @@ function getErrorMessage(err: unknown): string {
 }
 
 function normalizePathWithoutDoubleLocale(path: string, locale: string) {
-  // "/tr/tr/checkout/pending" gibi saçmalıkları önlemek için
   const double = `/${locale}/${locale}/`;
   if (path.startsWith(double)) return path.replace(`/${locale}/`, "/");
   return path;
+}
+
+function formatMoneyEUR(locale: string, amountInCents: number) {
+  return new Intl.NumberFormat(locale, {
+    style: "currency",
+    currency: "EUR",
+  }).format((amountInCents ?? 0) / 100);
 }
 
 export default function CheckoutPage() {
@@ -65,13 +72,9 @@ export default function CheckoutPage() {
   const [isLoading, setIsLoading] = useState(false);
   const [paymentChoice, setPaymentChoice] =
     useState<PaymentChoice>("stripe_full");
-
-  // Address selection
   const [savedAddresses, setSavedAddresses] = useState<SavedAddress[]>([]);
   const [addressesLoading, setAddressesLoading] = useState(false);
   const [selectedAddressId, setSelectedAddressId] = useState<string>("");
-
-  // Save address checkbox (default true; saved address seçilince false olur)
   const [saveAddress, setSaveAddress] = useState(true);
 
   const [form, setForm] = useState({
@@ -91,8 +94,9 @@ export default function CheckoutPage() {
   });
 
   const totalPrice = items.reduce((acc, it) => acc + it.price * it.quantity, 0);
+  const shippingPrice = 0;
+  const finalTotal = totalPrice + shippingPrice;
 
-  // Saved addresses load (logged-in ise gelir; guest ise 401 -> sessiz geç)
   useEffect(() => {
     let mounted = true;
 
@@ -101,7 +105,6 @@ export default function CheckoutPage() {
       try {
         const res = await fetch("/api/account/addresses", { method: "GET" });
         if (!res.ok) {
-          // guest veya unauthorized => normal
           return;
         }
         const data = (await res.json()) as { addresses?: SavedAddress[] };
@@ -109,7 +112,6 @@ export default function CheckoutPage() {
           setSavedAddresses(data.addresses);
         }
       } catch {
-        // sessiz
       } finally {
         if (mounted) setAddressesLoading(false);
       }
@@ -145,8 +147,6 @@ export default function CheckoutPage() {
       address: a.address,
       zipCode: a.zipCode,
     }));
-
-    // Saved address seçildiyse default olarak yeni adres kaydetmeyi kapat
     setSaveAddress(false);
   }
 
@@ -208,7 +208,7 @@ export default function CheckoutPage() {
         if (!res.ok) throw new Error(data?.error || t("stripeCreateFailed"));
         if (!data.url) throw new Error(t("stripeUrlMissing"));
 
-        window.location.href = data.url;
+        globalThis.location.href = data.url;
         return;
       }
 
@@ -236,8 +236,6 @@ export default function CheckoutPage() {
       if (!data.orderId) throw new Error(t("orderIdMissing"));
 
       removeAll();
-
-      // locale prefix'i next-intl router ekler; burada locale basma.
       const target = normalizePathWithoutDoubleLocale(
         `/checkout/pending?oid=${data.orderId}`,
         locale
@@ -252,109 +250,87 @@ export default function CheckoutPage() {
   const showSavedAddressSelect = savedAddresses.length > 0;
 
   return (
-    <div className="min-h-screen bg-slate-50">
-      <div className="max-w-6xl mx-auto px-4 py-8">
-        <div className="mb-6">
+    <div className="min-h-screen bg-stone-50 py-8 sm:py-12">
+      <div className="mx-auto max-w-7xl px-4 sm:px-6">
+        <div className="mb-6 sm:mb-8">
           <I18nLink
             href="/cart"
-            className="inline-flex items-center gap-2 text-slate-600 hover:text-slate-900"
+            className="inline-flex items-center gap-2 text-sm font-medium text-stone-600 transition-colors hover:text-stone-900"
           >
             <ArrowLeft size={16} /> {t("backToCart")}
           </I18nLink>
         </div>
 
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-          <div className="lg:col-span-2">
-            <Card>
-              <CardHeader>
-                <CardTitle>{t("title")}</CardTitle>
+        <section className="mb-6 rounded-[32px] border border-[#eadfce] bg-[linear-gradient(135deg,#fffaf3_0%,#f6edde_55%,#efe3d2_100%)] px-5 py-6 shadow-[0_28px_80px_-48px_rgba(120,91,60,0.35)] sm:px-8 sm:py-8">
+          <div className="max-w-3xl">
+            <div className="mb-3 inline-flex items-center rounded-full border border-white/70 bg-white/75 px-4 py-1.5 text-xs font-semibold uppercase tracking-[0.22em] text-stone-600 shadow-sm">
+              {t("securePayment")}
+            </div>
+            <h1 className="text-3xl font-semibold tracking-tight text-stone-900 sm:text-4xl">
+              {t("title")}
+            </h1>
+            <p className="mt-3 max-w-2xl text-sm leading-7 text-stone-600 sm:text-base">
+              {t("shippingInfo")} · {t("paymentMethod")} · {t("securePayment")}
+            </p>
+          </div>
+        </section>
+
+        <div className="lg:grid lg:grid-cols-12 lg:gap-8">
+          <div className="space-y-6 lg:col-span-8">
+            <Card className="rounded-[28px] border border-stone-100 bg-white shadow-sm">
+              <CardHeader className="border-b border-stone-100 px-5 py-5 sm:px-8 sm:py-7">
+                <CardTitle className="text-xl font-semibold text-stone-900 sm:text-2xl">
+                  {t("shippingInfo")}
+                </CardTitle>
               </CardHeader>
-              <CardContent>
-                <form
-                  id="checkout-form"
-                  onSubmit={handleSubmit}
-                  className="space-y-6"
-                >
-                  {/* Saved addresses */}
-                  <div className="space-y-2">
-                    <div className="flex items-center justify-between">
-                      <Label className="text-slate-800">{t("savedAddresses")}</Label>
+              <CardContent className="px-5 py-5 sm:px-8 sm:py-8">
+                {showSavedAddressSelect ? (
+                  <div className="mb-6 rounded-2xl border border-stone-100 bg-stone-50/70 p-4 sm:p-5">
+                    <div className="mb-3 flex items-center justify-between gap-3">
+                      <Label className="text-sm font-semibold text-stone-800">{t("savedAddresses")}</Label>
                       {addressesLoading ? (
-                        <span className="text-xs text-slate-500">{t("loading")}</span>
+                        <span className="text-xs text-stone-500">{t("loading")}</span>
                       ) : null}
                     </div>
-
-                    {showSavedAddressSelect ? (
-                      <Select
-                        value={selectedAddressId}
-                        onValueChange={(v) => applySavedAddress(v)}
-                      >
-                        <SelectTrigger className="w-full bg-white">
-                          <SelectValue placeholder={t("selectSavedAddress")} />
-                        </SelectTrigger>
-                        <SelectContent>
-                          {savedAddresses.map((a) => (
-                            <SelectItem key={a.id} value={a.id}>
-                              {a.title} — {a.city}, {a.country}
-                            </SelectItem>
-                          ))}
-                        </SelectContent>
-                      </Select>
-                    ) : (
-                      <div className="text-sm text-slate-500">
-                        {t("noSavedAddresses")}
-                      </div>
-                    )}
+                    <Select value={selectedAddressId} onValueChange={(value) => applySavedAddress(value)}>
+                      <SelectTrigger className="h-12 w-full rounded-xl border-stone-200 bg-white">
+                        <SelectValue placeholder={t("selectSavedAddress")} />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {savedAddresses.map((address) => (
+                          <SelectItem key={address.id} value={address.id}>
+                            {address.title} — {address.city}, {address.country}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
                   </div>
+                ) : (
+                  <div className="mb-6 rounded-2xl border border-dashed border-stone-200 bg-stone-50 px-4 py-4 text-sm text-stone-500 sm:px-5">
+                    {t("noSavedAddresses")}
+                  </div>
+                )}
 
-                  <Separator />
-
-                  {/* Customer */}
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                    <div>
+                <form id="checkout-form" onSubmit={handleSubmit} className="space-y-8">
+                  <div className="grid grid-cols-1 gap-4 md:grid-cols-2 md:gap-5">
+                    <div className="space-y-2">
                       <Label>{t("firstName")}</Label>
-                      <Input
-                        value={form.firstName}
-                        onChange={(e) =>
-                          setForm({ ...form, firstName: e.target.value })
-                        }
-                        required
-                      />
+                      <Input className="h-12 rounded-xl border-stone-200 bg-stone-50/40" value={form.firstName} onChange={(e) => setForm({ ...form, firstName: e.target.value })} required />
                     </div>
-                    <div>
+                    <div className="space-y-2">
                       <Label>{t("lastName")}</Label>
-                      <Input
-                        value={form.lastName}
-                        onChange={(e) =>
-                          setForm({ ...form, lastName: e.target.value })
-                        }
-                        required
-                      />
+                      <Input className="h-12 rounded-xl border-stone-200 bg-stone-50/40" value={form.lastName} onChange={(e) => setForm({ ...form, lastName: e.target.value })} required />
                     </div>
-                    <div>
+                    <div className="space-y-2">
                       <Label>{t("email")}</Label>
-                      <Input
-                        type="email"
-                        value={form.email}
-                        onChange={(e) =>
-                          setForm({ ...form, email: e.target.value })
-                        }
-                        required
-                      />
+                      <Input className="h-12 rounded-xl border-stone-200 bg-stone-50/40" type="email" value={form.email} onChange={(e) => setForm({ ...form, email: e.target.value })} required />
                     </div>
-                    <div>
+                    <div className="space-y-2">
                       <Label>{t("phone")}</Label>
-                      <Input
-                        value={form.phone}
-                        onChange={(e) =>
-                          setForm({ ...form, phone: e.target.value })
-                        }
-                        required
-                      />
+                      <Input className="h-12 rounded-xl border-stone-200 bg-stone-50/40" value={form.phone} onChange={(e) => setForm({ ...form, phone: e.target.value })} required />
                     </div>
                   </div>
 
-                  {/* Address selector (country -> state -> city) */}
                   <AddressSelector
                     value={{ country: form.country, state: form.state, city: form.city }}
                     onChange={(next) => setForm((prev) => ({ ...prev, ...next }))}
@@ -366,46 +342,34 @@ export default function CheckoutPage() {
                       selectState: t("selectState"),
                       selectCity: t("selectCity"),
                       cityManualPlaceholder: t("cityManualPlaceholder"),
+                      stateManualPlaceholder: t("stateManualPlaceholder"),
+                      stateNotAvailableHint: t("stateNotAvailableHint"),
+                      cityNotAvailableHint: t("cityNotAvailableHint"),
+                      cityManualLabel: t("cityManualLabel"),
                     }}
                     requiredCity
                   />
 
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                    <div>
+                  <div className="grid grid-cols-1 gap-4 md:grid-cols-2 md:gap-5">
+                    <div className="space-y-2">
                       <Label>{t("zip")}</Label>
-                      <Input
-                        value={form.zipCode}
-                        onChange={(e) =>
-                          setForm({ ...form, zipCode: e.target.value })
-                        }
-                        required
-                      />
+                      <Input className="h-12 rounded-xl border-stone-200 bg-stone-50/40" value={form.zipCode} onChange={(e) => setForm({ ...form, zipCode: e.target.value })} required />
                     </div>
-                    <div className="md:col-span-2">
+                    <div className="space-y-2 md:col-span-2">
                       <Label>{t("address")}</Label>
-                      <Input
-                        value={form.address}
-                        onChange={(e) =>
-                          setForm({ ...form, address: e.target.value })
-                        }
-                        required
-                      />
+                      <Input className="h-12 rounded-xl border-stone-200 bg-stone-50/40" value={form.address} onChange={(e) => setForm({ ...form, address: e.target.value })} required />
                     </div>
                   </div>
 
-                  {/* Company / invoice */}
-                  <div className="space-y-3">
-                    <div className="font-semibold text-slate-900">{t("invoiceTitle")}</div>
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <div className="rounded-2xl border border-stone-100 bg-stone-50/70 p-4 sm:p-5">
+                    <div className="mb-4">
+                      <h2 className="text-lg font-semibold text-stone-900">{t("invoiceTitle")}</h2>
+                    </div>
+                    <div className="grid grid-cols-1 gap-4 md:grid-cols-2 md:gap-5">
                       <div className="space-y-2">
                         <Label>{t("invoiceType")}</Label>
-                        <Select
-                          value={form.invoiceType}
-                          onValueChange={(v) =>
-                            setForm((prev) => ({ ...prev, invoiceType: v }))
-                          }
-                        >
-                          <SelectTrigger className="w-full bg-white">
+                        <Select value={form.invoiceType} onValueChange={(value) => setForm((prev) => ({ ...prev, invoiceType: value }))}>
+                          <SelectTrigger className="h-12 w-full rounded-xl border-stone-200 bg-white">
                             <SelectValue placeholder={t("selectInvoiceType")} />
                           </SelectTrigger>
                           <SelectContent>
@@ -417,120 +381,93 @@ export default function CheckoutPage() {
                     </div>
 
                     {form.invoiceType === "corporate" ? (
-                      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                        <div>
+                      <div className="mt-4 grid grid-cols-1 gap-4 md:grid-cols-2 md:gap-5">
+                        <div className="space-y-2">
                           <Label>{t("companyName")}</Label>
-                          <Input
-                            value={form.companyName}
-                            onChange={(e) =>
-                              setForm({ ...form, companyName: e.target.value })
-                            }
-                            required
-                          />
+                          <Input className="h-12 rounded-xl border-stone-200 bg-white" value={form.companyName} onChange={(e) => setForm({ ...form, companyName: e.target.value })} required />
                         </div>
-                        <div>
+                        <div className="space-y-2">
                           <Label>{t("taxId")}</Label>
-                          <Input
-                            value={form.taxId}
-                            onChange={(e) => setForm({ ...form, taxId: e.target.value })}
-                            required
-                          />
+                          <Input className="h-12 rounded-xl border-stone-200 bg-white" value={form.taxId} onChange={(e) => setForm({ ...form, taxId: e.target.value })} required />
                         </div>
-                        <div className="md:col-span-2">
+                        <div className="space-y-2 md:col-span-2">
                           <Label>{t("taxOffice")}</Label>
-                          <Input
-                            value={form.taxOffice}
-                            onChange={(e) =>
-                              setForm({ ...form, taxOffice: e.target.value })
-                            }
-                          />
+                          <Input className="h-12 rounded-xl border-stone-200 bg-white" value={form.taxOffice} onChange={(e) => setForm({ ...form, taxOffice: e.target.value })} />
                         </div>
                       </div>
                     ) : null}
                   </div>
 
-                  <div className="flex items-center gap-2">
-                    <input
-                      id="saveAddress"
-                      type="checkbox"
-                      checked={saveAddress}
-                      onChange={(e) => setSaveAddress(e.target.checked)}
-                      className="h-4 w-4"
-                    />
-                    <Label
-                      htmlFor="saveAddress"
-                      className="text-sm text-slate-700"
-                    >
+                  <div className="flex items-start gap-3 rounded-2xl border border-stone-100 bg-stone-50/70 px-4 py-4">
+                    <Checkbox id="saveAddress" checked={saveAddress} onCheckedChange={(checked) => setSaveAddress(checked === true)} className="mt-0.5" />
+                    <Label htmlFor="saveAddress" className="text-sm leading-6 text-stone-700">
                       {t("saveAddress")}
                     </Label>
-                  </div>
-
-                  <Separator />
-
-                  {/* Payment */}
-                  <div className="space-y-2">
-                    <Label>{t("paymentMethod")}</Label>
-                    <Select
-                      value={paymentChoice}
-                      onValueChange={(v) => setPaymentChoice(v as PaymentChoice)}
-                    >
-                      <SelectTrigger className="w-full">
-                        <SelectValue placeholder={t("selectPayment")} />
-                      </SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="stripe_full">
-                          {t("payCardFull")}
-                        </SelectItem>
-                        <SelectItem value="stripe_deposit">
-                          {t("payCardDeposit")}
-                        </SelectItem>
-                        <SelectItem value="iban">{t("payIban")}</SelectItem>
-                        <SelectItem value="cash_on_installation">
-                          {t("payAtInstall")}
-                        </SelectItem>
-                      </SelectContent>
-                    </Select>
-
-                    {paymentChoice === "iban" && (
-                      <p className="text-sm text-slate-600 flex items-center gap-2">
-                        <Building2 size={14} />
-                        {t("ibanHint")}
-                      </p>
-                    )}
-
-                    {paymentChoice === "cash_on_installation" && (
-                      <p className="text-sm text-slate-600 flex items-center gap-2">
-                        <Truck size={14} />
-                        {t("installHint")}
-                      </p>
-                    )}
-
-                    {(paymentChoice === "stripe_full" ||
-                      paymentChoice === "stripe_deposit") && (
-                      <p className="text-sm text-slate-600 flex items-center gap-2">
-                        <CreditCard size={14} />
-                        {t("stripeHint")}
-                      </p>
-                    )}
                   </div>
                 </form>
               </CardContent>
             </Card>
+
+            <Card className="rounded-[28px] border border-stone-100 bg-white shadow-sm">
+              <CardHeader className="border-b border-stone-100 px-5 py-5 sm:px-8 sm:py-7">
+                <CardTitle className="text-xl font-semibold text-stone-900 sm:text-2xl">
+                  {t("paymentMethod")}
+                </CardTitle>
+              </CardHeader>
+              <CardContent className="px-5 py-5 sm:px-8 sm:py-8">
+                <div className="space-y-3">
+                  <Label>{t("paymentMethod")}</Label>
+                  <Select value={paymentChoice} onValueChange={(value) => setPaymentChoice(value as PaymentChoice)}>
+                    <SelectTrigger className="h-12 w-full rounded-xl border-stone-200 bg-stone-50/40">
+                      <SelectValue placeholder={t("selectPayment")} />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="stripe_full">{t("payCardFull")}</SelectItem>
+                      <SelectItem value="stripe_deposit">{t("payCardDeposit")}</SelectItem>
+                      <SelectItem value="iban">{t("payIban")}</SelectItem>
+                      <SelectItem value="cash_on_installation">{t("payAtInstall")}</SelectItem>
+                    </SelectContent>
+                  </Select>
+
+                  {paymentChoice === "iban" ? (
+                    <div className="flex items-start gap-3 rounded-2xl border border-stone-100 bg-stone-50 px-4 py-4 text-sm leading-6 text-stone-600">
+                      <Building2 className="mt-0.5 size-4 shrink-0" />
+                      <span>{t("ibanHint")}</span>
+                    </div>
+                  ) : null}
+
+                  {paymentChoice === "cash_on_installation" ? (
+                    <div className="flex items-start gap-3 rounded-2xl border border-stone-100 bg-stone-50 px-4 py-4 text-sm leading-6 text-stone-600">
+                      <Truck className="mt-0.5 size-4 shrink-0" />
+                      <span>{t("installHint")}</span>
+                    </div>
+                  ) : null}
+
+                  {(paymentChoice === "stripe_full" || paymentChoice === "stripe_deposit") ? (
+                    <div className="flex items-start gap-3 rounded-2xl border border-stone-100 bg-stone-50 px-4 py-4 text-sm leading-6 text-stone-600">
+                      <CreditCard className="mt-0.5 size-4 shrink-0" />
+                      <span>{t("stripeHint")}</span>
+                    </div>
+                  ) : null}
+                </div>
+              </CardContent>
+            </Card>
           </div>
 
-          {/* Summary */}
-          <div>
-            <Card>
-              <CardHeader>
-                <CardTitle>{t("summary")}</CardTitle>
+          <aside className="mt-6 lg:col-span-4 lg:mt-0">
+            <Card className="rounded-[28px] border border-stone-100 bg-white shadow-sm lg:sticky lg:top-24">
+              <CardHeader className="border-b border-stone-100 px-5 py-5 sm:px-6 sm:py-6">
+                <CardTitle className="text-xl font-semibold text-stone-900">
+                  {t("orderSummary")}
+                </CardTitle>
               </CardHeader>
-              <CardContent className="space-y-4">
+              <CardContent className="space-y-5 px-5 py-5 sm:px-6 sm:py-6">
                 {items.map((it) => (
                   <div
                     key={`${it.id}:${it.variantId || "base"}`}
-                    className="flex gap-3"
+                    className="flex gap-3 rounded-2xl bg-stone-50 px-3 py-3"
                   >
-                    <div className="relative w-16 h-16 bg-white rounded border overflow-hidden">
+                    <div className="relative h-16 w-16 shrink-0 overflow-hidden rounded-xl border border-stone-200 bg-white">
                       {it.image ? (
                         <Image
                           src={it.image}
@@ -540,45 +477,63 @@ export default function CheckoutPage() {
                         />
                       ) : null}
                     </div>
-                    <div className="flex-1">
-                      <div className="font-medium">{it.name}</div>
+                    <div className="min-w-0 flex-1">
+                      <div className="truncate font-medium text-stone-900">{it.name}</div>
                       {it.variantName ? (
-                        <div className="text-xs text-slate-500">
+                        <div className="text-xs text-stone-500">
                           {it.variantName}
                         </div>
                       ) : null}
-                      <div className="text-sm text-slate-600">
+                      <div className="text-sm text-stone-600">
                         {t("qty")}: {it.quantity}
                       </div>
                     </div>
-                    <div className="font-medium">
-                      €{((it.price * it.quantity) / 100).toFixed(2)}
+                    <div className="text-right font-medium text-stone-900">
+                      {formatMoneyEUR(locale, it.price * it.quantity)}
                     </div>
                   </div>
                 ))}
 
                 <Separator />
 
-                <div className="flex items-center justify-between text-lg font-semibold">
+                <div className="space-y-3 text-sm text-stone-600">
+                  <div className="flex items-center justify-between">
+                    <span>{t("subtotal")}</span>
+                    <span>{formatMoneyEUR(locale, totalPrice)}</span>
+                  </div>
+                  <div className="flex items-center justify-between">
+                    <span>{t("shipping")}</span>
+                    <span>{t("shippingFree")}</span>
+                  </div>
+                </div>
+
+                <Separator />
+
+                <div className="flex items-center justify-between text-lg font-semibold text-stone-900">
                   <span>{t("total")}</span>
-                  <span>€{(totalPrice / 100).toFixed(2)}</span>
+                  <span>{formatMoneyEUR(locale, finalTotal)}</span>
                 </div>
 
                 <Button
                   type="submit"
                   form="checkout-form"
-                  className="w-full h-12 text-lg"
+                  className="w-full rounded-2xl bg-[#b05c45] py-6 text-base font-semibold text-white shadow-[0_18px_40px_-20px_rgba(176,92,69,0.75)] hover:bg-[#8c4734]"
                   disabled={isLoading}
                 >
-                  {isLoading ? t("processing") : t("continue")}
+                  {isLoading ? t("processing") : t("placeOrder")}
                 </Button>
+
+                <div className="flex items-center justify-center gap-2 text-xs font-medium text-stone-500">
+                  <Lock className="size-3.5" />
+                  <span>{t("securePayment")}</span>
+                </div>
               </CardContent>
             </Card>
 
-            <div className="text-xs text-slate-500 mt-3">
+            <div className="mt-3 text-xs text-stone-500">
               {t("freeShipping")}
             </div>
-          </div>
+          </aside>
         </div>
       </div>
     </div>

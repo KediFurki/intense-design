@@ -69,7 +69,7 @@ export function AddressSelector({
   onChange,
   labels,
   requiredCity = true,
-}: Props) {
+}: Readonly<Props>) {
   const countries = useMemo(() => Country.getAllCountries(), []);
 
   const [countryIso, setCountryIso] = useState<string>(() =>
@@ -116,7 +116,12 @@ export function AddressSelector({
   const cityManualLabel = labels.cityManualLabel ?? "Manual";
 
   return (
-    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+    <div className="rounded-[24px] border border-stone-100 bg-stone-50/70 p-4 sm:p-5">
+      <div className="mb-4">
+        <h3 className="text-lg font-semibold text-stone-900">{labels.country}</h3>
+      </div>
+
+      <div className="grid grid-cols-1 gap-4 md:grid-cols-2 md:gap-5">
       {/* COUNTRY */}
       <div className="space-y-2">
         <Label>{labels.country}</Label>
@@ -135,7 +140,7 @@ export function AddressSelector({
             });
           }}
         >
-          <SelectTrigger className="w-full bg-white">
+          <SelectTrigger className="h-12 w-full rounded-xl border-stone-200 bg-white">
             <SelectValue placeholder={labels.selectCountry} />
           </SelectTrigger>
           <SelectContent className="max-h-72">
@@ -162,7 +167,7 @@ export function AddressSelector({
               onChange({ state: st?.name ?? "", city: "" });
             }}
           >
-            <SelectTrigger className="w-full bg-white">
+            <SelectTrigger className="h-12 w-full rounded-xl border-stone-200 bg-white">
               <SelectValue placeholder={labels.selectState} />
             </SelectTrigger>
             <SelectContent className="max-h-72">
@@ -178,16 +183,16 @@ export function AddressSelector({
             <Input
               value={value.state}
               onChange={(e) => {
-                // If state is manually typed, clear stateIso
                 setStateIso("");
                 setCityManualMode(false);
                 onChange({ state: e.target.value, city: "" });
               }}
               placeholder={stateManualPlaceholder}
               disabled={!countryIso}
+              className="h-12 rounded-xl border-stone-200 bg-white"
             />
             {countryIso ? (
-              <p className="text-xs text-slate-500">{stateNotAvailableHint}</p>
+              <p className="text-xs text-stone-500">{stateNotAvailableHint}</p>
             ) : null}
           </>
         )}
@@ -198,7 +203,6 @@ export function AddressSelector({
         <div className="flex items-center justify-between gap-3">
           <Label>{labels.city}</Label>
 
-          {/* Manual toggle only makes sense if there is a list */}
           {cityHasSelectableList ? (
             <button
               type="button"
@@ -206,7 +210,7 @@ export function AddressSelector({
                 setCityManualMode((v) => !v);
                 onChange({ city: "" });
               }}
-              className="text-xs text-slate-600 hover:text-slate-900 underline"
+              className="text-xs font-medium text-stone-600 underline transition-colors hover:text-stone-900"
             >
               {cityManualMode ? labels.selectCity : cityManualLabel}
             </button>
@@ -218,7 +222,7 @@ export function AddressSelector({
             value={value.city || ""}
             onValueChange={(name) => onChange({ city: name })}
           >
-            <SelectTrigger className="w-full bg-white">
+            <SelectTrigger className="h-12 w-full rounded-xl border-stone-200 bg-white">
               <SelectValue placeholder={labels.selectCity} />
             </SelectTrigger>
             <SelectContent className="max-h-72">
@@ -237,12 +241,14 @@ export function AddressSelector({
               placeholder={labels.cityManualPlaceholder}
               required={requiredCity}
               disabled={!countryIso}
+              className="h-12 rounded-xl border-stone-200 bg-white"
             />
             {countryIso && stateIso && !cityHasSelectableList ? (
-              <p className="text-xs text-slate-500">{cityNotAvailableHint}</p>
+              <p className="text-xs text-stone-500">{cityNotAvailableHint}</p>
             ) : null}
           </>
         )}
+      </div>
       </div>
     </div>
   );

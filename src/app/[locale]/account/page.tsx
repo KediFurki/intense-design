@@ -115,10 +115,10 @@ export default async function AccountPage({
   const customerInitial = customerName.charAt(0).toUpperCase() || "I";
 
   return (
-    <div className="min-h-screen bg-stone-50 py-12">
+    <div className="min-h-screen bg-stone-50 py-8 sm:py-12">
       <div className="mx-auto max-w-6xl px-4 sm:px-6">
         <section className="overflow-hidden rounded-[32px] border border-[#eadfce] bg-[linear-gradient(135deg,#fffaf3_0%,#f7efe3_55%,#efe3d2_100%)] shadow-[0_32px_80px_-48px_rgba(120,91,60,0.45)]">
-          <div className="flex flex-col gap-8 px-6 py-8 sm:px-8 lg:flex-row lg:items-end lg:justify-between lg:px-10 lg:py-10">
+          <div className="flex flex-col gap-6 px-5 py-6 sm:gap-8 sm:px-8 sm:py-8 lg:flex-row lg:items-end lg:justify-between lg:px-10 lg:py-10">
             <div className="max-w-2xl text-center lg:text-left">
               <div className="mb-4 inline-flex items-center gap-2 rounded-full border border-white/70 bg-white/80 px-4 py-1.5 text-xs font-semibold uppercase tracking-[0.24em] text-stone-600 shadow-sm">
                 <UserRound className="size-3.5" />
@@ -135,8 +135,8 @@ export default async function AccountPage({
               </p>
             </div>
 
-            <div className="flex flex-col items-center gap-4 sm:flex-row lg:items-end">
-              <div className="flex items-center gap-4 rounded-[28px] border border-white/70 bg-white/85 px-5 py-4 shadow-sm backdrop-blur">
+            <div className="flex flex-col items-stretch gap-3 sm:flex-row sm:items-center lg:items-end">
+              <div className="flex items-center gap-4 rounded-[28px] border border-white/70 bg-white/85 px-4 py-4 shadow-sm backdrop-blur sm:px-5">
                 <div className="flex size-16 items-center justify-center rounded-full bg-[#f2e5d3] text-2xl font-semibold text-[#8b5e34]">
                   {customerInitial}
                 </div>
@@ -147,7 +147,7 @@ export default async function AccountPage({
               </div>
 
               <form action={handleSignOut}>
-                <Button type="submit" variant="outline" className="h-11 rounded-full border-stone-300 bg-white/90 px-5 text-stone-700 hover:bg-white">
+                <Button type="submit" variant="outline" className="h-11 w-full rounded-full border-stone-300 bg-white/90 px-5 text-stone-700 hover:bg-white sm:w-auto">
                   <LogOut className="mr-2 size-4" />
                   {t("logout")}
                 </Button>
@@ -156,23 +156,23 @@ export default async function AccountPage({
           </div>
         </section>
 
-        <Tabs defaultValue="orders" className="mt-8 space-y-6">
-          <TabsList className="h-auto w-full flex-wrap justify-start gap-2 rounded-[24px] border border-white/70 bg-white/70 p-2 shadow-sm backdrop-blur supports-[backdrop-filter]:bg-white/60">
-            <TabsTrigger value="orders" className="min-h-11 gap-2 rounded-full px-4 text-sm data-[state=active]:bg-stone-900 data-[state=active]:text-white data-[state=active]:shadow-none">
+        <Tabs defaultValue="orders" className="mt-6 space-y-5 sm:mt-8 sm:space-y-6">
+          <TabsList className="h-auto w-full justify-start gap-2 overflow-x-auto rounded-[24px] border border-white/70 bg-white/70 p-2 shadow-sm backdrop-blur supports-[backdrop-filter]:bg-white/60">
+            <TabsTrigger value="orders" className="min-h-11 shrink-0 gap-2 rounded-full px-4 text-sm data-[state=active]:bg-stone-900 data-[state=active]:text-white data-[state=active]:shadow-none">
               <Package size={16} /> {t("orders")}
             </TabsTrigger>
-            <TabsTrigger value="favorites" className="min-h-11 gap-2 rounded-full px-4 text-sm data-[state=active]:bg-stone-900 data-[state=active]:text-white data-[state=active]:shadow-none">
+            <TabsTrigger value="favorites" className="min-h-11 shrink-0 gap-2 rounded-full px-4 text-sm data-[state=active]:bg-stone-900 data-[state=active]:text-white data-[state=active]:shadow-none">
               <Heart size={16} /> {t("tabFavorites")}
             </TabsTrigger>
-            <TabsTrigger value="addresses" className="min-h-11 gap-2 rounded-full px-4 text-sm data-[state=active]:bg-stone-900 data-[state=active]:text-white data-[state=active]:shadow-none">
+            <TabsTrigger value="addresses" className="min-h-11 shrink-0 gap-2 rounded-full px-4 text-sm data-[state=active]:bg-stone-900 data-[state=active]:text-white data-[state=active]:shadow-none">
               <MapPin size={16} /> {t("addresses")}
             </TabsTrigger>
           </TabsList>
 
           <TabsContent value="orders" className="space-y-4">
-            <div className="rounded-[28px] border border-stone-100 bg-white p-6 shadow-sm">
-              <div className="mb-6">
-                <h2 className="text-2xl font-semibold tracking-tight text-stone-900">{t("orders")}</h2>
+            <div className="rounded-[28px] border border-stone-100 bg-white p-4 shadow-sm sm:p-6">
+              <div className="mb-5 sm:mb-6">
+                <h2 className="text-xl font-semibold tracking-tight text-stone-900 sm:text-2xl">{t("orders")}</h2>
                 <p className="mt-2 text-sm leading-6 text-stone-600">{t("description")}</p>
               </div>
 
@@ -202,7 +202,7 @@ export default async function AccountPage({
 
                     return (
                       <Card key={order.id} className="overflow-hidden rounded-[24px] border border-stone-100 bg-white shadow-sm">
-                        <CardHeader className="border-b border-stone-100 bg-stone-50/80 px-5 py-5 sm:px-6">
+                        <CardHeader className="border-b border-stone-100 bg-stone-50/80 px-4 py-4 sm:px-6 sm:py-5">
                           <div className="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
                             <div className="space-y-2">
                               <p className="text-sm font-semibold uppercase tracking-[0.18em] text-stone-500">
@@ -229,7 +229,7 @@ export default async function AccountPage({
                                   {hint}
                                 </p>
                               ) : null}
-                              <Button asChild variant="outline" className="rounded-full border-stone-300 bg-white text-stone-700 hover:bg-stone-50">
+                              <Button asChild variant="outline" className="w-full rounded-full border-stone-300 bg-white text-stone-700 hover:bg-stone-50 sm:w-auto">
                                 <Link href={`/account/orders/${order.id}`}>
                                   {t("viewDetails")}
                                   <ArrowUpRight className="ml-2 size-4" />
@@ -239,15 +239,15 @@ export default async function AccountPage({
                           </div>
                         </CardHeader>
 
-                        <CardContent className="space-y-3 px-5 py-5 sm:px-6">
+                        <CardContent className="space-y-3 px-4 py-4 sm:px-6 sm:py-5">
                           {order.items.map((item) => {
                             const productName = item.product?.name
                               ? getLocaleValue(item.product.name as LocalizedText, locale)
                               : t("unknownProduct");
 
                             return (
-                              <div key={item.id} className="flex items-start justify-between gap-4 rounded-2xl bg-stone-50 px-4 py-3 text-sm">
-                                <span className="text-stone-700">
+                              <div key={item.id} className="flex flex-col gap-2 rounded-2xl bg-stone-50 px-4 py-3 text-sm sm:flex-row sm:items-start sm:justify-between sm:gap-4">
+                                <span className="text-stone-700 sm:max-w-[70%]">
                                   {productName} <span className="text-stone-400">x{item.quantity}</span>
                                 </span>
                                 <span className="font-medium text-stone-900">
@@ -266,9 +266,9 @@ export default async function AccountPage({
           </TabsContent>
 
           <TabsContent value="favorites" className="space-y-4">
-            <div className="rounded-[28px] border border-stone-100 bg-white p-6 shadow-sm">
-              <div className="mb-6">
-                <h2 className="text-2xl font-semibold tracking-tight text-stone-900">{t("tabFavorites")}</h2>
+            <div className="rounded-[28px] border border-stone-100 bg-white p-4 shadow-sm sm:p-6">
+              <div className="mb-5 sm:mb-6">
+                <h2 className="text-xl font-semibold tracking-tight text-stone-900 sm:text-2xl">{t("tabFavorites")}</h2>
                 <p className="mt-2 text-sm leading-6 text-stone-600">
                   {userProfile.favorites.length === 0 ? t("noFavorites") : t("favoritesSummary", { count: userProfile.favorites.length })}
                 </p>
@@ -279,7 +279,7 @@ export default async function AccountPage({
                   {t("noFavorites")}
                 </div>
               ) : (
-                <div className="grid grid-cols-1 gap-5 sm:grid-cols-2 xl:grid-cols-3">
+                <div className="grid grid-cols-1 gap-4 sm:gap-5 sm:grid-cols-2 xl:grid-cols-3">
                   {userProfile.favorites.map((favorite) => {
                     const product = favorite.product;
                     if (!product) return null;
@@ -306,15 +306,15 @@ export default async function AccountPage({
 
           <TabsContent value="addresses" className="space-y-4">
             <Card className="rounded-[28px] border border-stone-100 bg-white shadow-sm">
-              <CardHeader className="flex flex-col gap-4 border-b border-stone-100 px-6 py-6 md:flex-row md:items-center md:justify-between">
+              <CardHeader className="flex flex-col gap-4 border-b border-stone-100 px-4 py-5 sm:px-6 sm:py-6 md:flex-row md:items-center md:justify-between">
                 <div>
-                  <CardTitle className="text-2xl font-semibold tracking-tight text-stone-900">{t("addresses")}</CardTitle>
+                  <CardTitle className="text-xl font-semibold tracking-tight text-stone-900 sm:text-2xl">{t("addresses")}</CardTitle>
                   <CardDescription className="mt-2 text-sm leading-6 text-stone-600">{t("addressesDesc")}</CardDescription>
                 </div>
                 <AddressDialog />
               </CardHeader>
 
-              <CardContent className="px-6 py-6">
+              <CardContent className="px-4 py-5 sm:px-6 sm:py-6">
                 {userAddresses.length === 0 ? (
                   <div className="rounded-[24px] border border-dashed border-stone-200 bg-stone-50 px-6 py-14 text-center text-stone-500">
                     {t("noAddresses")}
