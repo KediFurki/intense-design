@@ -16,27 +16,21 @@ export default auth((req) => {
 
   if (isApiAuthRoute) return;
 
-  // Admin koruması
   if (isAdminRoute && !isLoggedIn) {
-    const locale = nextUrl.pathname.split('/')[1] || routing.defaultLocale;
-    
-    // HATA DÜZELTİLDİ: 'as any' kaldırıldı
-    const safeLocale = routing.locales.includes(locale as (typeof routing.locales)[number]) 
-      ? locale 
+    const locale = nextUrl.pathname.split("/")[1] || routing.defaultLocale;
+    const safeLocale = routing.locales.includes(locale as (typeof routing.locales)[number])
+      ? locale
       : routing.defaultLocale;
-      
+
     return Response.redirect(new URL(`/${safeLocale}/login`, nextUrl));
   }
 
-  // Login olmuş kullanıcıyı geri yönlendirme
   if (isAuthRoute && isLoggedIn) {
-    const locale = nextUrl.pathname.split('/')[1] || routing.defaultLocale;
-    
-    // HATA DÜZELTİLDİ: 'as any' kaldırıldı
-    const safeLocale = routing.locales.includes(locale as (typeof routing.locales)[number]) 
-      ? locale 
+    const locale = nextUrl.pathname.split("/")[1] || routing.defaultLocale;
+    const safeLocale = routing.locales.includes(locale as (typeof routing.locales)[number])
+      ? locale
       : routing.defaultLocale;
-      
+
     return Response.redirect(new URL(`/${safeLocale}`, nextUrl));
   }
 
@@ -44,5 +38,5 @@ export default auth((req) => {
 });
 
 export const config = {
-  matcher: ['/((?!api|_next|_vercel|.*\\..*).*)']
+  matcher: [String.raw`/((?!api|_next|_vercel|.*\..*).*)`],
 };

@@ -7,7 +7,7 @@ import { auth } from "@/auth";
 import { Link } from "@/lib/i18n/routing";
 import { Button } from "@/components/ui/button";
 import { FilterSidebar } from "@/components/shop/filter-sidebar";
-import { getLocaleValue } from "@/lib/i18n/get-locale-value";
+import { getLocaleValue, type LocalizedText } from "@/lib/i18n/get-locale-value";
 import { getTranslations } from "next-intl/server";
 
 type RouteParams = { locale: string; slug: string };
@@ -20,7 +20,7 @@ function resolveOrderBy(sort: string) {
   return desc(products.createdAt);
 }
 
-function filterVisibleProducts<T extends { name: unknown; description: unknown; slug: string }>(
+function filterVisibleProducts<T extends { name: LocalizedText; description: LocalizedText; slug: string }>(
   productsList: T[],
   locale: string,
   normalizedQuery: string,
