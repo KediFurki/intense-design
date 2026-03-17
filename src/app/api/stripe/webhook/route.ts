@@ -6,8 +6,6 @@ import { orders } from "@/server/db/schema";
 import { eq } from "drizzle-orm";
 import { sendPaymentUpdatedEmails } from "@/server/services/order-email-service";
 
-export const runtime = "nodejs";
-
 function toMessage(err: unknown): string {
   if (err instanceof Error) return err.message;
   if (typeof err === "string") return err;

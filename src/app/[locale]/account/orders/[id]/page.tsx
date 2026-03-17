@@ -47,9 +47,9 @@ function paymentLabel(method: string, t: (k: string) => string): string {
 export default async function OrderDetailsPage({
   params,
 }: {
-  params: Promise<RouteParams> | RouteParams;
+  params: Promise<RouteParams>;
 }) {
-  const { locale, id } = await Promise.resolve(params);
+  const { locale, id } = await params;
 
   const session = await auth();
   if (!session?.user?.id) {

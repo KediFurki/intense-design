@@ -4,9 +4,6 @@ import { getLocaleValue } from "@/lib/i18n/get-locale-value";
 import { db } from "@/server/db";
 import { products } from "@/server/db/schema";
 
-export const runtime = "nodejs";
-export const dynamic = "force-dynamic";
-
 function normalizeBaseUrl(url: string | undefined, fallback = ""): string {
   return (url?.trim() || fallback).replace(/\/$/, "");
 }

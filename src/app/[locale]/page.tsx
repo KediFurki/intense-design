@@ -12,9 +12,9 @@ import { getLocaleValue } from "@/lib/i18n/get-locale-value";
 export default async function Home({
   params,
 }: Readonly<{
-  params: Promise<{ locale: string }> | { locale: string };
+  params: Promise<{ locale: string }>;
 }>) {
-  const { locale } = await Promise.resolve(params);
+  const { locale } = await params;
 
   const session = await auth();
   const t = await getTranslations("Home");

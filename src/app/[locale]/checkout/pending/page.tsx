@@ -34,11 +34,11 @@ export default async function CheckoutPendingPage({
   params,
   searchParams,
 }: {
-  params: Promise<RouteParams> | RouteParams;
-  searchParams: Promise<PendingSearchParams> | PendingSearchParams;
+  params: Promise<RouteParams>;
+  searchParams: Promise<PendingSearchParams>;
 }) {
-  const { locale } = await Promise.resolve(params);
-  const sp = await Promise.resolve(searchParams);
+  const { locale } = await params;
+  const sp = await searchParams;
   const oid = sp?.oid;
 
   const t = await getTranslations("CheckoutPending");

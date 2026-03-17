@@ -22,11 +22,11 @@ export default async function CheckoutCancelPage({
   params,
   searchParams,
 }: {
-  params: Promise<RouteParams> | RouteParams;
-  searchParams: Promise<CancelSearchParams> | CancelSearchParams;
+  params: Promise<RouteParams>;
+  searchParams: Promise<CancelSearchParams>;
 }) {
-  const { locale } = await Promise.resolve(params);
-  const sp = await Promise.resolve(searchParams);
+  const { locale } = await params;
+  const sp = await searchParams;
   const oid = sp?.oid;
 
   const t = await getTranslations("CheckoutCancel");

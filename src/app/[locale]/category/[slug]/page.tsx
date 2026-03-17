@@ -79,11 +79,11 @@ export default async function CategoryPage({
   params,
   searchParams,
 }: Readonly<{
-  params: Promise<RouteParams> | RouteParams;
-  searchParams: Promise<RouteSearchParams> | RouteSearchParams;
+  params: Promise<RouteParams>;
+  searchParams: Promise<RouteSearchParams>;
 }>) {
-  const { slug, locale } = await Promise.resolve(params);
-  const sp = await Promise.resolve(searchParams);
+  const { slug, locale } = await params;
+  const sp = await searchParams;
   const t = await getTranslations("Category");
 
   const session = await auth();

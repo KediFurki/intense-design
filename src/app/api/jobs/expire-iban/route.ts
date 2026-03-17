@@ -1,8 +1,6 @@
 import { NextResponse } from "next/server";
 import { expireOverdueIbanOrders } from "@/server/services/order-service";
 
-export const runtime = "nodejs";
-
 function unauthorized() {
   return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
 }

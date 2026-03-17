@@ -50,9 +50,9 @@ function formatDateTime(locale: string, d: Date): string {
 export default async function AccountPage({
   params,
 }: {
-  params: Promise<RouteParams> | RouteParams;
+  params: Promise<RouteParams>;
 }) {
-  const { locale } = await Promise.resolve(params);
+  const { locale } = await params;
 
   const session = await auth();
   if (!session?.user) {

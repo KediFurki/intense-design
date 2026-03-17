@@ -1,4 +1,3 @@
-import type { Metadata } from "next";
 import { Inter } from "next/font/google";
 import Script from "next/script";
 import "../globals.css";
@@ -15,11 +14,6 @@ import { getLocaleValue } from "@/lib/i18n/get-locale-value";
 import { routing } from "@/lib/i18n/routing";
 
 const inter = Inter({ subsets: ["latin"] });
-
-export const metadata: Metadata = {
-  title: "Intense Design",
-  description: "Premium Furniture Store",
-};
 
 type AppLocale = (typeof routing.locales)[number];
 
@@ -38,9 +32,9 @@ export default async function RootLayout({
   params,
 }: Readonly<{
   children: React.ReactNode;
-  params: Promise<{ locale: string }> | { locale: string };
+  params: Promise<{ locale: string }>;
 }>) {
-  const resolvedParams = await Promise.resolve(params);
+  const resolvedParams = await params;
   const locale = resolvedParams.locale;
 
   if (!isAppLocale(locale)) notFound();

@@ -31,11 +31,11 @@ export default async function CheckoutSuccessPage({
   params,
   searchParams,
 }: {
-  params: Promise<RouteParams> | RouteParams;
-  searchParams: Promise<SuccessSearchParams> | SuccessSearchParams;
+  params: Promise<RouteParams>;
+  searchParams: Promise<SuccessSearchParams>;
 }) {
-  const { locale } = await Promise.resolve(params);
-  const sp = await Promise.resolve(searchParams);
+  const { locale } = await params;
+  const sp = await searchParams;
   const oid = sp?.oid;
 
   const t = await getTranslations("CheckoutSuccess");
