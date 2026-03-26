@@ -10,7 +10,8 @@
     "admin": "Admin-Panel",
     "profile": "Profil",
     "logout": "Abmelden",
-    "login": "Anmelden"
+    "login": "Anmelden",
+    "otherCategories": "Weitere Kategorien"
   },
   "Header": {
     "brandSlogan": "Maßgeschneiderte Interieurs für modernes Wohnen.",

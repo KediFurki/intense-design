@@ -10,6 +10,7 @@ import { toast } from "sonner";
 import Image from "next/image";
 import { useTranslations, useLocale } from "next-intl";
 import { CategoryForm } from "./category-form";
+import { useRouter } from "next/navigation";
 
 type Category = {
   id: string;
@@ -23,6 +24,7 @@ type Category = {
 export function CategoryManager({ initialCategories }: { initialCategories: Category[] }) {
   const t = useTranslations("Admin");
   const locale = useLocale();
+  const router = useRouter();
   const [categories, setCategories] = useState<Category[]>(initialCategories);
   const [editingCategory, setEditingCategory] = useState<Category | null>(null);
 
@@ -46,12 +48,16 @@ export function CategoryManager({ initialCategories }: { initialCategories: Cate
 
   const handleCancel = () => {
     setEditingCategory(null);
+    router.refresh();
   };
 
   const handleDelete = async (id: string) => {
     if(!confirm("Delete this category?")) return;
     const res = await deleteCategory(id);
-    if(res.success) toast.success("Category deleted");
+    if(res.success) {
+      toast.success("Category deleted");
+      router.refresh();
+    }
     else toast.error("Failed to delete");
   };
 

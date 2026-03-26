@@ -10,7 +10,8 @@
     "admin": "Admin Panel",
     "profile": "Profile",
     "logout": "Sign Out",
-    "login": "Sign In"
+    "login": "Sign In",
+    "otherCategories": "Other Categories"
   },
   "Header": {
     "brandSlogan": "Tailored interiors, crafted for modern living.",

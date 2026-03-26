@@ -10,7 +10,8 @@
     "admin": "Yönetim Paneli",
     "profile": "Profil",
     "logout": "Çıkış Yap",
-    "login": "Giriş Yap"
+    "login": "Giriş Yap",
+    "otherCategories": "Diğer Kategoriler"
   },
   "Header": {
     "brandSlogan": "Modern yaşam için özel olarak şekillendirilmiş iç mekânlar.",

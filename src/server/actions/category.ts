@@ -40,8 +40,8 @@ export async function createCategory(input: CategoryInput) {
       slug: validated.data.slug,
       image: validated.data.image || null,
     });
+    revalidatePath("/", "layout");
     revalidatePath("/admin/categories");
-    revalidatePath("/");
     return { success: true };
   } catch (error) {
     console.error("Create Category Error:", error);
@@ -63,8 +63,8 @@ export async function updateCategory(id: string, input: CategoryInput) {
       })
       .where(eq(categories.id, id));
 
+    revalidatePath("/", "layout");
     revalidatePath("/admin/categories");
-    revalidatePath("/");
     return { success: true };
   } catch (error) {
     console.error("Update Category Error:", error);
@@ -75,8 +75,8 @@ export async function updateCategory(id: string, input: CategoryInput) {
 export async function deleteCategory(id: string) {
   try {
     await db.delete(categories).where(eq(categories.id, id));
+    revalidatePath("/", "layout");
     revalidatePath("/admin/categories");
-    revalidatePath("/");
     return { success: true };
   } catch (error) {
     return { success: false, error: "Deletion failed" };
