@@ -1,9 +1,10 @@
 "use client";
 
 import { Button } from "@/components/ui/button";
-import { ImagePlus, Trash } from "lucide-react";
+import { Input } from "@/components/ui/input";
+import { ImagePlus, Trash, Link as LinkIcon } from "lucide-react";
 import Image from "next/image";
-import { CldUploadWidget, CloudinaryUploadWidgetResults } from "next-cloudinary";
+import { useState } from "react";
 
 interface ImageUploadProps {
   disabled?: boolean;
@@ -18,27 +19,28 @@ export default function ImageUpload({
   onRemove,
   value,
 }: ImageUploadProps) {
-  
-  const onUpload = (result: CloudinaryUploadWidgetResults) => {
-    const info = result.info as { secure_url: string };
-    if (info?.secure_url) {
-      onChange(info.secure_url);
-    }
+  const [urlInput, setUrlInput] = useState("");
+
+  const handleAdd = () => {
+    const trimmed = urlInput.trim();
+    if (!trimmed) return;
+    onChange(trimmed);
+    setUrlInput("");
   };
 
   return (
     <div className="space-y-4">
-      {/* Yüklenen Resimlerin Önizlemesi */}
+      {/* Uploaded Image Previews */}
       <div className="flex items-center gap-4 flex-wrap">
         {value.map((url) => (
-          <div key={url} className="relative w-[200px] h-[200px] rounded-md overflow-hidden border border-slate-200">
+          <div key={url} className="relative w-[200px] h-[200px] rounded-xl overflow-hidden border border-stone-200">
             <div className="z-10 absolute top-2 right-2">
               <Button
                 type="button"
                 onClick={() => onRemove(url)}
                 variant="destructive"
                 size="icon"
-                className="h-8 w-8"
+                className="h-8 w-8 cursor-pointer"
               >
                 <Trash className="h-4 w-4" />
               </Button>
@@ -48,51 +50,31 @@ export default function ImageUpload({
         ))}
       </div>
 
-      {/* Cloudinary Widget Butonu */}
-      <CldUploadWidget 
-        onSuccess={onUpload} 
-        uploadPreset="mobilya_preset" // Cloudinary ayarınla aynı olmalı
-        options={{
-            maxFiles: 1,
-            sources: ['local', 'url', 'camera'],
-            styles: {
-                palette: {
-                    window: "#FFFFFF",
-                    windowBorder: "#90A0B3",
-                    tabIcon: "#0078FF",
-                    menuIcons: "#5A616A",
-                    textDark: "#000000",
-                    textLight: "#FFFFFF",
-                    link: "#0078FF",
-                    action: "#FF620C",
-                    inactiveTabIcon: "#0E2F5A",
-                    error: "#F44235",
-                    inProgress: "#0078FF",
-                    complete: "#20B832",
-                    sourceBg: "#E4EBF1"
-                }
-            }
-        }}
-      >
-        {({ open }) => {
-          const onClick = () => {
-            open();
-          };
-
-          return (
-            <Button
-              type="button"
-              disabled={disabled}
-              variant="secondary"
-              onClick={onClick}
-              className="bg-slate-100 border-slate-300 border-dashed border-2 hover:bg-slate-200"
-            >
-              <ImagePlus className="h-4 w-4 mr-2" />
-              Upload an Image
-            </Button>
-          );
-        }}
-      </CldUploadWidget>
+      {/* URL Input */}
+      <div className="flex items-center gap-2">
+        <div className="relative flex-1">
+          <LinkIcon className="absolute left-2.5 top-2.5 h-4 w-4 text-stone-400" />
+          <Input
+            type="url"
+            disabled={disabled}
+            placeholder="https://cdn.example.com/image.jpg"
+            value={urlInput}
+            onChange={(e) => setUrlInput(e.target.value)}
+            onKeyDown={(e) => { if (e.key === "Enter") { e.preventDefault(); handleAdd(); } }}
+            className="pl-9 border-stone-300"
+          />
+        </div>
+        <Button
+          type="button"
+          disabled={disabled || !urlInput.trim()}
+          variant="secondary"
+          onClick={handleAdd}
+          className="bg-stone-100 border-stone-300 border border-dashed hover:bg-stone-200 cursor-pointer shrink-0"
+        >
+          <ImagePlus className="h-4 w-4 mr-2" />
+          Add
+        </Button>
+      </div>
     </div>
   );
 }
