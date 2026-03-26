@@ -154,7 +154,7 @@ export function CategoryForm({ initialData, onSuccess }: CategoryFormProps) {
   };
 
   return (
-    <Card className="h-fit border-slate-200 shadow-sm sticky top-4">
+    <Card className="h-fit border-stone-200 shadow-sm sticky top-4 rounded-2xl">
       <CardHeader>
         <CardTitle>{initialData ? t("edit") : t("create")}</CardTitle>
       </CardHeader>
@@ -163,7 +163,7 @@ export function CategoryForm({ initialData, onSuccess }: CategoryFormProps) {
           {/* Image Upload */}
           <div className="space-y-2">
             <Label>{t("categoryImage")}</Label>
-            <div className="rounded-lg border bg-slate-50 p-2">
+            <div className="rounded-xl border border-stone-200 bg-stone-50 p-2">
               <ImageUpload
                 value={imageValue ? [imageValue] : []}
                 onChange={(url) => setValue("image", url)}
@@ -240,7 +240,7 @@ export function CategoryForm({ initialData, onSuccess }: CategoryFormProps) {
             <Button
               type="submit"
               disabled={isSubmitting}
-              className="flex-1 cursor-pointer gap-2 bg-slate-900 hover:bg-slate-800"
+              className="flex-1 cursor-pointer gap-2 bg-stone-900 hover:bg-stone-800 rounded-xl"
             >
               {initialData ? <Save size={16} /> : <Plus size={16} />}
               {isSubmitting

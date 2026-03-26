@@ -25,15 +25,16 @@ export default async function AdminLayout({
   }
 
   return (
-    <div className="flex min-h-screen bg-slate-100 dark:bg-slate-900">
-      <aside className="w-64 bg-white dark:bg-slate-950 border-r border-slate-200 dark:border-slate-800 hidden md:flex flex-col fixed h-full inset-y-0">
-        <div className="p-6 border-b border-slate-200 dark:border-slate-800">
-          <h2 className="text-2xl font-bold tracking-tight text-slate-900 dark:text-white">
-            Admin<span className="text-blue-600">Panel</span>
+    <div className="flex min-h-screen bg-stone-50">
+      <aside className="w-64 bg-stone-900 hidden md:flex flex-col fixed h-full inset-y-0">
+        <div className="p-6 border-b border-stone-700/50">
+          <h2 className="text-2xl font-bold tracking-tight text-stone-50">
+            Mobilya<span className="text-amber-400">Shop</span>
           </h2>
+          <p className="text-xs text-stone-400 mt-1 tracking-wide uppercase">Admin Panel</p>
         </div>
 
-        <nav className="flex-1 p-4 space-y-2">
+        <nav className="flex-1 p-3 space-y-1 mt-2">
           <SidebarLink href="/admin" icon={<LayoutDashboard size={20} />} label={t('dashboard')} />
           <SidebarLink href="/admin/products" icon={<Package size={20} />} label={t('products')} />
           <SidebarLink href="/admin/categories" icon={<ListOrdered size={20} />} label={t('categories')} />
@@ -41,21 +42,21 @@ export default async function AdminLayout({
           <SidebarLink href="/admin/customers" icon={<Users size={20} />} label={t('customers')} />
           <SidebarLink href="/admin/settings" icon={<Settings size={20} />} label={t('settings')} />
           
-          <div className="my-2 border-t border-slate-200 dark:border-slate-800" />
+          <div className="my-3 border-t border-stone-700/40" />
           
           <Link 
             href="/" 
-            className="flex items-center gap-3 px-4 py-3 text-green-700 bg-green-50 hover:bg-green-100 rounded-lg transition-colors font-bold border border-green-200"
+            className="flex items-center gap-3 px-4 py-3 text-amber-300 bg-amber-900/20 hover:bg-amber-900/40 rounded-xl transition-colors font-semibold border border-amber-700/30"
           >
             <Store size={20} />
             <span>{t('goToShop')}</span>
           </Link>
         </nav>
 
-        <div className="p-4 border-t border-slate-200 dark:border-slate-800">
-          <div className="flex items-center gap-3 px-4 py-2 text-sm font-medium text-slate-600">
-             <div className="w-2 h-2 rounded-full bg-green-500"></div>
-             {session?.user?.name} {/* DÜZELTME: Güvenli erişim */}
+        <div className="p-4 border-t border-stone-700/40">
+          <div className="flex items-center gap-3 px-4 py-2 text-sm font-medium text-stone-300">
+             <div className="w-2 h-2 rounded-full bg-emerald-400"></div>
+             {session?.user?.name}
           </div>
         </div>
       </aside>
@@ -71,7 +72,7 @@ function SidebarLink({ href, icon, label }: { href: string; icon: React.ReactNod
   return (
     <Link 
       href={href} 
-      className="flex items-center gap-3 px-4 py-3 text-slate-600 dark:text-slate-400 hover:bg-slate-50 dark:hover:bg-slate-900 hover:text-blue-600 dark:hover:text-blue-500 rounded-lg transition-colors font-medium"
+      className="flex items-center gap-3 px-4 py-3 text-stone-400 hover:bg-stone-800 hover:text-amber-300 rounded-xl transition-colors font-medium"
     >
       {icon}
       <span>{label}</span>

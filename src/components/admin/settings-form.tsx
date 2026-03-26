@@ -37,43 +37,43 @@ export function SettingsForm({ initialData }: SettingsFormProps) {
   return (
     <form onSubmit={handleSubmit} className="space-y-6 pb-20">
       <div className="flex items-center justify-end">
-        <Button type="submit" disabled={loading} className="bg-slate-900 text-white hover:bg-slate-800">
+        <Button type="submit" disabled={loading} className="bg-stone-900 text-white hover:bg-stone-800 rounded-xl cursor-pointer">
              {loading ? "Saving..." : <><Save size={16} className="mr-2"/> Save All Changes</>}
         </Button>
       </div>
 
       <Tabs defaultValue="general" className="w-full">
-        <TabsList className="w-full justify-start border-b rounded-none h-auto p-0 bg-transparent gap-6">
-            <TabsTrigger value="general" className="rounded-none border-b-2 border-transparent data-[state=active]:border-slate-900 data-[state=active]:shadow-none py-3 px-1 font-medium">General</TabsTrigger>
-            <TabsTrigger value="payment" className="rounded-none border-b-2 border-transparent data-[state=active]:border-slate-900 data-[state=active]:shadow-none py-3 px-1 font-medium">Payments</TabsTrigger>
-            <TabsTrigger value="notifications" className="rounded-none border-b-2 border-transparent data-[state=active]:border-slate-900 data-[state=active]:shadow-none py-3 px-1 font-medium">Notifications</TabsTrigger>
+        <TabsList className="w-full justify-start border-b border-stone-200 rounded-none h-auto p-0 bg-transparent gap-6">
+            <TabsTrigger value="general" className="rounded-none border-b-2 border-transparent data-[state=active]:border-amber-700 data-[state=active]:text-amber-800 data-[state=active]:shadow-none py-3 px-1 font-medium text-stone-500 hover:text-stone-700 cursor-pointer">General</TabsTrigger>
+            <TabsTrigger value="payment" className="rounded-none border-b-2 border-transparent data-[state=active]:border-amber-700 data-[state=active]:text-amber-800 data-[state=active]:shadow-none py-3 px-1 font-medium text-stone-500 hover:text-stone-700 cursor-pointer">Payments</TabsTrigger>
+            <TabsTrigger value="notifications" className="rounded-none border-b-2 border-transparent data-[state=active]:border-amber-700 data-[state=active]:text-amber-800 data-[state=active]:shadow-none py-3 px-1 font-medium text-stone-500 hover:text-stone-700 cursor-pointer">Notifications</TabsTrigger>
         </TabsList>
         
         <div className="mt-6 space-y-6">
             <TabsContent value="general" className="space-y-6">
-                <Card>
+                <Card className="border-stone-200 rounded-2xl shadow-sm">
                     <CardHeader>
-                        <CardTitle className="flex items-center gap-2"><Store size={18}/> Store Details</CardTitle>
-                        <CardDescription>Manage global store configuration.</CardDescription>
+                        <CardTitle className="flex items-center gap-2 text-stone-900"><Store size={18} className="text-amber-700"/> Store Details</CardTitle>
+                        <CardDescription className="text-stone-500">Manage global store configuration.</CardDescription>
                     </CardHeader>
                     <CardContent className="space-y-4">
                         <div className="grid md:grid-cols-2 gap-4">
                             <div className="space-y-2">
-                                <Label>Store Name</Label>
-                                <Input name="storeName" defaultValue={initialData.storeName} required />
+                                <Label className="text-stone-700">Store Name</Label>
+                                <Input name="storeName" defaultValue={initialData.storeName} required className="border-stone-300 focus-visible:ring-amber-600" />
                             </div>
                             <div className="space-y-2">
-                                <Label>Support Email</Label>
+                                <Label className="text-stone-700">Support Email</Label>
                                 <div className="relative">
-                                    <Mail className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
-                                    <Input name="supportEmail" className="pl-9" defaultValue={initialData.supportEmail} required />
+                                    <Mail className="absolute left-2.5 top-2.5 h-4 w-4 text-stone-400" />
+                                    <Input name="supportEmail" className="pl-9 border-stone-300 focus-visible:ring-amber-600" defaultValue={initialData.supportEmail} required />
                                 </div>
                             </div>
                         </div>
                         <div className="space-y-2">
-                             <Label>Currency</Label>
+                             <Label className="text-stone-700">Currency</Label>
                              <Select name="currency" defaultValue={initialData.currency}>
-                                <SelectTrigger><SelectValue/></SelectTrigger>
+                                <SelectTrigger className="border-stone-300"><SelectValue/></SelectTrigger>
                                 <SelectContent>
                                     <SelectItem value="EUR">€ Euro (EUR)</SelectItem>
                                     <SelectItem value="USD">$ US Dollar (USD)</SelectItem>
@@ -85,15 +85,15 @@ export function SettingsForm({ initialData }: SettingsFormProps) {
                     </CardContent>
                 </Card>
 
-                <Card className="border-orange-200 bg-orange-50/30">
+                <Card className="border-orange-200 bg-orange-50/30 rounded-2xl shadow-sm">
                     <CardHeader>
                         <CardTitle className="flex items-center gap-2 text-orange-800"><Lock size={18}/> Access Control</CardTitle>
                     </CardHeader>
                     <CardContent>
                         <div className="flex items-center justify-between">
                             <div className="space-y-0.5">
-                                <Label className="text-base">Maintenance Mode</Label>
-                                <div className="text-sm text-muted-foreground">Close store for customers temporarily.</div>
+                                <Label className="text-base text-stone-800">Maintenance Mode</Label>
+                                <div className="text-sm text-stone-500">Close store for customers temporarily.</div>
                             </div>
                             <Switch name="maintenanceMode" defaultChecked={initialData.maintenanceMode} />
                         </div>
@@ -102,54 +102,54 @@ export function SettingsForm({ initialData }: SettingsFormProps) {
             </TabsContent>
 
             <TabsContent value="payment">
-                <Card>
+                <Card className="border-stone-200 rounded-2xl shadow-sm">
                     <CardHeader>
-                        <CardTitle className="flex items-center gap-2"><CreditCard size={18}/> Payment Gateways</CardTitle>
-                        <CardDescription>Configure how you accept payments.</CardDescription>
+                        <CardTitle className="flex items-center gap-2 text-stone-900"><CreditCard size={18} className="text-amber-700"/> Payment Gateways</CardTitle>
+                        <CardDescription className="text-stone-500">Configure how you accept payments.</CardDescription>
                     </CardHeader>
                     <CardContent className="space-y-4">
-                        <div className="p-4 border rounded-lg flex items-center justify-between bg-slate-50">
+                        <div className="p-4 border border-stone-200 rounded-xl flex items-center justify-between bg-stone-50/50">
                              <div className="flex items-center gap-3">
-                                <div className="h-10 w-14 bg-white border rounded flex items-center justify-center font-bold text-slate-700 italic">Stripe</div>
+                                <div className="h-10 w-14 bg-white border border-stone-200 rounded-lg flex items-center justify-center font-bold text-stone-700 italic">Stripe</div>
                                 <div>
-                                    <div className="font-bold text-sm">Credit Card (Stripe)</div>
-                                    <div className="text-xs text-green-600 font-medium">Connected & Active</div>
+                                    <div className="font-bold text-sm text-stone-900">Credit Card (Stripe)</div>
+                                    <div className="text-xs text-emerald-600 font-medium">Connected & Active</div>
                                 </div>
                              </div>
-                             <Button variant="outline" size="sm" type="button" disabled>Manage</Button>
+                             <Button variant="outline" size="sm" type="button" disabled className="border-stone-300 cursor-pointer">Manage</Button>
                         </div>
-                        <div className="p-4 border rounded-lg flex items-center justify-between opacity-60">
+                        <div className="p-4 border border-stone-200 rounded-xl flex items-center justify-between opacity-60">
                              <div className="flex items-center gap-3">
-                                <div className="h-10 w-14 bg-white border rounded flex items-center justify-center font-bold text-blue-800 italic">PayPal</div>
+                                <div className="h-10 w-14 bg-white border border-stone-200 rounded-lg flex items-center justify-center font-bold text-blue-800 italic">PayPal</div>
                                 <div>
-                                    <div className="font-bold text-sm">PayPal</div>
-                                    <div className="text-xs text-slate-500">Currently Disabled</div>
+                                    <div className="font-bold text-sm text-stone-900">PayPal</div>
+                                    <div className="text-xs text-stone-400">Currently Disabled</div>
                                 </div>
                              </div>
-                             <Button variant="outline" size="sm" type="button">Connect</Button>
+                             <Button variant="outline" size="sm" type="button" className="border-stone-300 cursor-pointer">Connect</Button>
                         </div>
                     </CardContent>
                 </Card>
             </TabsContent>
 
             <TabsContent value="notifications">
-                <Card>
+                <Card className="border-stone-200 rounded-2xl shadow-sm">
                     <CardHeader>
-                         <CardTitle className="flex items-center gap-2"><Bell size={18}/> Email Notifications</CardTitle>
-                         <CardDescription>Control when you receive emails.</CardDescription>
+                         <CardTitle className="flex items-center gap-2 text-stone-900"><Bell size={18} className="text-amber-700"/> Email Notifications</CardTitle>
+                         <CardDescription className="text-stone-500">Control when you receive emails.</CardDescription>
                     </CardHeader>
                     <CardContent className="space-y-4">
-                        <div className="flex items-center justify-between border-b pb-4">
+                        <div className="flex items-center justify-between border-b border-stone-200 pb-4">
                             <div className="space-y-0.5">
-                                <Label className="text-base">New Order Alert</Label>
-                                <div className="text-sm text-muted-foreground">Receive an email when a customer places an order.</div>
+                                <Label className="text-base text-stone-800">New Order Alert</Label>
+                                <div className="text-sm text-stone-500">Receive an email when a customer places an order.</div>
                             </div>
                             <Switch defaultChecked />
                         </div>
                         <div className="flex items-center justify-between pt-2">
                             <div className="space-y-0.5">
-                                <Label className="text-base">Low Stock Warning</Label>
-                                <div className="text-sm text-muted-foreground">Get notified when product stock is below 5.</div>
+                                <Label className="text-base text-stone-800">Low Stock Warning</Label>
+                                <div className="text-sm text-stone-500">Get notified when product stock is below 5.</div>
                             </div>
                             <Switch defaultChecked />
                         </div>

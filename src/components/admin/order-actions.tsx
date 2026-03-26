@@ -46,7 +46,7 @@ export function OrderActions({ orderId, currentStatus }: Readonly<OrderActionsPr
   return (
     <div className="flex items-center gap-2">
       <Select defaultValue={currentStatus} onValueChange={handleStatusChange} disabled={isLoading}>
-        <SelectTrigger className="w-[140px] h-8">
+        <SelectTrigger className="w-[140px] h-8 border-stone-300 text-stone-700">
           <SelectValue placeholder="Status" />
         </SelectTrigger>
         <SelectContent>
@@ -59,7 +59,7 @@ export function OrderActions({ orderId, currentStatus }: Readonly<OrderActionsPr
         </SelectContent>
       </Select>
 
-      <Button variant="destructive" size="icon" className="h-8 w-8" onClick={handleDelete} disabled={isLoading}>
+      <Button variant="destructive" size="icon" className="h-8 w-8 cursor-pointer" onClick={handleDelete} disabled={isLoading}>
         {isLoading ? <Loader2 className="h-4 w-4 animate-spin" /> : <Trash2 className="h-4 w-4" />}
       </Button>
     </div>

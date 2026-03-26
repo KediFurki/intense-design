@@ -66,34 +66,34 @@ export function CategoryManager({ initialCategories }: { initialCategories: Cate
          />
       </div>
 
-      <Card className="md:col-span-2 border-slate-200 shadow-sm h-fit">
-        <CardHeader><CardTitle>{t('existingCategories')}</CardTitle></CardHeader>
+      <Card className="md:col-span-2 border-stone-200 shadow-sm h-fit rounded-2xl">
+        <CardHeader><CardTitle className="text-stone-900">{t('existingCategories')}</CardTitle></CardHeader>
         <CardContent>
           <Table>
             <TableHeader>
-              <TableRow>
-                <TableHead className="w-[80px]">{t('image')}</TableHead>
-                <TableHead>{t('name')} ({locale.toUpperCase()})</TableHead>
-                <TableHead>{t('slug')}</TableHead>
-                <TableHead className="text-right">{t('actions')}</TableHead>
+              <TableRow className="bg-stone-50 hover:bg-stone-50">
+                <TableHead className="w-[80px] text-stone-600">{t('image')}</TableHead>
+                <TableHead className="text-stone-600">{t('name')} ({locale.toUpperCase()})</TableHead>
+                <TableHead className="text-stone-600">{t('slug')}</TableHead>
+                <TableHead className="text-right text-stone-600">{t('actions')}</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
               {categories.length === 0 ? (
-                <TableRow><TableCell colSpan={4} className="text-center py-4 text-muted-foreground">{t('noCategories')}</TableCell></TableRow>
+                <TableRow><TableCell colSpan={4} className="text-center py-4 text-stone-400">{t('noCategories')}</TableCell></TableRow>
               ) : (
                 categories.map((cat) => (
-                  <TableRow key={cat.id} className={editingCategory?.id === cat.id ? "bg-blue-50" : ""}>
+                  <TableRow key={cat.id} className={editingCategory?.id === cat.id ? "bg-amber-50" : "hover:bg-stone-50/50"}>
                     <TableCell>
                         {cat.image ? (
-                            <div className="relative w-10 h-10 rounded-md overflow-hidden border"><Image src={cat.image} alt="Cat" fill className="object-cover" /></div>
-                        ) : (<div className="w-10 h-10 bg-slate-100 rounded-md flex items-center justify-center text-xs text-slate-400">N/A</div>)}
+                            <div className="relative w-10 h-10 rounded-lg overflow-hidden border border-stone-200"><Image src={cat.image} alt="Cat" fill className="object-cover" /></div>
+                        ) : (<div className="w-10 h-10 bg-stone-100 rounded-lg flex items-center justify-center text-xs text-stone-400">N/A</div>)}
                     </TableCell>
-                    <TableCell className="font-medium">{getLocalized(cat.name)}</TableCell>
-                    <TableCell className="text-muted-foreground text-sm">{cat.slug}</TableCell>
+                    <TableCell className="font-medium text-stone-900">{getLocalized(cat.name)}</TableCell>
+                    <TableCell className="text-stone-500 text-sm">{cat.slug}</TableCell>
                     <TableCell className="text-right">
                       <div className="flex justify-end gap-2">
-                        <Button variant="ghost" size="icon" onClick={() => handleEdit(cat)} className="h-8 w-8 hover:bg-blue-100 text-blue-600 cursor-pointer"><Pencil size={16} /></Button>
+                        <Button variant="ghost" size="icon" onClick={() => handleEdit(cat)} className="h-8 w-8 hover:bg-amber-50 text-amber-700 cursor-pointer"><Pencil size={16} /></Button>
                         <Button variant="ghost" size="icon" onClick={() => handleDelete(cat.id)} className="h-8 w-8 text-red-500 hover:bg-red-50 cursor-pointer"><Trash2 size={16} /></Button>
                       </div>
                     </TableCell>

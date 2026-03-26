@@ -251,7 +251,7 @@ export default function ProductForm({ initialData, categories }: { initialData?:
           <Button type="button" variant="outline" onClick={() => globalThis.history.back()}>
             Cancel
           </Button>
-          <Button type="submit" disabled={isSubmitting} className="bg-slate-900 text-white hover:bg-slate-800">
+          <Button type="submit" disabled={isSubmitting} className="bg-stone-900 text-white hover:bg-stone-800 rounded-xl cursor-pointer">
             {isSubmitting ? "Saving..." : t("save")}
           </Button>
         </div>
@@ -309,14 +309,14 @@ export default function ProductForm({ initialData, categories }: { initialData?:
             </CardHeader>
             <CardContent className="space-y-4">
               {variants.map((variant, index) => (
-                <div key={index} className="group relative space-y-5 rounded-xl border border-slate-200 bg-white p-5 shadow-sm">
+                <div key={index} className="group relative space-y-5 rounded-xl border border-stone-200 bg-white p-5 shadow-sm">
                   <div className="flex items-center justify-between">
-                    <span className="text-xs font-bold uppercase tracking-wider text-slate-400">Variant #{index + 1}</span>
+                    <span className="text-xs font-bold uppercase tracking-wider text-stone-400">Variant #{index + 1}</span>
                     <Button type="button" variant="ghost" size="icon" onClick={() => setVariants(variants.filter((_, i) => i !== index))} className="h-8 w-8 text-red-500 hover:bg-red-50"><Trash2 size={16} /></Button>
                   </div>
 
                   {/* ── Variant Localized Names (Tabs) ── */}
-                  <div className="rounded-lg border border-slate-100 bg-slate-50/50 p-3">
+                  <div className="rounded-lg border border-stone-100 bg-stone-50/50 p-3">
                     <Label className="mb-2 flex items-center gap-1.5 text-[10px] uppercase tracking-wider text-muted-foreground">
                       <Globe size={12} /> Variant Name
                     </Label>
@@ -377,22 +377,22 @@ export default function ProductForm({ initialData, categories }: { initialData?:
                   <div className="space-y-2">
                     <Label className="text-xs uppercase tracking-wide text-muted-foreground">Variant Dimensions (If different from base)</Label>
                     <div className="grid grid-cols-3 gap-2">
-                      <div className="relative"><span className="absolute left-2 top-1.5 text-xs font-bold text-slate-400">W</span><Input className="pl-6" placeholder="Width" value={variant.attributes.width || ""} onChange={(e) => updateVariantAttr(index, "width", e.target.value)} /></div>
-                      <div className="relative"><span className="absolute left-2 top-1.5 text-xs font-bold text-slate-400">H</span><Input className="pl-6" placeholder="Height" value={variant.attributes.height || ""} onChange={(e) => updateVariantAttr(index, "height", e.target.value)} /></div>
-                      <div className="relative"><span className="absolute left-2 top-1.5 text-xs font-bold text-slate-400">D</span><Input className="pl-6" placeholder="Depth" value={variant.attributes.depth || ""} onChange={(e) => updateVariantAttr(index, "depth", e.target.value)} /></div>
+                      <div className="relative"><span className="absolute left-2 top-1.5 text-xs font-bold text-stone-400">W</span><Input className="pl-6" placeholder="Width" value={variant.attributes.width || ""} onChange={(e) => updateVariantAttr(index, "width", e.target.value)} /></div>
+                      <div className="relative"><span className="absolute left-2 top-1.5 text-xs font-bold text-stone-400">H</span><Input className="pl-6" placeholder="Height" value={variant.attributes.height || ""} onChange={(e) => updateVariantAttr(index, "height", e.target.value)} /></div>
+                      <div className="relative"><span className="absolute left-2 top-1.5 text-xs font-bold text-stone-400">D</span><Input className="pl-6" placeholder="Depth" value={variant.attributes.depth || ""} onChange={(e) => updateVariantAttr(index, "depth", e.target.value)} /></div>
                     </div>
                   </div>
 
                   {/* Dynamic Fields (Product Type) */}
                   {watchedType === "bed" && (
-                    <div className="grid grid-cols-2 gap-4 rounded-lg border border-blue-100 bg-blue-50/50 p-3 animate-in fade-in">
+                    <div className="grid grid-cols-2 gap-4 rounded-lg border border-amber-200 bg-amber-50/50 p-3 animate-in fade-in">
                       <div className="space-y-2">
-                        <Label className="text-blue-900">Headboard Height</Label>
+                        <Label className="text-amber-900">Headboard Height</Label>
                         <Input placeholder="e.g. 120cm" value={variant.attributes.headboardHeight || ""} onChange={(e) => updateVariantAttr(index, "headboardHeight", e.target.value)} />
                       </div>
                       <div className="mt-8 flex items-center gap-2">
                         <input type="checkbox" id={`storage-${index}`} checked={!!variant.attributes.storage} onChange={(e) => updateVariantAttr(index, "storage", e.target.checked)} className="h-4 w-4" />
-                        <Label htmlFor={`storage-${index}`} className="cursor-pointer text-blue-900">Has Storage (Baza)?</Label>
+                        <Label htmlFor={`storage-${index}`} className="cursor-pointer text-amber-900">Has Storage (Baza)?</Label>
                       </div>
                     </div>
                   )}
@@ -486,8 +486,8 @@ export default function ProductForm({ initialData, categories }: { initialData?:
                 <Label>3D Model</Label>
                 <FileUpload value={watchedModelUrl} onChange={(url) => setValue("modelUrl", url)} onRemove={() => setValue("modelUrl", "")} />
               </div>
-              <div className="space-y-2 rounded border border-blue-100 bg-blue-50 p-3">
-                <Label className="flex items-center gap-2 text-blue-700"><Wand2 size={16} /> AI Mask</Label>
+              <div className="space-y-2 rounded-xl border border-amber-200 bg-amber-50/50 p-3">
+                <Label className="flex items-center gap-2 text-amber-800"><Wand2 size={16} /> AI Mask</Label>
                 <ImageUpload value={watchedMaskImage ? [watchedMaskImage] : []} onChange={(url) => setValue("maskImage", url)} onRemove={() => setValue("maskImage", "")} />
               </div>
             </CardContent>

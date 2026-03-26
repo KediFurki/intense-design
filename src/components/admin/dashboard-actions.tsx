@@ -16,10 +16,10 @@ export function DashboardActions() {
 
   return (
     <div className="flex items-center gap-2">
-      <Button variant="outline" className="gap-2" onClick={handleDownloadReport}>
+      <Button variant="outline" className="gap-2 border-stone-300 text-stone-700 hover:bg-stone-100 cursor-pointer" onClick={handleDownloadReport}>
         <TrendingUp size={16} /> Reports (CSV)
       </Button>
-      <Button className="gap-2 bg-slate-900 text-white hover:bg-slate-800" onClick={handlePrintPDF}>
+      <Button className="gap-2 bg-stone-900 text-white hover:bg-stone-800 cursor-pointer" onClick={handlePrintPDF}>
         <FileText size={16} /> Download PDF
       </Button>
     </div>
