@@ -5,7 +5,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import ImageUpload from "@/components/ui/image-upload";
 import FileUpload from "@/components/ui/file-upload";
@@ -14,7 +14,7 @@ import { createProduct, updateProduct } from "@/server/actions/products";
 import type { ProductInput } from "@/server/actions/products";
 import { toast } from "sonner";
 import { useTranslations } from "next-intl";
-import { Plus, Trash2, Box, Layers, Globe, Wand2, Bed, Armchair, Lamp, Utensils } from "lucide-react";
+import { Plus, Trash2, Box, Layers, Globe, Wand2, Bed, Armchair, Lamp, Utensils, ArrowLeft, Save, Tag, Ruler, ImageIcon, Package } from "lucide-react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
@@ -27,12 +27,12 @@ type LocalizedString = Record<Locale, string>;
 const LOCALE_LABELS: Record<Locale, string> = { en: "EN", tr: "TR", de: "DE", bg: "BG" };
 
 const PRODUCT_TYPES = {
-  furniture: { label: "General Furniture", icon: Box },
-  sofa: { label: "Sofa / Armchair", icon: Armchair },
-  bed: { label: "Bed / Mattress", icon: Bed },
-  kitchen: { label: "Kitchen Unit", icon: Utensils },
-  lighting: { label: "Lighting", icon: Lamp },
-  decoration: { label: "Decoration", icon: Box },
+  furniture: { labelKey: "typeFurniture", icon: Box },
+  sofa: { labelKey: "typeSofa", icon: Armchair },
+  bed: { labelKey: "typeBed", icon: Bed },
+  kitchen: { labelKey: "typeKitchen", icon: Utensils },
+  lighting: { labelKey: "typeLighting", icon: Lamp },
+  decoration: { labelKey: "typeDecoration", icon: Box },
 };
 
 type ProductTypeKey = keyof typeof PRODUCT_TYPES;
@@ -236,41 +236,52 @@ export default function ProductForm({ initialData, categories }: { initialData?:
     if (result?.error) {
       toast.error(result.error);
     } else {
-      toast.success(initialData ? "Product Updated" : "Product Created");
+      toast.success(initialData ? t("productUpdated") : t("productCreated"));
     }
   };
 
   return (
     <form onSubmit={handleSubmit(onSubmit)} className="max-w-6xl space-y-8 pb-20">
-      {/* Sticky Header */}
-      <div className="sticky top-0 z-50 flex items-center justify-between border-b bg-white/90 py-4 backdrop-blur">
-        <h2 className="text-3xl font-bold tracking-tight">
-          {initialData ? t("edit") : t("create")} Product
-        </h2>
-        <div className="flex gap-2">
-          <Button type="button" variant="outline" onClick={() => globalThis.history.back()}>
-            Cancel
+      {/* ── Sticky Header ── */}
+      <div className="sticky top-0 z-50 flex items-center justify-between border-b border-stone-200 bg-white/90 py-4 backdrop-blur">
+        <div className="flex items-center gap-3">
+          <Button type="button" variant="ghost" size="icon" onClick={() => globalThis.history.back()} className="h-9 w-9 rounded-xl text-stone-500 hover:bg-stone-100 cursor-pointer">
+            <ArrowLeft size={18} />
           </Button>
-          <Button type="submit" disabled={isSubmitting} className="bg-stone-900 text-white hover:bg-stone-800 rounded-xl cursor-pointer">
-            {isSubmitting ? "Saving..." : t("save")}
-          </Button>
+          <div>
+            <h2 className="text-2xl font-bold tracking-tight text-stone-900">
+              {initialData ? t("editProduct") : t("newProduct")}
+            </h2>
+            <p className="text-xs text-stone-500">{initialData ? t("edit") : t("create")}</p>
+          </div>
         </div>
+        <Button type="submit" disabled={isSubmitting} className="bg-stone-900 text-white hover:bg-stone-800 rounded-xl cursor-pointer gap-2">
+          <Save size={16} />
+          {isSubmitting ? t("saving") : t("save")}
+        </Button>
       </div>
 
       <div className="grid grid-cols-1 gap-8 lg:grid-cols-3">
-        {/* ─── LEFT COLUMN: Localized Content ─── */}
+        {/* ─── LEFT COLUMN ─── */}
         <div className="space-y-6 lg:col-span-2">
-          <Card>
+
+          {/* Product Content Card */}
+          <Card className="border-stone-200 rounded-2xl shadow-sm">
             <CardHeader>
-              <CardTitle className="flex items-center gap-2">
-                <Globe size={18} /> Product Content
+              <CardTitle className="flex items-center gap-2 text-stone-900">
+                <Globe size={18} className="text-amber-700" /> {t("productContent")}
               </CardTitle>
+              <CardDescription className="text-stone-500">{t("productName")}</CardDescription>
             </CardHeader>
             <CardContent>
               <Tabs defaultValue="en">
-                <TabsList className="mb-4 grid w-full grid-cols-4">
+                <TabsList className="mb-4 w-full justify-start border-b border-stone-200 rounded-none h-auto p-0 bg-transparent gap-4">
                   {LOCALES.map((loc) => (
-                    <TabsTrigger key={loc} value={loc} className="uppercase">
+                    <TabsTrigger
+                      key={loc}
+                      value={loc}
+                      className="rounded-none border-b-2 border-transparent data-[state=active]:border-amber-700 data-[state=active]:text-amber-800 data-[state=active]:shadow-none py-2.5 px-1 font-medium text-stone-500 hover:text-stone-700 uppercase text-sm cursor-pointer"
+                    >
                       {LOCALE_LABELS[loc]}
                     </TabsTrigger>
                   ))}
@@ -278,22 +289,22 @@ export default function ProductForm({ initialData, categories }: { initialData?:
                 {LOCALES.map((loc) => (
                   <TabsContent key={loc} value={loc} className="space-y-4 animate-in fade-in slide-in-from-left-2">
                     <div className="space-y-2">
-                      <Label>
-                        Product Name ({LOCALE_LABELS[loc]})
+                      <Label className="text-stone-700">
+                        {t("productName")} ({LOCALE_LABELS[loc]})
                         {loc === "en" && <span className="ml-1 text-red-500">*</span>}
                       </Label>
-                      <Input {...register(`name.${loc}` as const)} placeholder="e.g. Modern Sofa" />
+                      <Input {...register(`name.${loc}` as const)} placeholder={`${t("productName")} (${LOCALE_LABELS[loc]})`} className="border-stone-300 focus-visible:ring-amber-600" />
                       {loc === "en" && errors.name?.en && (
                         <p className="text-xs text-red-500">{errors.name.en.message}</p>
                       )}
                     </div>
                     <div className="space-y-2">
-                      <Label>Short Description ({LOCALE_LABELS[loc]})</Label>
-                      <Textarea {...register(`description.${loc}` as const)} rows={2} />
+                      <Label className="text-stone-700">{t("shortDescription")} ({LOCALE_LABELS[loc]})</Label>
+                      <Textarea {...register(`description.${loc}` as const)} rows={2} className="border-stone-300 focus-visible:ring-amber-600" />
                     </div>
                     <div className="space-y-2">
-                      <Label>Detailed Story ({LOCALE_LABELS[loc]})</Label>
-                      <Textarea {...register(`longDescription.${loc}` as const)} rows={5} />
+                      <Label className="text-stone-700">{t("detailedStory")} ({LOCALE_LABELS[loc]})</Label>
+                      <Textarea {...register(`longDescription.${loc}` as const)} rows={5} className="border-stone-300 focus-visible:ring-amber-600" />
                     </div>
                   </TabsContent>
                 ))}
@@ -301,36 +312,53 @@ export default function ProductForm({ initialData, categories }: { initialData?:
             </CardContent>
           </Card>
 
-          {/* Variants */}
-          <Card>
+          {/* Variants Card */}
+          <Card className="border-stone-200 rounded-2xl shadow-sm">
             <CardHeader className="flex flex-row items-center justify-between">
-              <CardTitle className="flex items-center gap-2"><Layers size={18} /> Variants & Options</CardTitle>
-              <Button type="button" onClick={addVariant} variant="outline" size="sm"><Plus size={16} className="mr-1" /> Add Variant</Button>
+              <div>
+                <CardTitle className="flex items-center gap-2 text-stone-900">
+                  <Layers size={18} className="text-amber-700" /> {t("variantsOptions")}
+                </CardTitle>
+                <CardDescription className="mt-1 text-stone-500">{variants.length > 0 ? `${variants.length} variant(s)` : ""}</CardDescription>
+              </div>
+              <Button type="button" onClick={addVariant} variant="outline" size="sm" className="border-stone-300 hover:bg-stone-50 rounded-xl cursor-pointer gap-1.5">
+                <Plus size={16} /> {t("addVariant")}
+              </Button>
             </CardHeader>
-            <CardContent className="space-y-4">
+            <CardContent className="space-y-5">
+              {variants.length === 0 && (
+                <div className="flex flex-col items-center justify-center rounded-xl border border-dashed border-stone-300 bg-stone-50/50 p-8 text-center">
+                  <Package size={32} className="mb-2 text-stone-300" />
+                  <p className="text-sm text-stone-500">{t("addVariant")}</p>
+                </div>
+              )}
               {variants.map((variant, index) => (
-                <div key={index} className="group relative space-y-5 rounded-xl border border-stone-200 bg-white p-5 shadow-sm">
+                <div key={index} className="group relative space-y-5 rounded-2xl border border-stone-200 bg-white p-5 shadow-sm transition-all hover:shadow-md">
                   <div className="flex items-center justify-between">
-                    <span className="text-xs font-bold uppercase tracking-wider text-stone-400">Variant #{index + 1}</span>
-                    <Button type="button" variant="ghost" size="icon" onClick={() => setVariants(variants.filter((_, i) => i !== index))} className="h-8 w-8 text-red-500 hover:bg-red-50"><Trash2 size={16} /></Button>
+                    <span className="text-xs font-bold uppercase tracking-wider text-stone-400">{t("variantNumber", { number: index + 1 })}</span>
+                    <Button type="button" variant="ghost" size="icon" onClick={() => setVariants(variants.filter((_, i) => i !== index))} className="h-8 w-8 text-red-500 hover:bg-red-50 rounded-lg cursor-pointer">
+                      <Trash2 size={16} />
+                    </Button>
                   </div>
 
-                  {/* ── Variant Localized Names (Tabs) ── */}
-                  <div className="rounded-lg border border-stone-100 bg-stone-50/50 p-3">
-                    <Label className="mb-2 flex items-center gap-1.5 text-[10px] uppercase tracking-wider text-muted-foreground">
-                      <Globe size={12} /> Variant Name
+                  {/* Variant Localized Names */}
+                  <div className="rounded-xl border border-stone-100 bg-stone-50/50 p-4">
+                    <Label className="mb-2 flex items-center gap-1.5 text-[10px] uppercase tracking-wider text-stone-500">
+                      <Globe size={12} /> {t("variantName")}
                     </Label>
                     <Tabs defaultValue="en" className="w-full">
-                      <TabsList className="mb-2 grid w-full grid-cols-4">
+                      <TabsList className="mb-2 w-full justify-start border-b border-stone-200 rounded-none h-auto p-0 bg-transparent gap-2">
                         {LOCALES.map((loc) => (
-                          <TabsTrigger key={loc} value={loc} className="h-6 text-[10px] uppercase">{LOCALE_LABELS[loc]}</TabsTrigger>
+                          <TabsTrigger key={loc} value={loc} className="rounded-none border-b-2 border-transparent data-[state=active]:border-amber-600 data-[state=active]:text-amber-700 data-[state=active]:shadow-none py-1.5 px-1 text-[10px] uppercase font-medium text-stone-400 cursor-pointer">
+                            {LOCALE_LABELS[loc]}
+                          </TabsTrigger>
                         ))}
                       </TabsList>
                       {LOCALES.map((loc) => (
                         <TabsContent key={loc} value={loc}>
                           <Input
-                            placeholder={`Variant name (${LOCALE_LABELS[loc]})`}
-                            className="h-9 bg-white"
+                            placeholder={`${t("variantName")} (${LOCALE_LABELS[loc]})`}
+                            className="h-9 border-stone-300 bg-white focus-visible:ring-amber-600"
                             value={variant.names[loc] || ""}
                             onChange={(e) => { const newV = [...variants]; newV[index].names = { ...newV[index].names, [loc]: e.target.value }; setVariants(newV); }}
                           />
@@ -339,10 +367,10 @@ export default function ProductForm({ initialData, categories }: { initialData?:
                     </Tabs>
                   </div>
 
-                  {/* ── 3D Color Hex Code ── */}
-                  <div className="rounded-lg border border-violet-200 bg-violet-50/60 p-3">
+                  {/* Color Hex Code */}
+                  <div className="rounded-xl border border-violet-200 bg-violet-50/60 p-4">
                     <Label className="mb-2 flex items-center gap-1.5 text-xs font-semibold text-violet-800">
-                      <Box size={14} /> Color Hex Code (For 3D Model)
+                      <Box size={14} /> {t("colorHexCode")}
                     </Label>
                     <div className="flex items-center gap-3">
                       <div
@@ -358,59 +386,68 @@ export default function ProductForm({ initialData, categories }: { initialData?:
                         />
                       </div>
                       <Input
-                        className="h-10 flex-1 font-mono text-sm"
+                        className="h-10 flex-1 font-mono text-sm border-violet-200 focus-visible:ring-violet-400"
                         placeholder="#b05c45"
                         value={variant.attributes.color || ""}
                         onChange={(e) => updateVariantAttr(index, "color", e.target.value)}
                       />
                     </div>
-                    <p className="mt-1.5 text-[10px] text-violet-600">This hex code will be used for 3D model dynamic color rendering.</p>
+                    <p className="mt-1.5 text-[10px] text-violet-600">{t("colorHexDesc")}</p>
                   </div>
 
                   {/* Material */}
                   <div className="space-y-2">
-                    <Label>Material / Fabric</Label>
-                    <Input placeholder="e.g. Velvet, Oak Wood" value={variant.attributes.material || ""} onChange={(e) => updateVariantAttr(index, "material", e.target.value)} />
+                    <Label className="text-stone-700">{t("materialFabric")}</Label>
+                    <Input placeholder={t("materialFabric")} value={variant.attributes.material || ""} onChange={(e) => updateVariantAttr(index, "material", e.target.value)} className="border-stone-300 focus-visible:ring-amber-600" />
                   </div>
 
                   {/* Variant Dimensions */}
                   <div className="space-y-2">
-                    <Label className="text-xs uppercase tracking-wide text-muted-foreground">Variant Dimensions (If different from base)</Label>
+                    <Label className="text-xs uppercase tracking-wide text-stone-500">{t("variantDimensions")} — {t("variantDimensionsHint")}</Label>
                     <div className="grid grid-cols-3 gap-2">
-                      <div className="relative"><span className="absolute left-2 top-1.5 text-xs font-bold text-stone-400">W</span><Input className="pl-6" placeholder="Width" value={variant.attributes.width || ""} onChange={(e) => updateVariantAttr(index, "width", e.target.value)} /></div>
-                      <div className="relative"><span className="absolute left-2 top-1.5 text-xs font-bold text-stone-400">H</span><Input className="pl-6" placeholder="Height" value={variant.attributes.height || ""} onChange={(e) => updateVariantAttr(index, "height", e.target.value)} /></div>
-                      <div className="relative"><span className="absolute left-2 top-1.5 text-xs font-bold text-stone-400">D</span><Input className="pl-6" placeholder="Depth" value={variant.attributes.depth || ""} onChange={(e) => updateVariantAttr(index, "depth", e.target.value)} /></div>
+                      <div className="relative"><span className="absolute left-2.5 top-2 text-xs font-bold text-stone-400">W</span><Input className="pl-7 border-stone-300 focus-visible:ring-amber-600" placeholder={t("baseDimensions")} value={variant.attributes.width || ""} onChange={(e) => updateVariantAttr(index, "width", e.target.value)} /></div>
+                      <div className="relative"><span className="absolute left-2.5 top-2 text-xs font-bold text-stone-400">H</span><Input className="pl-7 border-stone-300 focus-visible:ring-amber-600" placeholder={t("baseDimensions")} value={variant.attributes.height || ""} onChange={(e) => updateVariantAttr(index, "height", e.target.value)} /></div>
+                      <div className="relative"><span className="absolute left-2.5 top-2 text-xs font-bold text-stone-400">D</span><Input className="pl-7 border-stone-300 focus-visible:ring-amber-600" placeholder={t("baseDimensions")} value={variant.attributes.depth || ""} onChange={(e) => updateVariantAttr(index, "depth", e.target.value)} /></div>
                     </div>
                   </div>
 
                   {/* Dynamic Fields (Product Type) */}
                   {watchedType === "bed" && (
-                    <div className="grid grid-cols-2 gap-4 rounded-lg border border-amber-200 bg-amber-50/50 p-3 animate-in fade-in">
+                    <div className="grid grid-cols-2 gap-4 rounded-xl border border-amber-200 bg-amber-50/50 p-4 animate-in fade-in">
                       <div className="space-y-2">
-                        <Label className="text-amber-900">Headboard Height</Label>
-                        <Input placeholder="e.g. 120cm" value={variant.attributes.headboardHeight || ""} onChange={(e) => updateVariantAttr(index, "headboardHeight", e.target.value)} />
+                        <Label className="text-amber-900">{t("headboardHeight")}</Label>
+                        <Input placeholder="e.g. 120cm" value={variant.attributes.headboardHeight || ""} onChange={(e) => updateVariantAttr(index, "headboardHeight", e.target.value)} className="border-amber-200 focus-visible:ring-amber-500" />
                       </div>
                       <div className="mt-8 flex items-center gap-2">
-                        <input type="checkbox" id={`storage-${index}`} checked={!!variant.attributes.storage} onChange={(e) => updateVariantAttr(index, "storage", e.target.checked)} className="h-4 w-4" />
-                        <Label htmlFor={`storage-${index}`} className="cursor-pointer text-amber-900">Has Storage (Baza)?</Label>
+                        <input type="checkbox" id={`storage-${index}`} checked={!!variant.attributes.storage} onChange={(e) => updateVariantAttr(index, "storage", e.target.checked)} className="h-4 w-4 accent-amber-700" />
+                        <Label htmlFor={`storage-${index}`} className="cursor-pointer text-amber-900">{t("hasStorage")}</Label>
                       </div>
                     </div>
                   )}
 
                   {watchedType === "sofa" && (
-                    <div className="grid grid-cols-2 gap-4 rounded-lg border border-orange-100 bg-orange-50/50 p-3 animate-in fade-in">
+                    <div className="rounded-xl border border-orange-200 bg-orange-50/50 p-4 animate-in fade-in">
                       <div className="space-y-2">
-                        <Label className="text-orange-900">Fabric Type</Label>
-                        <Input placeholder="e.g. Linen, Leather" value={variant.attributes.fabricType || ""} onChange={(e) => updateVariantAttr(index, "fabricType", e.target.value)} />
+                        <Label className="text-orange-900">{t("fabricType")}</Label>
+                        <Input placeholder={t("fabricType")} value={variant.attributes.fabricType || ""} onChange={(e) => updateVariantAttr(index, "fabricType", e.target.value)} className="border-orange-200 focus-visible:ring-orange-400" />
                       </div>
                     </div>
                   )}
 
                   {/* Price & Stock & Images */}
-                  <div className="grid grid-cols-3 gap-4 border-t pt-3">
-                    <div className="space-y-1"><Label className="text-xs">Price (€)</Label><Input type="number" value={variant.price} onChange={(e) => { const newV = [...variants]; newV[index].price = parseFloat(e.target.value); setVariants(newV); }} /></div>
-                    <div className="space-y-1"><Label className="text-xs">Stock</Label><Input type="number" value={variant.stock} onChange={(e) => { const newV = [...variants]; newV[index].stock = parseInt(e.target.value); setVariants(newV); }} /></div>
-                    <div className="space-y-1"><Label className="text-xs">Images</Label><ImageUpload value={variant.images} onChange={(url) => { const newV = [...variants]; newV[index].images = [...newV[index].images, url]; setVariants(newV); }} onRemove={(url) => { const newV = [...variants]; newV[index].images = variant.images.filter(i => i !== url); setVariants(newV); }} /></div>
+                  <div className="grid grid-cols-3 gap-4 border-t border-stone-100 pt-4">
+                    <div className="space-y-1.5">
+                      <Label className="text-xs text-stone-600">{t("variantPrice")}</Label>
+                      <Input type="number" step="0.01" value={variant.price} onChange={(e) => { const newV = [...variants]; newV[index].price = parseFloat(e.target.value); setVariants(newV); }} className="border-stone-300 focus-visible:ring-amber-600" />
+                    </div>
+                    <div className="space-y-1.5">
+                      <Label className="text-xs text-stone-600">{t("variantStock")}</Label>
+                      <Input type="number" value={variant.stock} onChange={(e) => { const newV = [...variants]; newV[index].stock = parseInt(e.target.value); setVariants(newV); }} className="border-stone-300 focus-visible:ring-amber-600" />
+                    </div>
+                    <div className="space-y-1.5">
+                      <Label className="text-xs text-stone-600">{t("variantImages")}</Label>
+                      <ImageUpload value={variant.images} onChange={(url) => { const newV = [...variants]; newV[index].images = [...newV[index].images, url]; setVariants(newV); }} onRemove={(url) => { const newV = [...variants]; newV[index].images = variant.images.filter(i => i !== url); setVariants(newV); }} />
+                    </div>
                   </div>
                 </div>
               ))}
@@ -418,76 +455,102 @@ export default function ProductForm({ initialData, categories }: { initialData?:
           </Card>
         </div>
 
-        {/* ─── RIGHT COLUMN: Universal Settings ─── */}
+        {/* ─── RIGHT COLUMN ─── */}
         <div className="space-y-6">
+
           {/* Category + Type + Slug */}
-          <Card>
-            <CardContent className="space-y-4 p-6">
+          <Card className="border-stone-200 rounded-2xl shadow-sm">
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2 text-stone-900">
+                <Tag size={18} className="text-amber-700" /> {t("category")}
+              </CardTitle>
+            </CardHeader>
+            <CardContent className="space-y-4">
               <div className="space-y-2">
-                <Label>Category <span className="text-red-500">*</span></Label>
+                <Label className="text-stone-700">{t("category")} <span className="text-red-500">*</span></Label>
                 <Select value={watchedCategoryId} onValueChange={(val) => setValue("categoryId", val, { shouldValidate: true })}>
-                  <SelectTrigger><SelectValue placeholder="Select" /></SelectTrigger>
-                  <SelectContent>{categories.map((c) => (<SelectItem key={c.id} value={c.id}>{c.name?.en || c.name?.tr || "Category"}</SelectItem>))}</SelectContent>
+                  <SelectTrigger className="border-stone-300 focus:ring-amber-600"><SelectValue placeholder={t("selectCategory")} /></SelectTrigger>
+                  <SelectContent>{categories.map((c) => (<SelectItem key={c.id} value={c.id}>{c.name?.en || c.name?.tr || t("category")}</SelectItem>))}</SelectContent>
                 </Select>
                 {errors.categoryId && <p className="text-xs text-red-500">{errors.categoryId.message}</p>}
               </div>
 
               <div className="space-y-2">
-                <Label>Product Type</Label>
+                <Label className="text-stone-700">{t("productType")}</Label>
                 <Select value={watchedType} onValueChange={(val) => setValue("type", val)}>
-                  <SelectTrigger><SelectValue /></SelectTrigger>
+                  <SelectTrigger className="border-stone-300 focus:ring-amber-600"><SelectValue /></SelectTrigger>
                   <SelectContent>
                     {Object.entries(PRODUCT_TYPES).map(([key, conf]) => (
                       <SelectItem key={key} value={key}>
-                        <div className="flex items-center gap-2"><conf.icon size={16} /> {conf.label}</div>
+                        <div className="flex items-center gap-2"><conf.icon size={16} /> {t(conf.labelKey)}</div>
                       </SelectItem>
                     ))}
                   </SelectContent>
                 </Select>
-                <p className="text-xs text-muted-foreground">Sets specific fields like Storage for Beds.</p>
+                <p className="text-xs text-stone-500">{t("productTypeHint")}</p>
               </div>
 
               <div className="space-y-2">
-                <Label>Slug</Label>
-                <Input {...register("slug")} />
+                <Label className="text-stone-700">{t("slug")}</Label>
+                <Input {...register("slug")} className="border-stone-300 focus-visible:ring-amber-600" />
                 {errors.slug && <p className="text-xs text-red-500">{errors.slug.message}</p>}
               </div>
             </CardContent>
           </Card>
 
           {/* Pricing & Stock */}
-          <Card>
-            <CardHeader><CardTitle>Pricing & Stock</CardTitle></CardHeader>
+          <Card className="border-stone-200 rounded-2xl shadow-sm">
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2 text-stone-900">
+                <Tag size={18} className="text-amber-700" /> {t("pricingStock")}
+              </CardTitle>
+            </CardHeader>
             <CardContent className="grid grid-cols-2 gap-4">
-              <div className="space-y-2"><Label>Base Price (€)</Label><Input type="number" step="0.01" {...register("price", { valueAsNumber: true })} /></div>
-              <div className="space-y-2"><Label>Total Stock</Label><Input type="number" {...register("stock", { valueAsNumber: true })} /></div>
+              <div className="space-y-2">
+                <Label className="text-stone-700">{t("basePrice")}</Label>
+                <Input type="number" step="0.01" {...register("price", { valueAsNumber: true })} className="border-stone-300 focus-visible:ring-amber-600" />
+              </div>
+              <div className="space-y-2">
+                <Label className="text-stone-700">{t("totalStock")}</Label>
+                <Input type="number" {...register("stock", { valueAsNumber: true })} className="border-stone-300 focus-visible:ring-amber-600" />
+              </div>
             </CardContent>
           </Card>
 
           {/* Dimensions */}
-          <Card>
-            <CardHeader><CardTitle>Base Dimensions</CardTitle></CardHeader>
+          <Card className="border-stone-200 rounded-2xl shadow-sm">
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2 text-stone-900">
+                <Ruler size={18} className="text-amber-700" /> {t("baseDimensions")}
+              </CardTitle>
+              <CardDescription className="text-stone-500">{t("dimensions")}</CardDescription>
+            </CardHeader>
             <CardContent className="grid grid-cols-3 gap-2">
-              <Input placeholder="W" type="number" {...register("width")} />
-              <Input placeholder="H" type="number" {...register("height")} />
-              <Input placeholder="D" type="number" {...register("depth")} />
+              <div className="space-y-1"><Label className="text-xs text-stone-500">W</Label><Input placeholder="W" type="number" {...register("width")} className="border-stone-300 focus-visible:ring-amber-600" /></div>
+              <div className="space-y-1"><Label className="text-xs text-stone-500">H</Label><Input placeholder="H" type="number" {...register("height")} className="border-stone-300 focus-visible:ring-amber-600" /></div>
+              <div className="space-y-1"><Label className="text-xs text-stone-500">D</Label><Input placeholder="D" type="number" {...register("depth")} className="border-stone-300 focus-visible:ring-amber-600" /></div>
             </CardContent>
           </Card>
 
           {/* Media */}
-          <Card>
-            <CardHeader><CardTitle>Media</CardTitle></CardHeader>
-            <CardContent className="space-y-4">
+          <Card className="border-stone-200 rounded-2xl shadow-sm">
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2 text-stone-900">
+                <ImageIcon size={18} className="text-amber-700" /> {t("media")}
+              </CardTitle>
+            </CardHeader>
+            <CardContent className="space-y-5">
               <div className="space-y-2">
-                <Label>Base Images</Label>
+                <Label className="text-stone-700">{t("baseImages")}</Label>
                 <ImageUpload value={watchedImages} onChange={(url) => setValue("images", [...watchedImages, url])} onRemove={(url) => setValue("images", watchedImages.filter((i) => i !== url))} />
               </div>
               <div className="space-y-2">
-                <Label>3D Model</Label>
+                <Label className="text-stone-700">{t("3dModel")}</Label>
+                <p className="text-xs text-stone-500">{t("upload3dDesc")}</p>
                 <FileUpload value={watchedModelUrl} onChange={(url) => setValue("modelUrl", url)} onRemove={() => setValue("modelUrl", "")} />
               </div>
-              <div className="space-y-2 rounded-xl border border-amber-200 bg-amber-50/50 p-3">
-                <Label className="flex items-center gap-2 text-amber-800"><Wand2 size={16} /> AI Mask</Label>
+              <div className="space-y-2 rounded-xl border border-amber-200 bg-amber-50/50 p-4">
+                <Label className="flex items-center gap-2 text-amber-800"><Wand2 size={16} /> {t("aiMask")}</Label>
                 <ImageUpload value={watchedMaskImage ? [watchedMaskImage] : []} onChange={(url) => setValue("maskImage", url)} onRemove={() => setValue("maskImage", "")} />
               </div>
             </CardContent>

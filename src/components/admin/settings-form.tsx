@@ -24,6 +24,7 @@ interface SettingsFormProps {
 
 export function SettingsForm({ initialData }: SettingsFormProps) {
   const [loading, setLoading] = useState(false);
+  const [stripeOn, setStripeOn] = useState(initialData.stripeEnabled);
 
   const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
@@ -109,8 +110,8 @@ export function SettingsForm({ initialData }: SettingsFormProps) {
                         <CardDescription className="text-stone-500">Configure how you accept payments.</CardDescription>
                     </CardHeader>
                     <CardContent className="space-y-4">
-                        <div className={`p-4 border rounded-xl flex items-center justify-between transition-colors ${
-                          initialData.stripeEnabled
+                        <div className={`p-4 border rounded-xl flex items-center justify-between transition-all duration-300 ${
+                          stripeOn
                             ? "border-emerald-200 bg-emerald-50/30"
                             : "border-orange-200 bg-orange-50/30"
                         }`}>
@@ -118,18 +119,18 @@ export function SettingsForm({ initialData }: SettingsFormProps) {
                                 <div className="h-10 w-14 bg-white border border-stone-200 rounded-lg flex items-center justify-center font-bold text-stone-700 italic">Stripe</div>
                                 <div>
                                     <div className="font-bold text-sm text-stone-900">Credit Card (Stripe)</div>
-                                    <div className={`text-xs font-medium ${initialData.stripeEnabled ? "text-emerald-600" : "text-orange-600"}`}>
-                                      {initialData.stripeEnabled ? "Active" : "Disabled — Order Request Mode"}
+                                    <div className={`text-xs font-medium transition-colors duration-300 ${stripeOn ? "text-emerald-600" : "text-orange-600"}`}>
+                                      {stripeOn ? "✓ Active" : "Disabled — Order Request Mode"}
                                     </div>
                                 </div>
                              </div>
-                             <Switch name="stripeEnabled" defaultChecked={initialData.stripeEnabled} />
+                             <Switch name="stripeEnabled" checked={stripeOn} onCheckedChange={setStripeOn} />
                         </div>
                     </CardContent>
                 </Card>
 
-                <Card className={`rounded-2xl shadow-sm border ${
-                  initialData.stripeEnabled
+                <Card className={`rounded-2xl shadow-sm border transition-all duration-300 ${
+                  stripeOn
                     ? "border-stone-200"
                     : "border-orange-200 bg-orange-50/30"
                 }`}>
@@ -145,10 +146,10 @@ export function SettingsForm({ initialData }: SettingsFormProps) {
                         </CardDescription>
                     </CardHeader>
                     <CardContent>
-                        <div className="flex items-center gap-3 rounded-xl border border-dashed border-stone-300 bg-stone-50 p-4 text-sm text-stone-600">
+                        <div className="flex items-center gap-3 rounded-xl border border-dashed border-stone-300 bg-stone-50 p-4 text-sm text-stone-600 transition-all duration-300">
                           <Lock size={16} className="shrink-0 text-stone-400" />
                           <span>
-                            {initialData.stripeEnabled
+                            {stripeOn
                               ? "Stripe is active. Customers can pay online via card, Apple Pay, or Google Pay."
                               : "Stripe is off. Customers will submit order requests instead of paying online. IBAN and installation payment options are still available."}
                           </span>
