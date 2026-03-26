@@ -9,46 +9,104 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import ImageUpload from "@/components/ui/image-upload";
 import FileUpload from "@/components/ui/file-upload";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { createProduct, updateProduct } from "@/server/actions/products";
+import type { ProductInput } from "@/server/actions/products";
 import { toast } from "sonner";
 import { useTranslations } from "next-intl";
 import { Plus, Trash2, Box, Layers, Globe, Wand2, Bed, Armchair, Lamp, Utensils } from "lucide-react";
+import { useForm } from "react-hook-form";
+import { zodResolver } from "@hookform/resolvers/zod";
+import { z } from "zod";
 
+/* ─── Constants ─── */
 const LOCALES = ["en", "tr", "de", "bg"] as const;
-type Locale = typeof LOCALES[number];
+type Locale = (typeof LOCALES)[number];
+type LocalizedString = Record<Locale, string>;
 
-// ÜRÜN TİPLERİ VE İKONLARI
+const LOCALE_LABELS: Record<Locale, string> = { en: "EN", tr: "TR", de: "DE", bg: "BG" };
+
 const PRODUCT_TYPES = {
   furniture: { label: "General Furniture", icon: Box },
   sofa: { label: "Sofa / Armchair", icon: Armchair },
   bed: { label: "Bed / Mattress", icon: Bed },
   kitchen: { label: "Kitchen Unit", icon: Utensils },
   lighting: { label: "Lighting", icon: Lamp },
-  decoration: { label: "Decoration", icon: Box }
+  decoration: { label: "Decoration", icon: Box },
 };
 
 type ProductTypeKey = keyof typeof PRODUCT_TYPES;
 
+/* ─── Zod Schema ─── */
+const localizedNameSchema = z.object({
+  en: z.string().min(1, "English name is required"),
+  tr: z.string(),
+  de: z.string(),
+  bg: z.string(),
+});
+
+const localizedDescSchema = z.object({
+  en: z.string(),
+  tr: z.string(),
+  de: z.string(),
+  bg: z.string(),
+});
+
+const productFormSchema = z.object({
+  name: localizedNameSchema,
+  description: localizedDescSchema,
+  longDescription: localizedDescSchema,
+  slug: z.string().min(1, "Slug is required"),
+  price: z.number().min(0),
+  stock: z.number().min(0),
+  categoryId: z.string().min(1, "Category is required"),
+  type: z.string(),
+  width: z.string(),
+  height: z.string(),
+  depth: z.string(),
+  images: z.array(z.string()),
+  modelUrl: z.string(),
+  maskImage: z.string(),
+});
+
+type ProductFormValues = z.infer<typeof productFormSchema>;
+
+/* ─── Helpers ─── */
+const emptyLocalized = (): LocalizedString => ({ en: "", tr: "", de: "", bg: "" });
+
+function parseLocalized(val: unknown): LocalizedString {
+  if (!val) return emptyLocalized();
+  if (typeof val === "string") return { ...emptyLocalized(), en: val };
+  const obj = val as Record<string, string>;
+  return { en: obj.en || "", tr: obj.tr || "", de: obj.de || "", bg: obj.bg || "" };
+}
+
+function slugify(str: string): string {
+  return str
+    .toLowerCase()
+    .trim()
+    .replace(/[^\w\s-]/g, "")
+    .replace(/[\s_]+/g, "-")
+    .replace(/-+/g, "-")
+    .replace(/^-|-$/g, "");
+}
+
+/* ─── Variant Types ─── */
 type VariantAttributes = {
-  color?: string;
-  colorCode?: string;
+  color: string;
   material?: string;
-  // Detaylı Boyutlar
   width?: string;
   height?: string;
   depth?: string;
-  // Tipe Özel Alanlar
   fabricType?: string;
-  storage?: boolean; // Baza
+  storage?: boolean;
   headboardHeight?: string;
-  // Index signature
   [key: string]: string | number | boolean | undefined;
 };
 
 type Variant = {
   id?: string;
-  names: Record<string, string>;
+  names: LocalizedString;
   price: number;
   stock: number;
   images: string[];
@@ -56,96 +114,90 @@ type Variant = {
   isOpen?: boolean;
 };
 
+/* ─── Component ─── */
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
-export default function ProductForm({ initialData, categories }: { initialData?: any; categories: any[]; }) {
+export default function ProductForm({ initialData, categories }: { initialData?: any; categories: any[] }) {
   const t = useTranslations("Admin");
-  const [loading, setLoading] = useState(false);
 
-  // --- STATE ---
-  const [names, setNames] = useState<Record<string, string>>(initialData?.name || { en: "", tr: "", de: "", bg: "" });
-  const [descriptions, setDescriptions] = useState<Record<string, string>>(initialData?.description || { en: "", tr: "", de: "", bg: "" });
-  const [longDescriptions, setLongDescriptions] = useState<Record<string, string>>(initialData?.longDescription || { en: "", tr: "", de: "", bg: "" });
-  
-  const [slug, setSlug] = useState(initialData?.slug || "");
-  const [price, setPrice] = useState(initialData ? initialData.price / 100 : 0);
-  const [stock, setStock] = useState(initialData?.stock || 0);
-  const [categoryId, setCategoryId] = useState(initialData?.categoryId || "");
-  
-  // Ürün Tipi (Varsayılan furniture)
-  const [productType, setProductType] = useState<ProductTypeKey>(initialData?.type || "furniture");
+  /* ── React Hook Form ── */
+  const form = useForm<ProductFormValues>({
+    resolver: zodResolver(productFormSchema),
+    defaultValues: {
+      name: parseLocalized(initialData?.name),
+      description: parseLocalized(initialData?.description),
+      longDescription: parseLocalized(initialData?.longDescription),
+      slug: initialData?.slug || "",
+      price: initialData ? initialData.price / 100 : 0,
+      stock: initialData?.stock || 0,
+      categoryId: initialData?.categoryId || "",
+      type: initialData?.type || "furniture",
+      width: initialData?.width ? String(initialData.width) : "",
+      height: initialData?.height ? String(initialData.height) : "",
+      depth: initialData?.depth ? String(initialData.depth) : "",
+      images: initialData?.images || [],
+      modelUrl: initialData?.modelUrl || "",
+      maskImage: initialData?.maskImage || "",
+    },
+  });
 
-  // Ana Boyutlar
-  const [width, setWidth] = useState(initialData?.width || "");
-  const [height, setHeight] = useState(initialData?.height || "");
-  const [depth, setDepth] = useState(initialData?.depth || "");
+  const {
+    register,
+    handleSubmit,
+    setValue,
+    watch,
+    formState: { errors, isSubmitting },
+  } = form;
 
-  const [images, setImages] = useState<string[]>(initialData?.images || []);
-  const [modelUrl, setModelUrl] = useState<string>(initialData?.modelUrl || "");
-  const [maskImage, setMaskImage] = useState<string>(initialData?.maskImage || "");
+  // Auto-slug from English name (new products only)
+  const nameEn = watch("name.en");
+  useEffect(() => {
+    if (!initialData?.id && nameEn) {
+      setValue("slug", slugify(nameEn), { shouldValidate: true });
+    }
+  }, [nameEn, initialData?.id, setValue]);
 
+  // Watched values for controlled components
+  const watchedImages = watch("images");
+  const watchedModelUrl = watch("modelUrl");
+  const watchedMaskImage = watch("maskImage");
+  const watchedCategoryId = watch("categoryId");
+  const watchedType = watch("type") as ProductTypeKey;
+  const watchedWidth = watch("width");
+  const watchedHeight = watch("height");
+  const watchedDepth = watch("depth");
+  const watchedPrice = watch("price");
+
+  /* ── Variants (manual state) ── */
   const [variants, setVariants] = useState<Variant[]>(
-    initialData?.variants 
+    initialData?.variants
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
       ? initialData.variants.map((v: any) => ({
           id: v.id,
-          names: v.name || { en: "", tr: "" },
+          names: parseLocalized(v.name),
           price: v.price / 100,
           stock: v.stock,
           images: Array.isArray(v.images) ? v.images : [],
-          attributes: v.attributes || {},
-          isOpen: false
-        })) 
+          attributes: { color: "#000000", ...v.attributes },
+          isOpen: false,
+        }))
       : []
   );
 
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    setLoading(true);
-
-    const formData = new FormData();
-    formData.append("names", JSON.stringify(names));
-    formData.append("descriptions", JSON.stringify(descriptions));
-    formData.append("longDescriptions", JSON.stringify(longDescriptions));
-    formData.append("slug", slug);
-    formData.append("price", String(price));
-    formData.append("stock", String(stock));
-    if (categoryId) formData.append("categoryId", categoryId);
-    formData.append("type", productType);
-    if (width) formData.append("width", String(width));
-    if (height) formData.append("height", String(height));
-    if (depth) formData.append("depth", String(depth));
-    formData.append("images", JSON.stringify(images));
-    if (modelUrl) formData.append("modelUrl", modelUrl);
-    if (maskImage) formData.append("maskImage", maskImage);
-    
-    // eslint-disable-next-line @typescript-eslint/no-unused-vars
-    const cleanVariants = variants.map(({ isOpen, ...rest }) => rest);
-    formData.append("variants", JSON.stringify(cleanVariants));
-
-    const result = initialData
-      ? await updateProduct(initialData.id, formData)
-      : await createProduct(formData);
-
-    if (result?.error) {
-      toast.error(result.error);
-    } else {
-      toast.success(initialData ? "Product Updated" : "Product Created");
-    }
-    setLoading(false);
-  };
-
   const addVariant = () => {
-    setVariants([...variants, { 
-        names: { en: "", tr: "", de: "", bg: "" }, 
-        price: price, 
-        stock: 10, 
-        images: [], 
-        attributes: { 
-            color: "", colorCode: "#000000", material: "",
-            width: width || "", height: height || "", depth: depth || "" 
-        }, 
-        isOpen: true 
-    }]);
+    setVariants([
+      ...variants,
+      {
+        names: emptyLocalized(),
+        price: watchedPrice,
+        stock: 10,
+        images: [],
+        attributes: {
+          color: "#000000", material: "",
+          width: watchedWidth || "", height: watchedHeight || "", depth: watchedDepth || "",
+        },
+        isOpen: true,
+      },
+    ]);
   };
 
   const updateVariantAttr = (index: number, key: string, val: string | number | boolean) => {
@@ -154,194 +206,292 @@ export default function ProductForm({ initialData, categories }: { initialData?:
     setVariants(newV);
   };
 
+  /* ── Submit ── */
+  const onSubmit = async (data: ProductFormValues) => {
+    // eslint-disable-next-line @typescript-eslint/no-unused-vars
+    const cleanVariants = variants.map(({ isOpen, ...rest }) => rest);
+
+    const input: ProductInput = {
+      name: data.name,
+      description: data.description,
+      longDescription: data.longDescription,
+      slug: data.slug,
+      price: data.price,
+      stock: data.stock,
+      categoryId: data.categoryId,
+      type: data.type as ProductInput["type"],
+      width: data.width ? Number(data.width) : null,
+      height: data.height ? Number(data.height) : null,
+      depth: data.depth ? Number(data.depth) : null,
+      images: data.images,
+      modelUrl: data.modelUrl || null,
+      maskImage: data.maskImage || null,
+      variants: cleanVariants,
+    };
+
+    const result = initialData
+      ? await updateProduct(initialData.id, input)
+      : await createProduct(input);
+
+    if (result?.error) {
+      toast.error(result.error);
+    } else {
+      toast.success(initialData ? "Product Updated" : "Product Created");
+    }
+  };
+
   return (
-    <form onSubmit={handleSubmit} className="space-y-8 max-w-6xl pb-20">
-       <div className="flex items-center justify-between sticky top-0 bg-white/90 backdrop-blur z-50 py-4 border-b">
-         <h2 className="text-3xl font-bold tracking-tight">{initialData ? t('edit') : t('create')} Product</h2>
-         <div className="flex gap-2">
-            <Button type="button" variant="outline" onClick={() => window.history.back()}>Cancel</Button>
-            <Button type="submit" disabled={loading} className="bg-slate-900 text-white hover:bg-slate-800">{loading ? "Saving..." : t('save')}</Button>
-         </div>
+    <form onSubmit={handleSubmit(onSubmit)} className="max-w-6xl space-y-8 pb-20">
+      {/* Sticky Header */}
+      <div className="sticky top-0 z-50 flex items-center justify-between border-b bg-white/90 py-4 backdrop-blur">
+        <h2 className="text-3xl font-bold tracking-tight">
+          {initialData ? t("edit") : t("create")} Product
+        </h2>
+        <div className="flex gap-2">
+          <Button type="button" variant="outline" onClick={() => globalThis.history.back()}>
+            Cancel
+          </Button>
+          <Button type="submit" disabled={isSubmitting} className="bg-slate-900 text-white hover:bg-slate-800">
+            {isSubmitting ? "Saving..." : t("save")}
+          </Button>
+        </div>
       </div>
 
-      <div className="grid gap-8 grid-cols-1 lg:grid-cols-3">
-        
-        {/* SOL KOLON */}
-        <div className="lg:col-span-2 space-y-6">
-            
-            {/* ÇOKLU DİL İÇERİK (MANUEL) */}
-            <Card>
-                <CardHeader><CardTitle className="flex items-center gap-2"><Globe size={18}/> Product Content</CardTitle></CardHeader>
-                <CardContent>
-                    <Tabs defaultValue="tr">
-                        <TabsList className="grid w-full grid-cols-4 mb-4">
-                            {LOCALES.map(loc => <TabsTrigger key={loc} value={loc} className="uppercase">{loc}</TabsTrigger>)}
-                        </TabsList>
-                        {LOCALES.map(loc => (
-                            <TabsContent key={loc} value={loc} className="space-y-4 animate-in fade-in slide-in-from-left-2">
-                                <div className="space-y-2">
-                                    <Label>Product Name ({loc.toUpperCase()})</Label>
-                                    <Input value={names[loc] || ""} onChange={(e) => setNames({...names, [loc]: e.target.value})} placeholder="e.g. Modern Sofa" />
-                                </div>
-                                <div className="space-y-2">
-                                    <Label>Short Description</Label>
-                                    <Textarea value={descriptions[loc] || ""} onChange={(e) => setDescriptions({...descriptions, [loc]: e.target.value})} rows={2} />
-                                </div>
-                                <div className="space-y-2">
-                                    <Label>Detailed Story</Label>
-                                    <Textarea value={longDescriptions[loc] || ""} onChange={(e) => setLongDescriptions({...longDescriptions, [loc]: e.target.value})} rows={5} />
-                                </div>
-                            </TabsContent>
+      <div className="grid grid-cols-1 gap-8 lg:grid-cols-3">
+        {/* ─── LEFT COLUMN: Localized Content ─── */}
+        <div className="space-y-6 lg:col-span-2">
+          <Card>
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2">
+                <Globe size={18} /> Product Content
+              </CardTitle>
+            </CardHeader>
+            <CardContent>
+              <Tabs defaultValue="en">
+                <TabsList className="mb-4 grid w-full grid-cols-4">
+                  {LOCALES.map((loc) => (
+                    <TabsTrigger key={loc} value={loc} className="uppercase">
+                      {LOCALE_LABELS[loc]}
+                    </TabsTrigger>
+                  ))}
+                </TabsList>
+                {LOCALES.map((loc) => (
+                  <TabsContent key={loc} value={loc} className="space-y-4 animate-in fade-in slide-in-from-left-2">
+                    <div className="space-y-2">
+                      <Label>
+                        Product Name ({LOCALE_LABELS[loc]})
+                        {loc === "en" && <span className="ml-1 text-red-500">*</span>}
+                      </Label>
+                      <Input {...register(`name.${loc}` as const)} placeholder="e.g. Modern Sofa" />
+                      {loc === "en" && errors.name?.en && (
+                        <p className="text-xs text-red-500">{errors.name.en.message}</p>
+                      )}
+                    </div>
+                    <div className="space-y-2">
+                      <Label>Short Description ({LOCALE_LABELS[loc]})</Label>
+                      <Textarea {...register(`description.${loc}` as const)} rows={2} />
+                    </div>
+                    <div className="space-y-2">
+                      <Label>Detailed Story ({LOCALE_LABELS[loc]})</Label>
+                      <Textarea {...register(`longDescription.${loc}` as const)} rows={5} />
+                    </div>
+                  </TabsContent>
+                ))}
+              </Tabs>
+            </CardContent>
+          </Card>
+
+          {/* Variants */}
+          <Card>
+            <CardHeader className="flex flex-row items-center justify-between">
+              <CardTitle className="flex items-center gap-2"><Layers size={18} /> Variants & Options</CardTitle>
+              <Button type="button" onClick={addVariant} variant="outline" size="sm"><Plus size={16} className="mr-1" /> Add Variant</Button>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              {variants.map((variant, index) => (
+                <div key={index} className="group relative space-y-5 rounded-xl border border-slate-200 bg-white p-5 shadow-sm">
+                  <div className="flex items-center justify-between">
+                    <span className="text-xs font-bold uppercase tracking-wider text-slate-400">Variant #{index + 1}</span>
+                    <Button type="button" variant="ghost" size="icon" onClick={() => setVariants(variants.filter((_, i) => i !== index))} className="h-8 w-8 text-red-500 hover:bg-red-50"><Trash2 size={16} /></Button>
+                  </div>
+
+                  {/* ── Variant Localized Names (Tabs) ── */}
+                  <div className="rounded-lg border border-slate-100 bg-slate-50/50 p-3">
+                    <Label className="mb-2 flex items-center gap-1.5 text-[10px] uppercase tracking-wider text-muted-foreground">
+                      <Globe size={12} /> Variant Name
+                    </Label>
+                    <Tabs defaultValue="en" className="w-full">
+                      <TabsList className="mb-2 grid w-full grid-cols-4">
+                        {LOCALES.map((loc) => (
+                          <TabsTrigger key={loc} value={loc} className="h-6 text-[10px] uppercase">{LOCALE_LABELS[loc]}</TabsTrigger>
                         ))}
+                      </TabsList>
+                      {LOCALES.map((loc) => (
+                        <TabsContent key={loc} value={loc}>
+                          <Input
+                            placeholder={`Variant name (${LOCALE_LABELS[loc]})`}
+                            className="h-9 bg-white"
+                            value={variant.names[loc] || ""}
+                            onChange={(e) => { const newV = [...variants]; newV[index].names = { ...newV[index].names, [loc]: e.target.value }; setVariants(newV); }}
+                          />
+                        </TabsContent>
+                      ))}
                     </Tabs>
-                </CardContent>
-            </Card>
+                  </div>
 
-            <Card>
-                <CardHeader className="flex flex-row items-center justify-between">
-                    <CardTitle className="flex items-center gap-2"><Layers size={18}/> Variants & Options</CardTitle>
-                    <Button type="button" onClick={addVariant} variant="outline" size="sm"><Plus size={16} className="mr-1"/> Add Variant</Button>
-                </CardHeader>
-                <CardContent className="space-y-4">
-                    {variants.map((variant, index) => (
-                        <div key={index} className="border rounded-lg p-5 space-y-5 bg-slate-50 relative group">
-                            <div className="absolute top-4 right-4">
-                                <Button type="button" variant="ghost" size="icon" onClick={() => setVariants(variants.filter((_, i) => i !== index))} className="text-red-500 hover:bg-red-100"><Trash2 size={16}/></Button>
-                            </div>
-                            <span className="text-xs font-bold uppercase text-slate-400">Variant #{index + 1}</span>
+                  {/* ── 3D Color Hex Code ── */}
+                  <div className="rounded-lg border border-violet-200 bg-violet-50/60 p-3">
+                    <Label className="mb-2 flex items-center gap-1.5 text-xs font-semibold text-violet-800">
+                      <Box size={14} /> Color Hex Code (For 3D Model)
+                    </Label>
+                    <div className="flex items-center gap-3">
+                      <div
+                        className="h-10 w-10 shrink-0 rounded-lg border-2 border-violet-300 shadow-inner"
+                        style={{ backgroundColor: variant.attributes.color || "#000000" }}
+                      />
+                      <div className="relative h-10 w-10 shrink-0 cursor-pointer overflow-hidden rounded-lg border border-violet-200">
+                        <input
+                          type="color"
+                          className="absolute -left-2 -top-2 h-16 w-16 cursor-pointer p-0"
+                          value={variant.attributes.color || "#000000"}
+                          onChange={(e) => updateVariantAttr(index, "color", e.target.value)}
+                        />
+                      </div>
+                      <Input
+                        className="h-10 flex-1 font-mono text-sm"
+                        placeholder="#b05c45"
+                        value={variant.attributes.color || ""}
+                        onChange={(e) => updateVariantAttr(index, "color", e.target.value)}
+                      />
+                    </div>
+                    <p className="mt-1.5 text-[10px] text-violet-600">This hex code will be used for 3D model dynamic color rendering.</p>
+                  </div>
 
-                            {/* 1. RENK & MATERYAL */}
-                            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                                <div className="space-y-2">
-                                    <Label>Color</Label>
-                                    <div className="flex gap-2">
-                                        <div className="relative w-10 h-10 rounded-md border overflow-hidden shrink-0 cursor-pointer shadow-sm">
-                                            <input type="color" className="absolute -top-2 -left-2 w-16 h-16 p-0 cursor-pointer" 
-                                                value={variant.attributes.colorCode || "#000000"} 
-                                                onChange={(e) => updateVariantAttr(index, 'colorCode', e.target.value)} 
-                                            />
-                                        </div>
-                                        <Input placeholder="Color Name (e.g. Navy Blue)" value={variant.attributes.color} onChange={(e) => updateVariantAttr(index, 'color', e.target.value)}/>
-                                    </div>
-                                </div>
-                                <div className="space-y-2">
-                                    <Label>Material / Fabric</Label>
-                                    <Input placeholder="e.g. Velvet, Oak Wood" value={variant.attributes.material} onChange={(e) => updateVariantAttr(index, 'material', e.target.value)}/>
-                                </div>
-                            </div>
+                  {/* Material */}
+                  <div className="space-y-2">
+                    <Label>Material / Fabric</Label>
+                    <Input placeholder="e.g. Velvet, Oak Wood" value={variant.attributes.material || ""} onChange={(e) => updateVariantAttr(index, "material", e.target.value)} />
+                  </div>
 
-                            {/* 2. AYRIŞTIRILMIŞ BOYUTLAR */}
-                            <div className="space-y-2">
-                                <Label className="text-xs text-muted-foreground uppercase tracking-wide">Variant Dimensions (If different from base)</Label>
-                                <div className="grid grid-cols-3 gap-2">
-                                    <div className="relative"><span className="absolute left-2 top-1.5 text-xs text-slate-400 font-bold">W</span><Input className="pl-6" placeholder="Width" value={variant.attributes.width || ""} onChange={(e) => updateVariantAttr(index, 'width', e.target.value)} /></div>
-                                    <div className="relative"><span className="absolute left-2 top-1.5 text-xs text-slate-400 font-bold">H</span><Input className="pl-6" placeholder="Height" value={variant.attributes.height || ""} onChange={(e) => updateVariantAttr(index, 'height', e.target.value)} /></div>
-                                    <div className="relative"><span className="absolute left-2 top-1.5 text-xs text-slate-400 font-bold">D</span><Input className="pl-6" placeholder="Depth" value={variant.attributes.depth || ""} onChange={(e) => updateVariantAttr(index, 'depth', e.target.value)} /></div>
-                                </div>
-                            </div>
+                  {/* Variant Dimensions */}
+                  <div className="space-y-2">
+                    <Label className="text-xs uppercase tracking-wide text-muted-foreground">Variant Dimensions (If different from base)</Label>
+                    <div className="grid grid-cols-3 gap-2">
+                      <div className="relative"><span className="absolute left-2 top-1.5 text-xs font-bold text-slate-400">W</span><Input className="pl-6" placeholder="Width" value={variant.attributes.width || ""} onChange={(e) => updateVariantAttr(index, "width", e.target.value)} /></div>
+                      <div className="relative"><span className="absolute left-2 top-1.5 text-xs font-bold text-slate-400">H</span><Input className="pl-6" placeholder="Height" value={variant.attributes.height || ""} onChange={(e) => updateVariantAttr(index, "height", e.target.value)} /></div>
+                      <div className="relative"><span className="absolute left-2 top-1.5 text-xs font-bold text-slate-400">D</span><Input className="pl-6" placeholder="Depth" value={variant.attributes.depth || ""} onChange={(e) => updateVariantAttr(index, "depth", e.target.value)} /></div>
+                    </div>
+                  </div>
 
-                            {/* 3. DİNAMİK ALANLAR (Ürün Tipine Göre) */}
-                            {productType === 'bed' && (
-                                <div className="p-3 bg-blue-50/50 rounded border border-blue-100 grid grid-cols-2 gap-4 animate-in fade-in">
-                                    <div className="space-y-2">
-                                        <Label className="text-blue-900">Headboard Height</Label>
-                                        <Input placeholder="e.g. 120cm" value={variant.attributes.headboardHeight || ""} onChange={(e) => updateVariantAttr(index, 'headboardHeight', e.target.value)} />
-                                    </div>
-                                    <div className="flex items-center gap-2 mt-8">
-                                        <input type="checkbox" id={`storage-${index}`} checked={!!variant.attributes.storage} onChange={(e) => updateVariantAttr(index, 'storage', e.target.checked)} className="w-4 h-4" />
-                                        <Label htmlFor={`storage-${index}`} className="cursor-pointer text-blue-900">Has Storage (Baza)?</Label>
-                                    </div>
-                                </div>
-                            )}
+                  {/* Dynamic Fields (Product Type) */}
+                  {watchedType === "bed" && (
+                    <div className="grid grid-cols-2 gap-4 rounded-lg border border-blue-100 bg-blue-50/50 p-3 animate-in fade-in">
+                      <div className="space-y-2">
+                        <Label className="text-blue-900">Headboard Height</Label>
+                        <Input placeholder="e.g. 120cm" value={variant.attributes.headboardHeight || ""} onChange={(e) => updateVariantAttr(index, "headboardHeight", e.target.value)} />
+                      </div>
+                      <div className="mt-8 flex items-center gap-2">
+                        <input type="checkbox" id={`storage-${index}`} checked={!!variant.attributes.storage} onChange={(e) => updateVariantAttr(index, "storage", e.target.checked)} className="h-4 w-4" />
+                        <Label htmlFor={`storage-${index}`} className="cursor-pointer text-blue-900">Has Storage (Baza)?</Label>
+                      </div>
+                    </div>
+                  )}
 
-                            {productType === 'sofa' && (
-                                <div className="p-3 bg-orange-50/50 rounded border border-orange-100 grid grid-cols-2 gap-4 animate-in fade-in">
-                                    <div className="space-y-2">
-                                        <Label className="text-orange-900">Fabric Type</Label>
-                                        <Input placeholder="e.g. Linen, Leather" value={variant.attributes.fabricType || ""} onChange={(e) => updateVariantAttr(index, 'fabricType', e.target.value)} />
-                                    </div>
-                                </div>
-                            )}
+                  {watchedType === "sofa" && (
+                    <div className="grid grid-cols-2 gap-4 rounded-lg border border-orange-100 bg-orange-50/50 p-3 animate-in fade-in">
+                      <div className="space-y-2">
+                        <Label className="text-orange-900">Fabric Type</Label>
+                        <Input placeholder="e.g. Linen, Leather" value={variant.attributes.fabricType || ""} onChange={(e) => updateVariantAttr(index, "fabricType", e.target.value)} />
+                      </div>
+                    </div>
+                  )}
 
-                            {/* 4. FİYAT & STOK & RESİM */}
-                            <div className="grid grid-cols-3 gap-4 pt-2 border-t">
-                                <div className="space-y-1"><Label>Price (€)</Label><Input type="number" value={variant.price} onChange={(e) => { const newV = [...variants]; newV[index].price = parseFloat(e.target.value); setVariants(newV); }} /></div>
-                                <div className="space-y-1"><Label>Stock</Label><Input type="number" value={variant.stock} onChange={(e) => { const newV = [...variants]; newV[index].stock = parseInt(e.target.value); setVariants(newV); }} /></div>
-                                <div className="space-y-1"><Label>Images</Label><ImageUpload value={variant.images} onChange={(url) => { const newV = [...variants]; newV[index].images = [...newV[index].images, url]; setVariants(newV); }} onRemove={(url) => { const newV = [...variants]; newV[index].images = variant.images.filter(i=>i!==url); setVariants(newV); }} /></div>
-                            </div>
-                            
-                            {/* DİL İSİMLERİ (Varyasyon İçin) */}
-                            <div className="grid grid-cols-2 gap-2 mt-2 border-t pt-2">
-                                {LOCALES.map(loc => (
-                                    <div key={loc}><Label className="text-[10px] text-muted-foreground uppercase">{loc} Variant Name</Label><Input className="h-7 text-xs bg-white" placeholder="Name" value={variant.names[loc] || ""} onChange={(e) => { const newV = [...variants]; newV[index].names[loc] = e.target.value; setVariants(newV); }} /></div>
-                                ))}
-                            </div>
-                        </div>
-                    ))}
-                </CardContent>
-            </Card>
+                  {/* Price & Stock & Images */}
+                  <div className="grid grid-cols-3 gap-4 border-t pt-3">
+                    <div className="space-y-1"><Label className="text-xs">Price (€)</Label><Input type="number" value={variant.price} onChange={(e) => { const newV = [...variants]; newV[index].price = parseFloat(e.target.value); setVariants(newV); }} /></div>
+                    <div className="space-y-1"><Label className="text-xs">Stock</Label><Input type="number" value={variant.stock} onChange={(e) => { const newV = [...variants]; newV[index].stock = parseInt(e.target.value); setVariants(newV); }} /></div>
+                    <div className="space-y-1"><Label className="text-xs">Images</Label><ImageUpload value={variant.images} onChange={(url) => { const newV = [...variants]; newV[index].images = [...newV[index].images, url]; setVariants(newV); }} onRemove={(url) => { const newV = [...variants]; newV[index].images = variant.images.filter(i => i !== url); setVariants(newV); }} /></div>
+                  </div>
+                </div>
+              ))}
+            </CardContent>
+          </Card>
         </div>
 
-        {/* SAĞ KOLON: Ayarlar */}
+        {/* ─── RIGHT COLUMN: Universal Settings ─── */}
         <div className="space-y-6">
-            <Card>
-                <CardContent className="p-6 space-y-4">
-                    <div className="space-y-2">
-                        <Label>Category</Label>
-                        <Select value={categoryId} onValueChange={setCategoryId}>
-                            <SelectTrigger><SelectValue placeholder="Select" /></SelectTrigger>
-                            <SelectContent>{categories.map((c) => (<SelectItem key={c.id} value={c.id}>{c.name?.en || c.name?.tr || "Category"}</SelectItem>))}</SelectContent>
-                        </Select>
-                    </div>
-                    
-                    {/* ÜRÜN TİPİ (ÖZELLİKLERİ DEĞİŞTİRİR) */}
-                    <div className="space-y-2">
-                        <Label>Product Type</Label>
-                        <Select value={productType} onValueChange={(val) => setProductType(val as ProductTypeKey)}>
-                            <SelectTrigger><SelectValue /></SelectTrigger>
-                            <SelectContent>
-                                {Object.entries(PRODUCT_TYPES).map(([key, conf]) => (
-                                    <SelectItem key={key} value={key}>
-                                        <div className="flex items-center gap-2"><conf.icon size={16}/> {conf.label}</div>
-                                    </SelectItem>
-                                ))}
-                            </SelectContent>
-                        </Select>
-                        <p className="text-xs text-muted-foreground">Sets specific fields like Storage for Beds.</p>
-                    </div>
+          {/* Category + Type + Slug */}
+          <Card>
+            <CardContent className="space-y-4 p-6">
+              <div className="space-y-2">
+                <Label>Category <span className="text-red-500">*</span></Label>
+                <Select value={watchedCategoryId} onValueChange={(val) => setValue("categoryId", val, { shouldValidate: true })}>
+                  <SelectTrigger><SelectValue placeholder="Select" /></SelectTrigger>
+                  <SelectContent>{categories.map((c) => (<SelectItem key={c.id} value={c.id}>{c.name?.en || c.name?.tr || "Category"}</SelectItem>))}</SelectContent>
+                </Select>
+                {errors.categoryId && <p className="text-xs text-red-500">{errors.categoryId.message}</p>}
+              </div>
 
-                    <div className="space-y-2">
-                        <Label>Slug</Label>
-                        <Input value={slug} onChange={(e) => setSlug(e.target.value)} />
-                    </div>
-                </CardContent>
-            </Card>
+              <div className="space-y-2">
+                <Label>Product Type</Label>
+                <Select value={watchedType} onValueChange={(val) => setValue("type", val)}>
+                  <SelectTrigger><SelectValue /></SelectTrigger>
+                  <SelectContent>
+                    {Object.entries(PRODUCT_TYPES).map(([key, conf]) => (
+                      <SelectItem key={key} value={key}>
+                        <div className="flex items-center gap-2"><conf.icon size={16} /> {conf.label}</div>
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+                <p className="text-xs text-muted-foreground">Sets specific fields like Storage for Beds.</p>
+              </div>
 
-            <Card>
-                <CardHeader><CardTitle>Pricing & Stock</CardTitle></CardHeader>
-                <CardContent className="grid grid-cols-2 gap-4">
-                     <div className="space-y-2"><Label>Base Price (€)</Label><Input type="number" step="0.01" value={price} onChange={(e) => setPrice(parseFloat(e.target.value))} /></div>
-                     <div className="space-y-2"><Label>Total Stock</Label><Input type="number" value={stock} onChange={(e) => setStock(parseInt(e.target.value))} /></div>
-                </CardContent>
-            </Card>
+              <div className="space-y-2">
+                <Label>Slug</Label>
+                <Input {...register("slug")} />
+                {errors.slug && <p className="text-xs text-red-500">{errors.slug.message}</p>}
+              </div>
+            </CardContent>
+          </Card>
 
-            <Card>
-                <CardHeader><CardTitle>Base Dimensions</CardTitle></CardHeader>
-                <CardContent className="grid grid-cols-3 gap-2">
-                     <Input placeholder="W" type="number" value={width} onChange={(e) => setWidth(e.target.value)} />
-                     <Input placeholder="H" type="number" value={height} onChange={(e) => setHeight(e.target.value)} />
-                     <Input placeholder="D" type="number" value={depth} onChange={(e) => setDepth(e.target.value)} />
-                </CardContent>
-            </Card>
+          {/* Pricing & Stock */}
+          <Card>
+            <CardHeader><CardTitle>Pricing & Stock</CardTitle></CardHeader>
+            <CardContent className="grid grid-cols-2 gap-4">
+              <div className="space-y-2"><Label>Base Price (€)</Label><Input type="number" step="0.01" {...register("price", { valueAsNumber: true })} /></div>
+              <div className="space-y-2"><Label>Total Stock</Label><Input type="number" {...register("stock", { valueAsNumber: true })} /></div>
+            </CardContent>
+          </Card>
 
-            <Card>
-                <CardHeader><CardTitle>Media</CardTitle></CardHeader>
-                <CardContent className="space-y-4">
-                    <div className="space-y-2"><Label>Base Images</Label><ImageUpload value={images} onChange={(url) => setImages([...images, url])} onRemove={(url) => setImages(images.filter((i) => i !== url))} /></div>
-                    <div className="space-y-2"><Label>3D Model</Label><FileUpload value={modelUrl} onChange={setModelUrl} onRemove={() => setModelUrl("")} /></div>
-                    <div className="space-y-2 p-3 bg-blue-50 rounded border border-blue-100"><Label className="flex items-center gap-2 text-blue-700"><Wand2 size={16}/> AI Mask</Label><ImageUpload value={maskImage ? [maskImage] : []} onChange={(url) => setMaskImage(url)} onRemove={() => setMaskImage("")} /></div>
-                </CardContent>
-            </Card>
+          {/* Dimensions */}
+          <Card>
+            <CardHeader><CardTitle>Base Dimensions</CardTitle></CardHeader>
+            <CardContent className="grid grid-cols-3 gap-2">
+              <Input placeholder="W" type="number" {...register("width")} />
+              <Input placeholder="H" type="number" {...register("height")} />
+              <Input placeholder="D" type="number" {...register("depth")} />
+            </CardContent>
+          </Card>
+
+          {/* Media */}
+          <Card>
+            <CardHeader><CardTitle>Media</CardTitle></CardHeader>
+            <CardContent className="space-y-4">
+              <div className="space-y-2">
+                <Label>Base Images</Label>
+                <ImageUpload value={watchedImages} onChange={(url) => setValue("images", [...watchedImages, url])} onRemove={(url) => setValue("images", watchedImages.filter((i) => i !== url))} />
+              </div>
+              <div className="space-y-2">
+                <Label>3D Model</Label>
+                <FileUpload value={watchedModelUrl} onChange={(url) => setValue("modelUrl", url)} onRemove={() => setValue("modelUrl", "")} />
+              </div>
+              <div className="space-y-2 rounded border border-blue-100 bg-blue-50 p-3">
+                <Label className="flex items-center gap-2 text-blue-700"><Wand2 size={16} /> AI Mask</Label>
+                <ImageUpload value={watchedMaskImage ? [watchedMaskImage] : []} onChange={(url) => setValue("maskImage", url)} onRemove={() => setValue("maskImage", "")} />
+              </div>
+            </CardContent>
+          </Card>
         </div>
       </div>
     </form>

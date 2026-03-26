@@ -6,39 +6,42 @@ import { z } from "zod";
 import { eq } from "drizzle-orm";
 import { revalidatePath } from "next/cache";
 
-// Şema: İsim ve Açıklama artık JSON string olarak geliyor
-const categorySchema = z.object({
-  slug: z.string().min(2),
-  image: z.string().optional(),
-  // JSON.parse ile string'den objeye çeviriyoruz
-  names: z.string().transform((str) => {
-    try { return JSON.parse(str); } catch { return {}; }
-  }),
-  descriptions: z.string().transform((str) => {
-    try { return JSON.parse(str); } catch { return {}; }
-  }),
+const localizedStringSchema = z.object({
+  en: z.string().min(1, "English name is required"),
+  tr: z.string().optional().default(""),
+  de: z.string().optional().default(""),
+  bg: z.string().optional().default(""),
 });
 
-export async function createCategory(formData: FormData) {
-  const rawData = {
-    names: formData.get("names"),
-    slug: formData.get("slug"),
-    descriptions: formData.get("descriptions"),
-    image: formData.get("image"),
-  };
+const localizedDescriptionSchema = z.object({
+  en: z.string().optional().default(""),
+  tr: z.string().optional().default(""),
+  de: z.string().optional().default(""),
+  bg: z.string().optional().default(""),
+});
 
-  const validated = categorySchema.safeParse(rawData);
+const categoryInputSchema = z.object({
+  name: localizedStringSchema,
+  description: localizedDescriptionSchema,
+  slug: z.string().min(2),
+  image: z.string().optional(),
+});
+
+export type CategoryInput = z.infer<typeof categoryInputSchema>;
+
+export async function createCategory(input: CategoryInput) {
+  const validated = categoryInputSchema.safeParse(input);
   if (!validated.success) return { success: false, error: "Invalid data" };
 
   try {
     await db.insert(categories).values({
-      name: validated.data.names,       // JSONB olarak kaydet
-      description: validated.data.descriptions, // JSONB olarak kaydet
+      name: validated.data.name as Record<string, string>,
+      description: validated.data.description as Record<string, string>,
       slug: validated.data.slug,
       image: validated.data.image || null,
     });
     revalidatePath("/admin/categories");
-    revalidatePath("/"); 
+    revalidatePath("/");
     return { success: true };
   } catch (error) {
     console.error("Create Category Error:", error);
@@ -46,27 +49,20 @@ export async function createCategory(formData: FormData) {
   }
 }
 
-export async function updateCategory(id: string, formData: FormData) {
-  const rawData = {
-    names: formData.get("names"),
-    slug: formData.get("slug"),
-    descriptions: formData.get("descriptions"),
-    image: formData.get("image"),
-  };
-
-  const validated = categorySchema.safeParse(rawData);
+export async function updateCategory(id: string, input: CategoryInput) {
+  const validated = categoryInputSchema.safeParse(input);
   if (!validated.success) return { success: false, error: "Invalid data" };
 
   try {
     await db.update(categories)
       .set({
-        name: validated.data.names,
-        description: validated.data.descriptions,
+        name: validated.data.name as Record<string, string>,
+        description: validated.data.description as Record<string, string>,
         slug: validated.data.slug,
         image: validated.data.image || null,
       })
       .where(eq(categories.id, id));
-      
+
     revalidatePath("/admin/categories");
     revalidatePath("/");
     return { success: true };
