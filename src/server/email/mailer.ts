@@ -7,11 +7,11 @@ export type SendEmailResult =
 const resend = new Resend(process.env.RESEND_API_KEY);
 
 export function getFromEmail() {
-  return process.env.EMAIL_FROM || "Intense Design <onboarding@resend.dev>";
+  return process.env.RESEND_FROM_EMAIL || process.env.EMAIL_FROM || "Intense Design <onboarding@resend.dev>";
 }
 
 export function getAdminEmail() {
-  return process.env.ADMIN_EMAIL || "a.furkanakar2017@gmail.com";
+  return process.env.RESEND_TO_ADMIN || process.env.ADMIN_EMAIL || "a.furkanakar2017@gmail.com";
 }
 
 export async function sendEmail(args: {
