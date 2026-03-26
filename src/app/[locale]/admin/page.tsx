@@ -5,7 +5,7 @@ import { Button } from "@/components/ui/button";
 import { DollarSign, Package, ShoppingBag, AlertTriangle, ArrowRight } from "lucide-react";
 import { db } from "@/server/db";
 import { orders, products } from "@/server/db/schema";
-import { count, sum, desc, gt, lt, and, eq } from "drizzle-orm";
+import { count, sum, desc, gt, lt, and, eq, sql } from "drizzle-orm";
 import { Link } from "@/lib/i18n/routing";
 import { DashboardActions } from "@/components/admin/dashboard-actions";
 import { getTranslations } from "next-intl/server";
@@ -19,6 +19,12 @@ export default async function AdminDashboardPage() {
   const [activeProductsResult] = await db.select({ count: count() }).from(products).where(gt(products.stock, 0));
   const [lowStockResult] = await db.select({ count: count() }).from(products).where(and(gt(products.stock, 0), lt(products.stock, 5)));
   const [ordersResult] = await db.select({ count: count() }).from(orders);
+
+  // Stock utilization: products with stock > 0 vs total products
+  const [totalProductsResult] = await db.select({ count: count() }).from(products);
+  const totalProducts = totalProductsResult.count || 0;
+  const inStockProducts = activeProductsResult.count || 0;
+  const stockUtilization = totalProducts > 0 ? Math.round((inStockProducts / totalProducts) * 100) : 0;
 
   const recentOrders = await db.query.orders.findMany({
     orderBy: [desc(orders.createdAt)],
@@ -133,10 +139,10 @@ export default async function AdminDashboardPage() {
                 <div className="space-y-2">
                     <div className="flex items-center justify-between text-sm">
                         <span className="font-medium text-stone-700">{t('stockUtilization')}</span>
-                        <span className="text-stone-500">85%</span>
+                        <span className="text-stone-500">{stockUtilization}% ({inStockProducts}/{totalProducts})</span>
                     </div>
                     <div className="h-2.5 bg-stone-100 rounded-full overflow-hidden">
-                        <div className="h-full bg-amber-600 w-[85%] rounded-full transition-all" />
+                        <div className="h-full bg-amber-600 rounded-full transition-all" style={{ width: `${stockUtilization}%` }} />
                     </div>
                 </div>
 
