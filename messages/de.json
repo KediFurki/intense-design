@@ -178,6 +178,8 @@
     "total": "Gesamt",
     "continue": "Weiter",
     "placeOrder": "Bestellung abschließen",
+    "submitOrderRequest": "Bestellanfrage senden",
+    "orderRequestHint": "Online-Zahlung ist derzeit nicht verfügbar. Ihre Bestellung wird als Anfrage übermittelt und wir kontaktieren Sie zur Zahlungsabwicklung.",
     "processing": "Wird verarbeitet...",
     "securePayment": "Sichere verschlüsselte Zahlung",
     "cartEmpty": "Der Warenkorb ist leer.",
@@ -347,7 +349,9 @@
     "viewDetails": "Bestelldetails ansehen",
     "myOrders": "Meine Bestellungen",
     "continueShopping": "Weiter einkaufen",
-    "autoRedirectHint": "Wenn Sie auf dieser Seite bleiben, können Sie über die obigen Buttons zu Ihren Bestelldetails wechseln."
+    "autoRedirectHint": "Wenn Sie auf dieser Seite bleiben, können Sie über die obigen Buttons zu Ihren Bestelldetails wechseln.",
+    "orderRequestTitle": "Bestellanfrage gesendet",
+    "orderRequestDesc": "Ihre Bestellanfrage ist eingegangen. Wir werden Sie in Kürze kontaktieren, um Zahlung und Lieferung zu besprechen."
   },
     "CheckoutSuccess": {
       "title": "Zahlung erfolgreich",

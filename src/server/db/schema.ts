@@ -59,6 +59,7 @@ export const settings = pgTable("settings", {
   supportEmail: text("support_email").default("support@example.com").notNull(),
   currency: text("currency").default("EUR").notNull(),
   maintenanceMode: boolean("maintenance_mode").default(false).notNull(),
+  stripeEnabled: boolean("stripe_enabled").default(false).notNull(),
   updatedAt: timestamp("updated_at").defaultNow(),
 });
 

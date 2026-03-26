@@ -93,6 +93,10 @@ export default async function CheckoutPendingPage({
     depositPercent: order.depositPercent,
   });
 
+  const isOrderRequest =
+    order.paymentMethod === "cash_on_installation" &&
+    order.paymentStatus === "awaiting_payment";
+
   const badges = getOrderStatusBadges(ui, (k, values) =>
     orderStatusT(k, values as Record<string, string | number>)
   );
@@ -113,7 +117,7 @@ export default async function CheckoutPendingPage({
       <div className="max-w-2xl mx-auto px-4 py-10">
         <Card className="rounded-2xl shadow-sm">
           <CardHeader>
-            <CardTitle className="text-2xl">{t("title")}</CardTitle>
+            <CardTitle className="text-2xl">{isOrderRequest ? t("orderRequestTitle") : t("title")}</CardTitle>
           </CardHeader>
 
           <CardContent className="space-y-5">
@@ -135,7 +139,9 @@ export default async function CheckoutPendingPage({
 
             <Separator />
 
-            {String(ui.paymentMethod) === "iban" ? (
+            {isOrderRequest ? (
+              <p className="text-slate-600">{t("orderRequestDesc")}</p>
+            ) : String(ui.paymentMethod) === "iban" ? (
               <>
                 <p className="text-slate-600">{t("ibanIntro")}</p>
 

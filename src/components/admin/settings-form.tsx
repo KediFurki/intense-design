@@ -18,6 +18,7 @@ interface SettingsFormProps {
     supportEmail: string;
     currency: string;
     maintenanceMode: boolean;
+    stripeEnabled: boolean;
   };
 }
 
@@ -101,32 +102,71 @@ export function SettingsForm({ initialData }: SettingsFormProps) {
                 </Card>
             </TabsContent>
 
-            <TabsContent value="payment">
+            <TabsContent value="payment" className="space-y-6">
                 <Card className="border-stone-200 rounded-2xl shadow-sm">
                     <CardHeader>
                         <CardTitle className="flex items-center gap-2 text-stone-900"><CreditCard size={18} className="text-amber-700"/> Payment Gateways</CardTitle>
                         <CardDescription className="text-stone-500">Configure how you accept payments.</CardDescription>
                     </CardHeader>
                     <CardContent className="space-y-4">
-                        <div className="p-4 border border-stone-200 rounded-xl flex items-center justify-between bg-stone-50/50">
+                        <div className={`p-4 border rounded-xl flex items-center justify-between transition-colors ${
+                          initialData.stripeEnabled
+                            ? "border-emerald-200 bg-emerald-50/30"
+                            : "border-orange-200 bg-orange-50/30"
+                        }`}>
                              <div className="flex items-center gap-3">
                                 <div className="h-10 w-14 bg-white border border-stone-200 rounded-lg flex items-center justify-center font-bold text-stone-700 italic">Stripe</div>
                                 <div>
                                     <div className="font-bold text-sm text-stone-900">Credit Card (Stripe)</div>
-                                    <div className="text-xs text-emerald-600 font-medium">Connected & Active</div>
+                                    <div className={`text-xs font-medium ${initialData.stripeEnabled ? "text-emerald-600" : "text-orange-600"}`}>
+                                      {initialData.stripeEnabled ? "Active" : "Disabled — Order Request Mode"}
+                                    </div>
                                 </div>
                              </div>
-                             <Button variant="outline" size="sm" type="button" disabled className="border-stone-300 cursor-pointer">Manage</Button>
+                             <Switch name="stripeEnabled" defaultChecked={initialData.stripeEnabled} />
                         </div>
-                        <div className="p-4 border border-stone-200 rounded-xl flex items-center justify-between opacity-60">
+                    </CardContent>
+                </Card>
+
+                <Card className={`rounded-2xl shadow-sm border ${
+                  initialData.stripeEnabled
+                    ? "border-stone-200"
+                    : "border-orange-200 bg-orange-50/30"
+                }`}>
+                    <CardHeader>
+                        <CardTitle className="flex items-center gap-2 text-stone-900">
+                          <Store size={18} className="text-amber-700"/>
+                          Order Request Mode
+                        </CardTitle>
+                        <CardDescription className="text-stone-500">
+                          When Stripe is disabled, customers can still browse and add items to cart,
+                          but checkout becomes an &quot;Order Request&quot; — no online payment is processed.
+                          You&apos;ll receive the request and can arrange payment manually.
+                        </CardDescription>
+                    </CardHeader>
+                    <CardContent>
+                        <div className="flex items-center gap-3 rounded-xl border border-dashed border-stone-300 bg-stone-50 p-4 text-sm text-stone-600">
+                          <Lock size={16} className="shrink-0 text-stone-400" />
+                          <span>
+                            {initialData.stripeEnabled
+                              ? "Stripe is active. Customers can pay online via card, Apple Pay, or Google Pay."
+                              : "Stripe is off. Customers will submit order requests instead of paying online. IBAN and installation payment options are still available."}
+                          </span>
+                        </div>
+                    </CardContent>
+                </Card>
+
+                <Card className="border-stone-200 rounded-2xl shadow-sm opacity-60">
+                    <CardContent className="p-4">
+                        <div className="flex items-center justify-between">
                              <div className="flex items-center gap-3">
                                 <div className="h-10 w-14 bg-white border border-stone-200 rounded-lg flex items-center justify-center font-bold text-blue-800 italic">PayPal</div>
                                 <div>
                                     <div className="font-bold text-sm text-stone-900">PayPal</div>
-                                    <div className="text-xs text-stone-400">Currently Disabled</div>
+                                    <div className="text-xs text-stone-400">Coming Soon</div>
                                 </div>
                              </div>
-                             <Button variant="outline" size="sm" type="button" className="border-stone-300 cursor-pointer">Connect</Button>
+                             <Button variant="outline" size="sm" type="button" disabled className="border-stone-300 cursor-pointer">Connect</Button>
                         </div>
                     </CardContent>
                 </Card>

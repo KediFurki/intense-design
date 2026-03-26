@@ -178,6 +178,8 @@
     "total": "Toplam",
     "continue": "Devam Et",
     "placeOrder": "Siparişi Tamamla",
+    "submitOrderRequest": "Sipariş İsteği Oluştur",
+    "orderRequestHint": "Online ödeme şu anda kullanılamıyor. Siparişiniz istek olarak gönderilecek ve ödeme düzenlemesi için sizinle iletişime geçeceğiz.",
     "processing": "İşleniyor...",
     "securePayment": "Güvenli şifrelenmiş ödeme",
     "cartEmpty": "Sepet boş.",
@@ -347,7 +349,9 @@
     "viewDetails": "Sipariş detaylarını görüntüle",
     "myOrders": "Siparişlerim",
     "continueShopping": "Alışverişe devam et",
-    "autoRedirectHint": "Bu sayfada kalırsanız, yukarıdaki butonlardan sipariş detaylarınıza geçebilirsiniz."
+    "autoRedirectHint": "Bu sayfada kalırsanız, yukarıdaki butonlardan sipariş detaylarınıza geçebilirsiniz.",
+    "orderRequestTitle": "Sipariş İsteği Gönderildi",
+    "orderRequestDesc": "Sipariş isteğiniz alınmıştır. Ödeme ve teslimat detayları için en kısa sürede sizinle iletişime geçeceğiz."
   },
     "CheckoutSuccess": {
       "title": "Ödeme başarılı",

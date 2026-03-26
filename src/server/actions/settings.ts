@@ -13,7 +13,8 @@ export async function getSettings() {
         storeName: "Instant Design",
         supportEmail: "support@example.com",
         currency: "EUR",
-        maintenanceMode: false
+        maintenanceMode: false,
+        stripeEnabled: false,
     }).returning();
     return newSettings;
   }
@@ -27,6 +28,7 @@ export async function updateSettings(formData: FormData) {
     const supportEmail = formData.get("supportEmail") as string;
     const currency = formData.get("currency") as string;
     const maintenanceMode = formData.get("maintenanceMode") === "on";
+    const stripeEnabled = formData.get("stripeEnabled") === "on";
 
     const currentSettings = await getSettings();
     
@@ -36,6 +38,7 @@ export async function updateSettings(formData: FormData) {
         supportEmail,
         currency,
         maintenanceMode,
+        stripeEnabled,
         updatedAt: new Date()
       })
       .where(eq(settings.id, currentSettings.id));

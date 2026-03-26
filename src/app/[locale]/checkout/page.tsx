@@ -70,6 +70,7 @@ export default function CheckoutPage() {
   const router = useRouter();
 
   const [isLoading, setIsLoading] = useState(false);
+  const [stripeEnabled, setStripeEnabled] = useState(true);
   const [paymentChoice, setPaymentChoice] =
     useState<PaymentChoice>("stripe_full");
   const [savedAddresses, setSavedAddresses] = useState<SavedAddress[]>([]);
@@ -117,7 +118,24 @@ export default function CheckoutPage() {
       }
     }
 
+    async function loadSettings() {
+      try {
+        const res = await fetch("/api/settings/public");
+        if (res.ok) {
+          const data = (await res.json()) as { stripeEnabled?: boolean };
+          if (mounted) {
+            const enabled = data.stripeEnabled ?? false;
+            setStripeEnabled(enabled);
+            if (!enabled) {
+              setPaymentChoice("cash_on_installation");
+            }
+          }
+        }
+      } catch {}
+    }
+
     loadAddresses();
+    loadSettings();
     return () => {
       mounted = false;
     };
@@ -411,10 +429,11 @@ export default function CheckoutPage() {
             <Card className="rounded-[28px] border border-stone-100 bg-white shadow-sm">
               <CardHeader className="border-b border-stone-100 px-5 py-5 sm:px-8 sm:py-7">
                 <CardTitle className="text-xl font-semibold text-stone-900 sm:text-2xl">
-                  {t("paymentMethod")}
+                  {stripeEnabled ? t("paymentMethod") : t("submitOrderRequest")}
                 </CardTitle>
               </CardHeader>
               <CardContent className="px-5 py-5 sm:px-8 sm:py-8">
+                {stripeEnabled ? (
                 <div className="space-y-3">
                   <Label>{t("paymentMethod")}</Label>
                   <Select value={paymentChoice} onValueChange={(value) => setPaymentChoice(value as PaymentChoice)}>
@@ -450,6 +469,12 @@ export default function CheckoutPage() {
                     </div>
                   ) : null}
                 </div>
+                ) : (
+                <div className="flex items-start gap-3 rounded-2xl border border-amber-200 bg-amber-50/60 px-5 py-5 text-sm leading-6 text-stone-700">
+                  <Truck className="mt-0.5 size-5 shrink-0 text-amber-600" />
+                  <span>{t("orderRequestHint")}</span>
+                </div>
+                )}
               </CardContent>
             </Card>
           </div>
@@ -520,7 +545,7 @@ export default function CheckoutPage() {
                   className="w-full rounded-2xl bg-[#b05c45] py-6 text-base font-semibold text-white shadow-[0_18px_40px_-20px_rgba(176,92,69,0.75)] hover:bg-[#8c4734]"
                   disabled={isLoading}
                 >
-                  {isLoading ? t("processing") : t("placeOrder")}
+                  {isLoading ? t("processing") : stripeEnabled ? t("placeOrder") : t("submitOrderRequest")}
                 </Button>
 
                 <div className="flex items-center justify-center gap-2 text-xs font-medium text-stone-500">

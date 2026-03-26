@@ -178,6 +178,8 @@
     "total": "Total",
     "continue": "Continue",
     "placeOrder": "Place Order",
+    "submitOrderRequest": "Submit Order Request",
+    "orderRequestHint": "Online payment is currently unavailable. Your order will be submitted as a request and we will contact you to arrange payment.",
     "processing": "Processing...",
     "securePayment": "Secure encrypted payment",
     "cartEmpty": "Cart is empty.",
@@ -347,7 +349,9 @@
     "viewDetails": "View order details",
     "myOrders": "My Orders",
     "continueShopping": "Continue shopping",
-    "autoRedirectHint": "If you stay on this page, you can proceed to your order details from the buttons above."
+    "autoRedirectHint": "If you stay on this page, you can proceed to your order details from the buttons above.",
+    "orderRequestTitle": "Order Request Submitted",
+    "orderRequestDesc": "Your order request has been received. We will contact you shortly to arrange payment and delivery details."
   },
     "CheckoutSuccess": {
       "title": "Payment successful",
