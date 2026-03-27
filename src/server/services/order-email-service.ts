@@ -166,20 +166,31 @@ async function safeSend(args: {
   html: string;
   replyTo?: string;
   tag: string;
-}) {
-  const res = await sendEmail({
-    to: args.to,
-    subject: args.subject,
-    html: args.html,
-    replyTo: args.replyTo,
-  });
+}): Promise<{ ok: boolean; error?: string }> {
+  try {
+    console.log(`[email:${args.tag}] sending to ${args.to}...`);
+    const res = await sendEmail({
+      to: args.to,
+      subject: args.subject,
+      html: args.html,
+      replyTo: args.replyTo,
+    });
 
-  if (!res.ok) {
-    console.error(`[email:${args.tag}] failed`, res.error);
+    if (!res.ok) {
+      console.error(`[email:${args.tag}] failed:`, res.error);
+      return { ok: false, error: res.error };
+    }
+
+    console.log(`[email:${args.tag}] sent successfully`);
+    return { ok: true };
+  } catch (err: unknown) {
+    const msg = err instanceof Error ? err.message : "Unknown email error";
+    console.error(`[email:${args.tag}] exception:`, msg);
+    return { ok: false, error: msg };
   }
 }
 
-export async function sendOrderCreatedEmails(args: { orderId: string; locale: string }): Promise<void> {
+export async function sendOrderCreatedEmails(args: { orderId: string; locale: string }): Promise<{ customerOk: boolean; adminOk: boolean; errors: string[] }> {
   const { orderId, locale } = args;
 
   const { order, enriched, addressLine } = await loadOrderSummary(orderId, locale);
@@ -241,20 +252,26 @@ export async function sendOrderCreatedEmails(args: { orderId: string; locale: st
     ${paymentBlock}
   `;
 
-  await safeSend({
+  const errors: string[] = [];
+
+  const customerResult = await safeSend({
     to: order.customerEmail,
     subject: `Order received: ${order.id}`,
     html: wrapEmail("Order received", body),
     tag: "order_created_customer",
   });
+  if (!customerResult.ok && customerResult.error) errors.push(`customer: ${customerResult.error}`);
 
-  await safeSend({
+  const adminResult = await safeSend({
     to: getAdminEmail(),
     subject: `New order: ${order.id}`,
     html: wrapEmail("New order created", body),
     replyTo: order.customerEmail,
     tag: "order_created_admin",
   });
+  if (!adminResult.ok && adminResult.error) errors.push(`admin: ${adminResult.error}`);
+
+  return { customerOk: customerResult.ok, adminOk: adminResult.ok, errors };
 }
 
 export async function sendPaymentUpdatedEmails(args: { orderId: string; locale: string }): Promise<void> {

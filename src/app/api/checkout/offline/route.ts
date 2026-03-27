@@ -107,13 +107,16 @@ export async function POST(req: Request) {
       saveAddress: parsed.saveAddress,
     });
 
+    let emailStatus = { customerOk: false, adminOk: false, errors: [] as string[] };
     try {
-      await sendOrderCreatedEmails({
+      emailStatus = await sendOrderCreatedEmails({
         orderId: created.orderId,
         locale,
       });
     } catch (mailErr: unknown) {
-      console.error("[offline-checkout] email_failed", toMessage(mailErr));
+      const msg = toMessage(mailErr);
+      console.error("[offline-checkout] email_failed", msg);
+      emailStatus.errors.push(msg);
     }
 
     return NextResponse.json({
@@ -121,6 +124,7 @@ export async function POST(req: Request) {
       paymentMethod: parsed.paymentMethod,
       paymentStatus,
       paymentDueAt: paymentDueAt ? paymentDueAt.toISOString() : null,
+      emailSent: emailStatus.customerOk || emailStatus.adminOk,
     });
   } catch (e: unknown) {
     return NextResponse.json({ error: toMessage(e) }, { status: 400 });

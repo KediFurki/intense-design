@@ -7,7 +7,10 @@ export type SendEmailResult =
 const resend = new Resend(process.env.RESEND_API_KEY);
 
 export function getFromEmail() {
-  return process.env.RESEND_FROM_EMAIL || process.env.EMAIL_FROM || "Intense Design <onboarding@resend.dev>";
+  const raw = process.env.RESEND_FROM_EMAIL || process.env.EMAIL_FROM || "";
+  if (raw.includes("<")) return raw; // already formatted: "Name <email>"
+  if (raw) return `Intense Design <${raw}>`;
+  return "Intense Design <onboarding@resend.dev>";
 }
 
 export function getAdminEmail() {
