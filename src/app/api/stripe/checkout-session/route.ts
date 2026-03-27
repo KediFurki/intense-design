@@ -3,6 +3,7 @@ import { z } from "zod";
 import { auth } from "@/auth";
 import { stripe } from "@/server/payments/stripe";
 import { createOrderWithReservation } from "@/server/services/order-service";
+import { sendOrderCreatedEmails } from "@/server/services/order-email-service";
 import { db } from "@/server/db";
 import { orders } from "@/server/db/schema";
 import { eq } from "drizzle-orm";
@@ -122,6 +123,13 @@ export async function POST(req: Request) {
         remainingAmount,
       })
       .where(eq(orders.id, orderId));
+
+    // Send order confirmation emails (non-blocking)
+    try {
+      await sendOrderCreatedEmails({ orderId, locale: parsed.locale });
+    } catch (mailErr: unknown) {
+      console.error("[stripe-checkout] email_failed", mailErr instanceof Error ? mailErr.message : mailErr);
+    }
 
     return NextResponse.json({ url: stripeSession.url, orderId });
   } catch (e: unknown) {

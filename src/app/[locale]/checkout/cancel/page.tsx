@@ -4,19 +4,13 @@ import { eq } from "drizzle-orm";
 import { Link } from "@/lib/i18n/routing";
 import { Button } from "@/components/ui/button";
 import { getTranslations } from "next-intl/server";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Separator } from "@/components/ui/separator";
 import { Badge } from "@/components/ui/badge";
+import { XCircle, ArrowLeft, Home, ShoppingCart } from "lucide-react";
+import { getOrderStatusBadges } from "@/lib/orders/status-ui";
+import { normalizeOrderUiInput } from "@/lib/orders/normalize-order-ui";
 
 type RouteParams = { locale: string };
 type CancelSearchParams = { oid?: string };
-
-type OrderMiniRow = {
-  id: string;
-  status: string | null;
-  paymentMethod: "stripe" | "iban" | "cash_on_installation" | null;
-  paymentStatus: "awaiting_payment" | "paid" | "deposit_paid" | "remaining_due" | "cancelled" | null;
-};
 
 export default async function CheckoutCancelPage({
   params,
@@ -30,79 +24,104 @@ export default async function CheckoutCancelPage({
   const oid = sp?.oid;
 
   const t = await getTranslations("CheckoutCancel");
+  const orderStatusT = await getTranslations("OrderStatus");
 
-  const order: OrderMiniRow | null = oid
-    ? (((await db.query.orders.findFirst({
+  const order = oid
+    ? await db.query.orders.findFirst({
         where: eq(orders.id, oid),
         columns: {
           id: true,
           status: true,
           paymentMethod: true,
           paymentStatus: true,
+          paymentDueAt: true,
+          remainingAmount: true,
+          depositPercent: true,
         },
-      })) as OrderMiniRow | undefined) ?? null)
+      })
     : null;
 
+  const badges = order
+    ? getOrderStatusBadges(
+        normalizeOrderUiInput({
+          status: order.status,
+          paymentStatus: order.paymentStatus,
+          paymentMethod: order.paymentMethod,
+          paymentDueAt: order.paymentDueAt,
+          remainingAmount: order.remainingAmount,
+          depositPercent: order.depositPercent,
+        }),
+        (k, values) => orderStatusT(k, values as Record<string, string | number>)
+      )
+    : [];
+
   return (
-    <div className="min-h-screen bg-slate-50">
-      <div className="max-w-2xl mx-auto px-4 py-10">
-        <Card className="rounded-2xl shadow-sm">
-          <CardHeader>
-            <CardTitle className="text-2xl">{t("title")}</CardTitle>
-          </CardHeader>
+    <div className="min-h-screen bg-[#fffaf3]">
+      <div className="mx-auto max-w-2xl px-4 py-10 sm:py-16">
+        {/* Header icon */}
+        <div className="mb-8 text-center">
+          <div className="mx-auto flex h-20 w-20 items-center justify-center rounded-full bg-gradient-to-br from-red-400 to-red-600 shadow-lg">
+            <XCircle className="size-10 text-white" />
+          </div>
+          <h1 className="mt-5 text-2xl font-bold tracking-tight text-[#4e3629] sm:text-3xl">
+            {t("title")}
+          </h1>
+          <p className="mt-2 text-sm text-[#8b6a52]">{t("desc")}</p>
+        </div>
 
-          <CardContent className="space-y-5">
-            <div className="text-slate-700">{t("cancelIntro")}</div>
-
-            {oid ? (
-              <>
-                <div className="text-slate-700">
-                  {t("orderId")} <b>{oid}</b>
+        {/* Main card */}
+        <div className="overflow-hidden rounded-3xl border border-[#eadfce] bg-white shadow-lg">
+          {oid && (
+            <div className="flex flex-wrap items-center justify-between gap-3 border-b border-[#eadfce] px-6 py-5">
+              <div className="text-sm text-[#8b6a52]">
+                {t("orderId")} <span className="font-semibold text-[#4e3629]">{oid}</span>
+              </div>
+              {badges.length > 0 && (
+                <div className="flex flex-wrap gap-2">
+                  {badges.map((b, idx) => (
+                    <Badge key={idx} variant={b.variant} className="whitespace-nowrap rounded-full">
+                      {b.label}
+                    </Badge>
+                  ))}
                 </div>
+              )}
+            </div>
+          )}
 
-                {order ? (
-                  <div className="flex flex-wrap items-center gap-2">
-                    <Badge className="capitalize">{String(order.status ?? "")}</Badge>
-                    <Badge variant="outline" className="capitalize">
-                      {String(order.paymentStatus ?? "")}
-                    </Badge>
-                    <Badge variant="secondary" className="capitalize">
-                      {String(order.paymentMethod ?? "")}
-                    </Badge>
-                  </div>
-                ) : (
-                  <div className="text-sm text-slate-500">{t("orderNotFoundHint")}</div>
-                )}
-              </>
-            ) : (
-              <div className="text-sm text-slate-500">{t("missingOrderId")}</div>
-            )}
+          {!oid && (
+            <div className="border-b border-[#eadfce]/60 bg-[#fffaf3] px-6 py-4">
+              <p className="text-sm text-[#8b6a52]">{t("missingOrderId")}</p>
+            </div>
+          )}
 
-            <Separator />
-
-            <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
-              <Button asChild className="w-full h-11">
+          {/* Action buttons */}
+          <div className="px-6 py-6">
+            <div className="grid grid-cols-1 gap-3 sm:grid-cols-3">
+              <Button asChild className="h-12 rounded-2xl bg-[#6f4e37] text-white shadow-sm hover:bg-[#5d412e]">
                 <Link locale={locale} href="/checkout">
-                  {t("returnToCheckout")}
+                  <ArrowLeft className="mr-2 size-4" />
+                  {t("returnCheckout")}
                 </Link>
               </Button>
 
-              <Button asChild variant="outline" className="w-full h-11">
-                <Link locale={locale} href="/cart">
-                  {t("backToCart")}
+              <Button asChild variant="outline" className="h-12 rounded-2xl border-[#eadfce] text-[#5c4330] hover:bg-[#fff4e8]">
+                <Link locale={locale} href="/category/all">
+                  <ShoppingCart className="mr-2 size-4" />
+                  {t("backHome")}
                 </Link>
               </Button>
 
-              <Button asChild variant="secondary" className="w-full h-11">
+              <Button asChild variant="outline" className="h-12 rounded-2xl border-[#eadfce] text-[#5c4330] hover:bg-[#fff4e8]">
                 <Link locale={locale} href="/">
+                  <Home className="mr-2 size-4" />
                   {t("continueShopping")}
                 </Link>
               </Button>
             </div>
 
-            <p className="text-xs text-slate-500">{t("retryHint")}</p>
-          </CardContent>
-        </Card>
+            <p className="mt-4 text-center text-xs text-[#b08f74]">{t("hint")}</p>
+          </div>
+        </div>
       </div>
     </div>
   );
