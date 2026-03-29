@@ -8,7 +8,10 @@ if (!process.env.DATABASE_URL) {
 }
 
 export default {
+  dialect: "postgresql",
   schema: "./src/server/db/schema.ts",
   out: "./drizzle",
-  connectionString: process.env.DATABASE_URL,
+  dbCredentials: {
+    url: process.env.DATABASE_URL!,
+  },
 } satisfies Config;
