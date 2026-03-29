@@ -480,5 +480,10 @@
       "depositPaid": "Kapora alındı. Kalan tutar daha sonra tahsil edilecek.",
       "depositPaidRemaining": "Kapora alındı. Kalan: {amount}"
     }
+  },
+  "Maintenance": {
+    "title": "Özel Bir Şey Hazırlıyoruz",
+    "description": "Yeni koleksiyonumuz yakında sizlerle buluşacak. Lütfen daha sonra tekrar ziyaret edin.",
+    "comingSoon": "Çok Yakında"
   }
 }

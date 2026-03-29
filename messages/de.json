@@ -480,5 +480,10 @@
       "depositPaid": "Anzahlung erhalten. Der Restbetrag wird später eingezogen.",
       "depositPaidRemaining": "Anzahlung erhalten. Restbetrag: {amount}"
     }
+  },
+  "Maintenance": {
+    "title": "Wir bereiten etwas Besonderes vor",
+    "description": "Unsere neue Kollektion wird bald verfügbar sein. Bitte schauen Sie später wieder vorbei.",
+    "comingSoon": "Demnächst"
   }
 }

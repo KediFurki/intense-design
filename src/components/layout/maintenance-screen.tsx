@@ -1,4 +1,10 @@
+"use client";
+
+import { useTranslations } from "next-intl";
+
 export default function MaintenanceScreen() {
+  const t = useTranslations("Maintenance");
+
   return (
     <div className="fixed inset-0 z-50 flex flex-col items-center justify-center bg-[#faf7f2] overflow-hidden">
       {/* Decorative background elements */}
@@ -44,18 +50,18 @@ export default function MaintenanceScreen() {
 
         {/* Heading */}
         <h2 className="text-lg font-medium tracking-wide text-[#6f4e37] sm:text-xl">
-          We are preparing something special.
+          {t("title")}
         </h2>
 
         {/* Description */}
         <p className="mt-4 max-w-md text-sm leading-relaxed text-[#8b6a52]/80 sm:text-base">
-          Our new collection will be available soon. Please check back later.
+          {t("description")}
         </p>
 
         {/* Decorative line */}
         <div className="mt-12 flex items-center gap-3 text-xs tracking-[0.3em] uppercase text-[#b08f74]">
           <span className="h-px w-6 bg-[#c9b896]" />
-          Coming Soon
+          {t("comingSoon")}
           <span className="h-px w-6 bg-[#c9b896]" />
         </div>
       </div>

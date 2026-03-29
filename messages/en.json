@@ -480,5 +480,10 @@
       "depositPaid": "Deposit received. Remaining amount will be collected later.",
       "depositPaidRemaining": "Deposit received. Remaining: {amount}"
     }
+  },
+  "Maintenance": {
+    "title": "We Are Preparing Something Special",
+    "description": "Our new collection will be available soon. Please check back later.",
+    "comingSoon": "Coming Soon"
   }
 }

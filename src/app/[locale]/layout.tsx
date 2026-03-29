@@ -59,13 +59,20 @@ export default async function RootLayout({
   const headersList = await headers();
   const pathname = headersList.get("x-pathname") || "";
   const isMaintenanceMode = siteSettings?.maintenanceMode === true;
-  const isExempt = pathname.includes("/admin") || pathname.includes("/login");
+  const isAdmin = session?.user?.role === "admin";
+  const isExempt =
+    isAdmin ||
+    pathname.includes("/admin") ||
+    pathname.includes("/login") ||
+    pathname.includes("/api");
 
   if (isMaintenanceMode && !isExempt) {
     return (
       <html lang={locale} suppressHydrationWarning>
         <body className={inter.className} suppressHydrationWarning>
-          <MaintenanceScreen />
+          <NextIntlClientProvider locale={locale} messages={messages}>
+            <MaintenanceScreen />
+          </NextIntlClientProvider>
         </body>
       </html>
     );
