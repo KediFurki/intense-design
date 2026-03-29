@@ -15,6 +15,7 @@ import { getLocaleValue } from "@/lib/i18n/get-locale-value";
 import { routing } from "@/lib/i18n/routing";
 import { getSettings } from "@/server/actions/settings";
 import MaintenanceScreen from "@/components/layout/maintenance-screen";
+import TawkToWidget from "@/components/chat/tawk-to-widget";
 import { headers } from "next/headers";
 
 const inter = Inter({ subsets: ["latin"] });
@@ -125,6 +126,7 @@ export default async function RootLayout({
           />
           <main>{children}</main>
           <Footer />
+          <TawkToWidget />
           <Toaster />
         </NextIntlClientProvider>
       </body>
