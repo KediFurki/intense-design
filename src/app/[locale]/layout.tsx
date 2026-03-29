@@ -64,6 +64,7 @@ export default async function RootLayout({
     isAdmin ||
     pathname.includes("/admin") ||
     pathname.includes("/login") ||
+    pathname.includes("/auth") ||
     pathname.includes("/api");
 
   if (isMaintenanceMode && !isExempt) {
