@@ -2,6 +2,7 @@ import NextAuth from "next-auth";
 import authConfig from "./auth.config";
 import createMiddleware from "next-intl/middleware";
 import { routing } from "./lib/i18n/routing";
+import { NextResponse } from "next/server";
 
 const { auth } = NextAuth(authConfig);
 const intlMiddleware = createMiddleware(routing);
@@ -34,7 +35,31 @@ export default auth((req) => {
     return Response.redirect(new URL(`/${safeLocale}`, nextUrl));
   }
 
-  return intlMiddleware(req);
+  // Apply intl middleware
+  const intlResponse = intlMiddleware(req);
+
+  // If intl middleware redirects (e.g. missing locale prefix), honour it
+  if (intlResponse.status >= 300 && intlResponse.status < 400) {
+    return intlResponse;
+  }
+
+  // Forward pathname as a request header so server components can read it
+  const requestHeaders = new Headers(req.headers);
+  requestHeaders.set("x-pathname", nextUrl.pathname);
+
+  const response = NextResponse.next({
+    request: { headers: requestHeaders },
+  });
+
+  // Preserve intl middleware headers & cookies
+  intlResponse.headers.forEach((value, key) => {
+    response.headers.set(key, value);
+  });
+  for (const cookie of intlResponse.cookies.getAll()) {
+    response.cookies.set(cookie);
+  }
+
+  return response;
 });
 
 export const config = {

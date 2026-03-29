@@ -52,3 +52,22 @@ export async function updateSettings(formData: FormData) {
     return { success: false, error: "Failed to update settings" };
   }
 }
+
+export async function updateMaintenanceMode(status: boolean) {
+  try {
+    const currentSettings = await getSettings();
+
+    await db
+      .update(settings)
+      .set({ maintenanceMode: status, updatedAt: new Date() })
+      .where(eq(settings.id, currentSettings.id));
+
+    revalidatePath("/admin/settings");
+    revalidatePath("/");
+
+    return { success: true };
+  } catch (error) {
+    console.error("Maintenance Mode Update Error:", error);
+    return { success: false, error: "Failed to update maintenance mode" };
+  }
+}

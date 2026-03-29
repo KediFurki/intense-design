@@ -13,6 +13,9 @@ import { notFound } from "next/navigation";
 import type { Viewport } from "next";
 import { getLocaleValue } from "@/lib/i18n/get-locale-value";
 import { routing } from "@/lib/i18n/routing";
+import { getSettings } from "@/server/actions/settings";
+import MaintenanceScreen from "@/components/layout/maintenance-screen";
+import { headers } from "next/headers";
 
 const inter = Inter({ subsets: ["latin"] });
 
@@ -46,11 +49,27 @@ export default async function RootLayout({
 
   if (!isAppLocale(locale)) notFound();
 
-  const [messages, session, categoryList] = await Promise.all([
+  const [messages, session, categoryList, siteSettings, headersList] = await Promise.all([
     getMessages(),
     auth(),
     db.select().from(categories),
+    getSettings(),
+    headers(),
   ]);
+
+  const isMaintenanceMode = siteSettings?.maintenanceMode === true;
+  const pathname = headersList.get("x-pathname") || "";
+  const isExempt = pathname.includes("/admin") || pathname.includes("/login");
+
+  if (isMaintenanceMode && !isExempt) {
+    return (
+      <html lang={locale} suppressHydrationWarning>
+        <body className={inter.className} suppressHydrationWarning>
+          <MaintenanceScreen />
+        </body>
+      </html>
+    );
+  }
 
   const localizedCategories = categoryList.map((category) => ({
     id: category.id,

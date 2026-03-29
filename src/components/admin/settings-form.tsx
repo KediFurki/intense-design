@@ -9,8 +9,8 @@ import { Switch } from "@/components/ui/switch";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Store, Mail, CreditCard, Bell, Save, Globe, Lock } from "lucide-react";
 import { toast } from "sonner";
-import { updateSettings } from "@/server/actions/settings";
-import { useState } from "react";
+import { updateSettings, updateMaintenanceMode } from "@/server/actions/settings";
+import { useState, useTransition } from "react";
 
 interface SettingsFormProps {
   initialData: {
@@ -25,6 +25,21 @@ interface SettingsFormProps {
 export function SettingsForm({ initialData }: SettingsFormProps) {
   const [loading, setLoading] = useState(false);
   const [stripeOn, setStripeOn] = useState(initialData.stripeEnabled);
+  const [maintenanceOn, setMaintenanceOn] = useState(initialData.maintenanceMode);
+  const [maintenancePending, startMaintenanceTransition] = useTransition();
+
+  const handleMaintenanceToggle = (checked: boolean) => {
+    setMaintenanceOn(checked);
+    startMaintenanceTransition(async () => {
+      const res = await updateMaintenanceMode(checked);
+      if (res.success) {
+        toast.success(checked ? "Maintenance mode enabled" : "Maintenance mode disabled");
+      } else {
+        setMaintenanceOn(!checked);
+        toast.error("Failed to update maintenance mode");
+      }
+    });
+  };
 
   const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
@@ -97,7 +112,12 @@ export function SettingsForm({ initialData }: SettingsFormProps) {
                                 <Label className="text-base text-stone-800">Maintenance Mode</Label>
                                 <div className="text-sm text-stone-500">Close store for customers temporarily.</div>
                             </div>
-                            <Switch name="maintenanceMode" defaultChecked={initialData.maintenanceMode} />
+                            <Switch
+                              name="maintenanceMode"
+                              checked={maintenanceOn}
+                              disabled={maintenancePending}
+                              onCheckedChange={handleMaintenanceToggle}
+                            />
                         </div>
                     </CardContent>
                 </Card>
