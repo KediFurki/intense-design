@@ -70,12 +70,30 @@ export default async function RootLayout({
     pathname.includes("/auth") ||
     pathname.includes("/api");
 
+  // Maintenance mode: non-exempt visitors see the maintenance screen
   if (isMaintenanceMode && !isExempt) {
     return (
       <html lang={locale} suppressHydrationWarning>
         <body className={inter.className} suppressHydrationWarning>
           <NextIntlClientProvider locale={locale} messages={messages}>
             <MaintenanceScreen />
+          </NextIntlClientProvider>
+        </body>
+      </html>
+    );
+  }
+
+  // Maintenance mode + login/auth page: render children WITHOUT header/footer
+  // so unauthenticated visitors can't navigate away via the menu
+  const isLoginRoute =
+    pathname.includes("/login") || pathname.includes("/auth");
+  if (isMaintenanceMode && !isAdmin && isLoginRoute) {
+    return (
+      <html lang={locale} suppressHydrationWarning>
+        <body className={inter.className} suppressHydrationWarning>
+          <NextIntlClientProvider locale={locale} messages={messages}>
+            <main>{children}</main>
+            <Toaster />
           </NextIntlClientProvider>
         </body>
       </html>
