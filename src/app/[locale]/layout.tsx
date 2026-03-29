@@ -49,16 +49,16 @@ export default async function RootLayout({
 
   if (!isAppLocale(locale)) notFound();
 
-  const [messages, session, categoryList, siteSettings, headersList] = await Promise.all([
+  const [messages, session, categoryList, siteSettings] = await Promise.all([
     getMessages(),
     auth(),
     db.select().from(categories),
     getSettings(),
-    headers(),
   ]);
 
-  const isMaintenanceMode = siteSettings?.maintenanceMode === true;
+  const headersList = await headers();
   const pathname = headersList.get("x-pathname") || "";
+  const isMaintenanceMode = siteSettings?.maintenanceMode === true;
   const isExempt = pathname.includes("/admin") || pathname.includes("/login");
 
   if (isMaintenanceMode && !isExempt) {
