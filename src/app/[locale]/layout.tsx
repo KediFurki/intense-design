@@ -57,7 +57,10 @@ export default async function RootLayout({
   ]);
 
   const headersList = await headers();
-  const pathname = headersList.get("x-pathname") || "";
+  const pathname =
+    headersList.get("x-pathname") ||
+    headersList.get("x-invoke-path") ||
+    "";
   const isMaintenanceMode = siteSettings?.maintenanceMode === true;
   const isAdmin = session?.user?.role === "admin";
   const isExempt =

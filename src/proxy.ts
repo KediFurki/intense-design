@@ -43,17 +43,22 @@ export default auth((req) => {
     return intlResponse;
   }
 
-  // Forward pathname as a request header so server components can read it
+  // Build request headers with our custom pathname
   const requestHeaders = new Headers(req.headers);
   requestHeaders.set("x-pathname", nextUrl.pathname);
 
-  const response = NextResponse.next({
-    request: { headers: requestHeaders },
-  });
+  // Preserve the intl middleware's URL rewrite (if any) so locale routing works
+  const rewriteUrl = intlResponse.headers.get("x-middleware-rewrite");
 
-  // Preserve intl middleware headers & cookies
+  const response = rewriteUrl
+    ? NextResponse.rewrite(new URL(rewriteUrl), { request: { headers: requestHeaders } })
+    : NextResponse.next({ request: { headers: requestHeaders } });
+
+  // Copy non-internal headers & cookies from intl middleware
   intlResponse.headers.forEach((value, key) => {
-    response.headers.set(key, value);
+    if (!key.startsWith("x-middleware-")) {
+      response.headers.set(key, value);
+    }
   });
   for (const cookie of intlResponse.cookies.getAll()) {
     response.cookies.set(cookie);
