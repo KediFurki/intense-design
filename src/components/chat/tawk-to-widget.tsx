@@ -4,10 +4,10 @@ import Script from "next/script";
 
 export default function TawkToWidget({ locale }: { locale: string }) {
   const widgetIds: Record<string, string> = {
-    en: "1jktvn1ev",
-    tr: "BURAYA_TR_ID_GELECEK",
-    de: "BURAYA_DE_ID_GELECEK",
-    bg: "BURAYA_BG_ID_GELECEK",
+    en: "1jku0fmm0",
+    tr: "1jku0d82b",
+    de: "1jku0f33o",
+    bg: "1jku0gjt4",
   };
   const currentWidgetId = widgetIds[locale] || widgetIds.en;
 
