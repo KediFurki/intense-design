@@ -126,7 +126,7 @@ export default async function RootLayout({
           />
           <main>{children}</main>
           <Footer />
-          <TawkToWidget />
+          <TawkToWidget locale={locale} />
           <Toaster />
         </NextIntlClientProvider>
       </body>
